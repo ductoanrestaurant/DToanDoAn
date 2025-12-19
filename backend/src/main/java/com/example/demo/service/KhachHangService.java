@@ -29,4 +29,15 @@ public class KhachHangService {
     public void xoaKhachHang(Integer id) {
         khachHangRepository.deleteById(id);
     }
+
+    public void registerNewCustomer(KhachHang kh) {
+        if (khachHangRepository.existsByEmail(kh.getEmail())) {
+            throw new RuntimeException("Email này đã được đăng ký hệ thống!");
+        }
+        khachHangRepository.save(kh);
+    }
+
+    public boolean kiemTraEmailTonTai(String email) {
+    return khachHangRepository.existsByEmail(email);
+}
 }

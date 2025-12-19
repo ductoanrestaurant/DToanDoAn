@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -59,5 +60,18 @@ public class KhachHangController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // 6. Kiểm tra email tồn tại
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        // Gọi thông qua instance service đã được tiêm (injected)
+        boolean exists = khachHangService.kiemTraEmailTonTai(email);
+    
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("exists", exists);
+        response.put("message", exists ? "Email đã tồn tại" : "Email hợp lệ");
+    
+        return ResponseEntity.ok(response);
     }
 }

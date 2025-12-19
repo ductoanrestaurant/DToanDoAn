@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Ban & KhachHang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.delete {
+            background-color: #f44336;
+        }
+        button.delete:hover {
+            background-color: #da190b;
+        }
+        .result {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API - Ban & KhachHang</h1>
+
+    <!-- BAN API -->
+    <div class="section">
+        <h2>🍽️ BAN API</h2>
+        
+        <div class="form-group">
+            <button onclick="getAllBan()">GET - Tất cả bàn</button>
+            <button onclick="getBanByRestaurant()">GET - Bàn theo Restaurant</button>
+            <button onclick="getBanById()">GET - Chi tiết bàn</button>
+        </div>
+
+        <div class="form-group">
+            <label>ID Restaurant:</label>
+            <input type="number" id="idRestaurant" value="1" placeholder="ID Restaurant">
+        </div>
+        <div class="form-group">
+            <label>Mã Bàn:</label>
+            <input type="number" id="maBan" value="1" placeholder="Mã Bàn">
+        </div>
+
+        <div class="form-group">
+            <button onclick="createBan()">POST - Tạo mới bàn</button>
+            <button onclick="updateBan()">PUT - Cập nhật bàn</button>
+            <button class="delete" onclick="deleteBan()">DELETE - Xóa bàn</button>
+        </div>
+
+        <div class="form-group">
+            <label>Tên Bàn:</label>
+            <input type="text" id="tenBan" value="Bàn 1" placeholder="Tên bàn">
+        </div>
+        <div class="form-group">
+            <label>Sức Chứa:</label>
+            <input type="number" id="sucChua" value="6" placeholder="Sức chứa">
+        </div>
+        <div class="form-group">
+            <label>Trạng Thái:</label>
+            <select id="trangThai">
+                <option value="false">Trống (false)</option>
+                <option value="true">Đang sử dụng (true)</option>
+            </select>
+        </div>
+
+        <div class="result" id="banResult">Kết quả sẽ hiển thị ở đây...</div>
+    </div>
+
+    <!-- KHACH HANG API -->
+    <div class="section">
+        <h2>👤 KHACH HANG API</h2>
+        
+        <div class="form-group">
+            <button onclick="getAllKhachHang()">GET - Tất cả khách hàng</button>
+            <button onclick="getKhachHangById()">GET - Chi tiết khách hàng</button>
+        </div>
+
+        <div class="form-group">
+            <label>Mã Tài Khoản:</label>
+            <input type="number" id="maTaiKhoan" value="1" placeholder="Mã Tài Khoản">
+        </div>
+
+        <div class="result" id="khachHangResult">Kết quả sẽ hiển thị ở đây...</div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        // ========== BAN API ==========
+        async function getAllBan() {
+            try {
+                const res = await fetch(`${API_BASE}/ban`);
+                const data = await res.json();
+                document.getElementById('banResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('banResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        async function getBanByRestaurant() {
+            const idRestaurant = document.getElementById('idRestaurant').value;
+            try {
+                const res = await fetch(`${API_BASE}/ban/restaurant/${idRestaurant}`);
+                const data = await res.json();
+                document.getElementById('banResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('banResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        async function getBanById() {
+            const maBan = document.getElementById('maBan').value;
+            const idRestaurant = document.getElementById('idRestaurant').value;
+            try {
+                const res = await fetch(`${API_BASE}/ban/${maBan}/${idRestaurant}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('banResult').textContent = JSON.stringify(data, null, 2);
+                } else {
+                    document.getElementById('banResult').textContent = 'Không tìm thấy bàn!';
+                }
+            } catch (error) {
+                document.getElementById('banResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        async function createBan() {
+            const maBan = document.getElementById('maBan').value;
+            const idRestaurant = document.getElementById('idRestaurant').value;
+            const tenBan = document.getElementById('tenBan').value;
+            const sucChua = document.getElementById('sucChua').value;
+            const trangThai = document.getElementById('trangThai').value === 'true';
+
+            try {
+                const res = await fetch(`${API_BASE}/ban`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: {
+                            maBan: parseInt(maBan),
+                            idRestaurant: parseInt(idRestaurant)
+                        },
+                        tenBan: tenBan,
+                        sucChua: parseInt(sucChua),
+                        trangThai: trangThai
+                    })
+                });
+                const data = await res.json();
+                document.getElementById('banResult').textContent = '✅ Tạo thành công:\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('banResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        async function updateBan() {
+            const maBan = document.getElementById('maBan').value;
+            const idRestaurant = document.getElementById('idRestaurant').value;
+            const tenBan = document.getElementById('tenBan').value;
+            const sucChua = document.getElementById('sucChua').value;
+            const trangThai = document.getElementById('trangThai').value === 'true';
+
+            try {
+                const res = await fetch(`${API_BASE}/ban/${maBan}/${idRestaurant}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tenBan: tenBan,
+                        sucChua: parseInt(sucChua),
+                        trangThai: trangThai
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('banResult').textContent = '✅ Cập nhật thành công:\n' + JSON.stringify(data, null, 2);
+                } else {
+                    document.getElementById('banResult').textContent = 'Không tìm thấy bàn để cập nhật!';
+                }
+            } catch (error) {
+                document.getElementById('banResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        async function deleteBan() {
+            const maBan = document.getElementById('maBan').value;
+            const idRestaurant = document.getElementById('idRestaurant').value;
+            
+            if (!confirm(`Bạn có chắc muốn xóa bàn ${maBan} của restaurant ${idRestaurant}?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/ban/${maBan}/${idRestaurant}`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    document.getElementById('banResult').textContent = '✅ Đã xóa bàn thành công!';
+                } else {
+                    document.getElementById('banResult').textContent = 'Không tìm thấy bàn để xóa!';
+                }
+            } catch (error) {
+                document.getElementById('banResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        // ========== KHACH HANG API ==========
+        async function getAllKhachHang() {
+            try {
+                const res = await fetch(`${API_BASE}/khach-hang`);
+                const data = await res.json();
+                document.getElementById('khachHangResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('khachHangResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+
+        async function getKhachHangById() {
+            const id = document.getElementById('maTaiKhoan').value;
+            try {
+                const res = await fetch(`${API_BASE}/khach-hang/${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('khachHangResult').textContent = JSON.stringify(data, null, 2);
+                } else {
+                    document.getElementById('khachHangResult').textContent = 'Không tìm thấy khách hàng!';
+                }
+            } catch (error) {
+                document.getElementById('khachHangResult').textContent = 'Lỗi: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -17,15 +17,19 @@ public class KhachHang {
     @Column(name = "matkhau")
     private String matKhau;
 
-    @Column(name = "email")
+    @Column(name = "email", unique = true, nullable = false)
     private String email;
 
-
+    @Column(name = "sdt")
     private String sdt;
+
     @Column(name = "hoten")
     private String hoTen;
+    
     @Column(name = "avatar")
     private String avatar;
+    
+    @Column(name = "diachi")
     private String diachi;
 
     @Column(name = "number_log")

@@ -17,7 +17,11 @@ const WelcomHome= () =>{
 
   const handleRegisterPress = () =>{
     router.push('/register');
-  }
+  };
+
+  const handleNvOrder= () =>{
+    router.push('/NvOrder');
+  };
 
   return(
     <ImageBackground
@@ -26,7 +30,7 @@ const WelcomHome= () =>{
       blurRadius={2}
       >
         <View style={{position: "absolute", top: 25, right: 5, flexDirection:"row", backgroundColor: "rgba(21, 140, 225, 0.4)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,}}>
-          <Text style={{color:"#FFFFFF", fontWeight:"bold"}}>NV Order</Text>
+          <Text style={{color:"#FFFFFF", fontWeight:"bold"}} onPress={handleNvOrder}>NV Order</Text>
           <Image source={require("@/assets/images/icon-next.png")}
             style={{ width: 20, height:20, marginLeft: 5,marginRight: -10}}
           />

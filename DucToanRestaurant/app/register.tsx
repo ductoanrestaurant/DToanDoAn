@@ -14,6 +14,35 @@ const RegisterScreen= ()=>{
     const [loading, setLoading] = useState(false);
 
     const [errorMessage, setErrorMessage] = useState('');
+    const [emailError, setEmailError] = useState('');
+
+
+const checkEmailExists = async (inputEmail: string) => {
+    if (!inputEmail) return false;
+
+    // Kiểm tra định dạng Regex trước khi gọi API để tiết kiệm tài nguyên
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inputEmail)) return false;
+
+    try {
+        const response = await axios.get(ENDPOINTS.CHECK_EMAIL, {
+            params: { email: inputEmail } // Gửi lên dưới dạng query string ?email=...
+        });
+
+        if (response.data.exists) {
+            const message = "Email này đã được sử dụng.";
+            setEmailError(message);
+            setErrorMessage(message);
+            return true;
+        } else {
+            setEmailError('');
+            return false;
+        }
+    } catch (error) {
+        console.error("Lỗi kiểm tra email:", error);
+        return false;
+    }
+};
 
 
     const handleRegister = async () => {
@@ -25,6 +54,9 @@ const RegisterScreen= ()=>{
             return;
         }
 
+        const isEmailTaken = await checkEmailExists(email);
+        if (isEmailTaken) return;
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             setErrorMessage('Email không hợp lệ');
@@ -34,7 +66,7 @@ const RegisterScreen= ()=>{
 
         const phoneRegex = /^(0[3|5|7|8|9])([0-9]{8})$/;
         if (!phoneRegex.test(phonenumber)) {
-            setErrorMessage('Số điện thoại không hợp lệ (phải có 10 số)');
+            setErrorMessage('Số điện thoại không hợp lệ!');
             return;
         }
 
@@ -90,11 +122,22 @@ const RegisterScreen= ()=>{
 
             <View style={styles.formContainer}>
                 <TextInput
-                    style={[styles.input, errorMessage.includes('Email') && {borderColor: 'red'}]}
+                    style={[
+                        styles.input,
+                        (errorMessage.includes('Email') ||
+                         errorMessage.includes('sử dụng') ||
+                         emailError !== '') && {borderColor: 'red'}
+                    ]}
                     placeholder="Email"
                     placeholderTextColor="#A9A9A9"
                     value={email}
-                    onChangeText={(text) => { setEmail(text); setErrorMessage(''); }}
+                    onChangeText={(text) => { 
+                        setEmail(text);
+                        setErrorMessage(''); 
+                        
+                        }
+                    }
+                    onBlur={() => checkEmailExists(email)}
                     keyboardType="email-address"
                     autoCapitalize="none"
                 />

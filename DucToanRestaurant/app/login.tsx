@@ -31,16 +31,7 @@ const LoginScreen= ()=>{
             const user = users.find((u: any) => u.email === email && u.matKhau === password);
 
             if (user) {
-                Alert.alert(
-                    "Thành công", 
-                    "Đăng nhập thành công! Chào mừng " + user.hoTen,
-                    [
-                        { 
-                            text: "OK", 
-                            onPress: () => router.replace('/(tabs)') // Chuyển màn sau khi nhấn OK
-                        }
-                    ]
-                )
+                router.replace('/dat-ban')
             } else {
                 Alert.alert("Lỗi", "Email hoặc Mật khẩu không chính xác");
             }
