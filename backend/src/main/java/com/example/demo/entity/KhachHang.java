@@ -3,6 +3,7 @@ package com.example.demo.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "khachhang")
@@ -36,7 +37,7 @@ public class KhachHang {
     private Integer numberLog;
 
     @Column(name = "first_log")
-    private LocalDate firstLog;
+    private LocalDateTime firstLog;
 
     public Integer getMaTaiKhoan() {
         return maTaiKhoan;
@@ -102,11 +103,11 @@ public class KhachHang {
         this.numberLog = numberLog;
     }
 
-    public LocalDate getFirstLog() {
+    public LocalDateTime getFirstLog() {
         return firstLog;
     }
 
-    public void setFirstLog(LocalDate firstLog) {
+    public void setFirstLog(LocalDateTime firstLog) {
         this.firstLog = firstLog;
     }
 }

@@ -16,7 +16,7 @@ import {
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 
-// Định nghĩa interface để sửa lỗi TypeScript (Hình dc2034.png)
+
 interface IBan {
   maBan: number;
   idRestaurant: number;
@@ -43,9 +43,6 @@ const BookingScreen = () => {
 
   const router = useRouter();
   
-  const handleOrderFood = () =>{
-    router.push('/orderFood');
-  };
 
   const handlePickTable = async () => {
     setErrorMessage('');
@@ -60,16 +57,24 @@ const BookingScreen = () => {
     // 2. So sánh thời gian
     if (date.getTime() < minBookingTime.getTime()) {
       setErrorMessage("Vui lòng đặt bàn trước ít nhất 30 phút");
-    return;
-  }
+      return;
+    }
 
   // 3. Nếu hợp lệ, tiến hành gọi API đặt bàn
   try {
-    // Code gọi API của bạn ở đây...
-    Alert.alert("Thành công", `Đã gửi yêu cầu đặt ${selectedTable?.tenBan}`);
+      router.push({
+      pathname: '/orderFood',
+      params:{
+        tableId: selectedTable?.maBan,
+        tableName: selectedTable?.tenBan,
+        bookingTime: date.toISOString()
+      }
+
+    })
+    
   } catch (error) {
-    console.error(error);
-    Alert.alert("Lỗi", "Không thể gửi yêu cầu đặt bàn");
+    console.error("Lỗi chuyển màn hình:", error);
+    setErrorMessage("Có lỗi xảy ra, vui lòng thử lại.");
   }
   }
 
@@ -194,7 +199,7 @@ const BookingScreen = () => {
           { errorMessage !== '' && (<Text style={styles.errorText}>{errorMessage}</Text>)}
 
 
-          <TouchableOpacity style={styles.btnConfirm} onPress={handleOrderFood}>
+          <TouchableOpacity style={styles.btnConfirm} onPress={handlePickTable}>
             <Text style={styles.btnText}>XÁC NHẬN ĐẶT BÀN</Text>
           </TouchableOpacity>
         </View>
