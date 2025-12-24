@@ -3,17 +3,11 @@ import { BASE_URL_IMG } from '@/constants/api';
 import axios from 'axios';
 import {router, Stack, useLocalSearchParams} from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import {Dimensions, ActivityIndicator, FlatList, Image, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Modal, ScrollView } from 'react-native';
+
+
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 
 export interface DanhMuc {
@@ -48,7 +42,17 @@ const MenuScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const BASE_URL_IMAGE = 'http://10.6.61.18:8080/uploads/';
+    const [selectedMonToView, setSelectedMonToView] = useState<SanPham | null>(null);
+    const [viewMon, setViewMon] = useState(false);
+
+
+    // trang thai xem chi tiet 1 mon an
+    const handleOpenDetails = (product: SanPham) => {
+        setSelectedMonToView(product);
+        setViewMon(true);
+    };
+
+    // const BASE_URL_IMAGE = 'http://10.6.61.18:8080/uploads/';
 
     // const { updatedItems, ...restParams } = useLocalSearchParams<{ updatedItems?: string }>();
     //
@@ -157,6 +161,8 @@ const MenuScreen = () => {
         );
     };
 
+    const [activeIndex, setActiveIndex] = useState(0);
+
     // const renderProductItem = ({ item }: { item: SanPham }) => (
     //     <TouchableOpacity style={styles.card}>
     //         <Image
@@ -191,7 +197,7 @@ const MenuScreen = () => {
         // console.log('url image:', fullImageUrl);
 
         return (
-            <TouchableOpacity style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={() => handleOpenDetails(item)}>
                 <Image
                     source={{ uri: fullImageUrl }}
                     style={styles.foodImage}
@@ -279,6 +285,93 @@ const MenuScreen = () => {
                           })}>Xem giỏ hàng</Text>
             </View>
 
+            <Modal animationType="slide" transparent={true} visible={viewMon} onRequestClose={() => setViewMon(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <TouchableOpacity style={styles.closeModalBtn} onPress={()=> {setViewMon(false); setActiveIndex(0)}}>
+                            <Text style={styles.closeModalText}>X</Text>
+                        </TouchableOpacity>
+
+                        {selectedMonToView && (
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                <View style={{ height: 250, width: SCREEN_WIDTH }}>
+                                    <FlatList
+                                        data={selectedMonToView.danhSachAnh}
+                                        horizontal
+                                        pagingEnabled // Quan trọng: Giúp vuốt từng tấm ảnh một
+                                        showsHorizontalScrollIndicator={false}
+                                        keyExtractor={(img, index) => index.toString()}
+                                        getItemLayout={(_, index) => ({
+                                            length: SCREEN_WIDTH,
+                                            offset: SCREEN_WIDTH * index,
+                                            index,
+                                        })}
+                                        onMomentumScrollEnd={(event) => {
+                                            const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                                            setActiveIndex(index);
+                                        }}
+                                        renderItem={({ item: img }) => (
+                                            <Image
+                                                source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }}
+                                                style={{
+                                                    width: SCREEN_WIDTH, // Bạn có thể dùng Dimensions.get('window').width
+                                                    height: 250,
+                                                    borderTopLeftRadius: 25,
+                                                    borderTopRightRadius: 25
+                                                }}
+                                                resizeMode="cover"
+                                            />
+                                        )}
+                                        // Nếu không có ảnh nào, hiển thị ảnh mặc định
+                                        ListEmptyComponent={
+                                            <Image
+                                                source={{ uri: 'https://via.placeholder.com/150' }}
+                                                style={styles.modalImage}
+                                            />
+                                        }
+                                    />
+                                    {selectedMonToView.danhSachAnh?.length > 1 && (
+                                        <View style={styles.imageBadge}>
+                                            <Text style={styles.imageBadgeText}>
+                                                {activeIndex + 1} / {selectedMonToView.danhSachAnh.length}
+                                            </Text>
+                                        </View>
+                                    )}
+
+                                    {/* Indicator: Hiển thị số lượng ảnh (tùy chọn) */}
+                                    {selectedMonToView.danhSachAnh?.length > 1 && (
+                                        <View style={styles.imageBadge}>
+                                            <Text style={styles.imageBadgeText}>
+                                                {activeIndex + 1} / {selectedMonToView.danhSachAnh.length}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={styles.modalBody}>
+                                    <Text style={styles.modalFoodName}>{selectedMonToView.tenSanPham}</Text>
+                                    <Text style={styles.modalCategory}>{selectedMonToView.danhMuc?.tenDanhMuc}</Text>
+                                    <Text style={styles.modalPrice}>{selectedMonToView.gia.toLocaleString('vi-VN')}đ</Text>
+
+                                    <View style={styles.divider} />
+
+                                    <Text style={styles.modalSectionTitle}>Mô tả món ăn</Text>
+                                    <Text style={styles.modalDescription}>{selectedMonToView.moTa || ""}</Text>
+
+                                    <TouchableOpacity
+                                        style={styles.modalAddBtn}
+                                        onPress={() => { AddMonToCard(selectedMonToView);setViewMon(false);}}
+                                    >
+                                        <Text style={styles.modalAddBtnText}>Thêm vào giỏ hàng</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                            </ScrollView>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
         </SafeAreaView>
     );
 };
@@ -317,7 +410,61 @@ const styles = StyleSheet.create({
     price: { fontSize: 16, fontWeight: 'bold', color: '#E44D26' },
     addButton: { backgroundColor: '#FF6600', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center'},
     addButtonText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-    emptyText: { textAlign: 'center', marginTop: 30, color: '#999', fontSize: 16 }
+    emptyText: { textAlign: 'center', marginTop: 30, color: '#999', fontSize: 16 },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        height: '80%', // Chiều cao popup
+        paddingBottom: 20,
+    },
+    closeModalBtn: {
+        position: 'absolute',
+        right: 20,
+        top: 20,
+        zIndex: 10,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    closeModalText: { color: '#fff', fontWeight: 'bold' },
+    modalImage: { width: '100%', height: 250, borderTopLeftRadius: 25, borderTopRightRadius: 25 },
+    modalBody: { padding: 20 },
+    modalFoodName: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+    modalCategory: { fontSize: 14, color: '#FF6600', marginTop: 5 },
+    modalPrice: { fontSize: 22, fontWeight: 'bold', color: '#E44D26', marginTop: 10 },
+    divider: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
+    modalSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#444', marginBottom: 8 },
+    modalDescription: { fontSize: 15, color: '#666', lineHeight: 22 },
+    modalAddBtn: {
+        backgroundColor: '#FF6600',
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 30
+    },
+    modalAddBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    imageBadge: {
+        position: 'absolute',
+        bottom: 10,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    imageBadgeText: {
+        color: '#fff',
+        fontSize: 12,
+    },
 });
 
 export default MenuScreen;
