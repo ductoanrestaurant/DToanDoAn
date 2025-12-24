@@ -188,6 +188,8 @@ const MenuScreen = () => {
             ? `${BASE_URL_IMG}/${imageName}`
             : 'https://via.placeholder.com/150';
 
+        // console.log('url image:', fullImageUrl);
+
         return (
             <TouchableOpacity style={styles.card}>
                 <Image
@@ -210,6 +212,8 @@ const MenuScreen = () => {
                 </View>
             </TouchableOpacity>
         );
+
+
     };
 
     if (loading) {
@@ -225,7 +229,7 @@ const MenuScreen = () => {
             <Stack.Screen options={{ title: '', headerShown: false }} />
 
 
-            <Text style={styles.headerTitle}>Danh Sách Món Ăn</Text>
+            <Text style={styles.headerTitle}>Menu nhà hàng</Text>
 
 
             {/* Thanh lọc danh mục (Nằm ngang) */}
