@@ -1,5 +1,5 @@
 // Địa chỉ IP máy tính của bạn
-const IP_ADDRESS = '192.168.2.30';
+const IP_ADDRESS = '10.6.61.59';
 const PORT = '8080';
 
 export const BASE_URL = `http://${IP_ADDRESS}:${PORT}/api`;
@@ -15,6 +15,7 @@ export const ENDPOINTS = {
     SAN_PHAM: `${BASE_URL}/san-pham`,
     DANH_MUC: `${BASE_URL}/danh-muc`,
     NHAN_VIEN: `${BASE_URL}/nhan-vien`,
+    DANH_GIA: `${BASE_URL}/danh-gia`,
 };
 
 export default {

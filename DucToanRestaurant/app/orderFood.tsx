@@ -4,6 +4,7 @@ import axios from 'axios';
 import {router, Stack, useLocalSearchParams} from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {Dimensions, ActivityIndicator, FlatList, Image, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Modal, ScrollView } from 'react-native';
+import {Ionicons} from "@expo/vector-icons";
 
 
 
@@ -32,6 +33,20 @@ interface SanPham {
     gia: number;
     danhMuc: DanhMuc;
     danhSachAnh: { urlAnh: string }[];
+    danhSachDanhGia?: DanhGia[];
+}
+
+export interface DanhGia {
+    id: {
+        maTaiKhoan: number;
+        maSanPham: number;
+    };
+    noiDung: string;
+    soSao: number;
+    ngayDanhGia: string;
+    khachHang?: {
+        hoTen: string;
+    };
 }
 
 
@@ -116,12 +131,26 @@ const MenuScreen = () => {
         try {
             if (!refreshing) setLoading(true);
 
-            const [resSanPham, resDanhMuc] = await Promise.all([
+            const [resSanPham, resDanhMuc, resDanhGia] = await Promise.all([
                 axios.get(ENDPOINTS.SAN_PHAM),
                 axios.get(ENDPOINTS.DANH_MUC),
+                axios.get(ENDPOINTS.DANH_GIA),
             ]);
 
-            setMenuItems(resSanPham.data);
+            const allProducts: SanPham[] = resSanPham.data;
+            const allReviews: DanhGia[] = resDanhGia.data;
+
+            const menuWithReviews = allProducts.map((product) => {
+                return {
+                    ...product,
+                    // Tìm các đánh giá có mã sản phẩm khớp với sản phẩm hiện tại
+                    danhSachDanhGia: allReviews.filter(
+                        (review) => review.id.maSanPham === product.maSanPham
+                    )
+                };
+            });
+
+            setMenuItems(menuWithReviews);
             setCategories(resDanhMuc.data);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu:", error);
@@ -161,6 +190,58 @@ const MenuScreen = () => {
         );
     };
 
+
+
+    const getAverageRating = (reviews?: DanhGia[]): number => {
+        if (!reviews || reviews.length === 0) return 0;
+        const sum = reviews.reduce((acc, item) => acc + item.soSao, 0);
+
+        return Number((sum / reviews.length).toFixed(1));
+    };
+
+    const ReviewSection = ({ reviews }: { reviews?: DanhGia[] }) => {
+        if (!reviews || reviews.length === 0) {
+            return <Text style={styles.noReviewText}>Chưa có đánh giá nào cho món này.</Text>;
+        }
+
+        // Tính điểm trung bình
+        const averageRating = reviews.reduce((sum, item) => sum + item.soSao, 0) / reviews.length;
+
+        return (
+            <View style={styles.reviewContainer}>
+                <View style={styles.reviewHeaderRow}>
+                    <Text style={styles.modalSectionTitle}>Đánh giá từ khách hàng</Text>
+                    <View style={styles.avgBadge}>
+                        <Ionicons name="star" size={12} color="#fff" />
+                        <Text style={styles.avgText}>{averageRating.toFixed(1)}</Text>
+                    </View>
+                </View>
+
+                {reviews.map((review, index) => (
+                    <View key={index} style={styles.reviewItem}>
+                        <View style={styles.reviewUserRow}>
+                            <Text style={{fontWeight: 'bold'}}>{review.khachHang?.hoTen || 'Khách hàng'}</Text>
+                            <View style={styles.starsRow}>
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                    <Ionicons
+                                        key={s}
+                                        name={s <= review.soSao ? "star" : "star-outline"}
+                                        size={12}
+                                        color="#FFB800"
+                                    />
+                                ))}
+                            </View>
+                            <Text style={styles.reviewDate}>
+                                {new Date(review.ngayDanhGia).toLocaleDateString('vi-VN')}
+                            </Text>
+                        </View>
+                        <Text style={styles.reviewContent}>{review.noiDung}</Text>
+                    </View>
+                ))}
+            </View>
+        );
+    };
+
     const [activeIndex, setActiveIndex] = useState(0);
 
     // const renderProductItem = ({ item }: { item: SanPham }) => (
@@ -188,6 +269,7 @@ const MenuScreen = () => {
     const renderProductItem = ({ item }: { item: SanPham }) => {
         // Lấy tên file ảnh từ danh sách
         const imageName = item.danhSachAnh?.[0]?.urlAnh;
+        const avgRating = getAverageRating(item.danhSachDanhGia);
 
         // Nối chuỗi để tạo URL đầy đủ
         const fullImageUrl = imageName
@@ -206,6 +288,11 @@ const MenuScreen = () => {
                 <View style={styles.infoContainer}>
                     <View>
                         <Text style={styles.foodName}>{item.tenSanPham}</Text>
+                        <View style={styles.ratingRowMain}>
+                            <Ionicons name="star" size={14} color="#FFB800" />
+                            <Text style={styles.ratingTextMain}>{avgRating > 0 ? avgRating : "Mới"}</Text>
+                            <Text style={styles.reviewCountMain}>({item.danhSachDanhGia?.length || 0})</Text>
+                        </View>
                         <Text style={styles.categoryTag}>{item.danhMuc?.tenDanhMuc}</Text>
                         <Text numberOfLines={2} style={styles.description}>{item.moTa}</Text>
                     </View>
@@ -270,7 +357,15 @@ const MenuScreen = () => {
                     <Text style={styles.tableNote}>Bàn: {tableName}</Text>
                 </View>
                 <Text style={styles.viewCartBtn}
-                      onPress={() =>
+                      onPress={() =>{
+                          console.log("=== GỬI TỪ MENU -> CART ===");
+                          console.log("tableId:", tableId);
+                          console.log("tableName:", tableName);
+                          console.log("maKhachHang:", maKhachHang);
+                          console.log("booking time:", bookingTime);
+                          console.log("manv:", maNv);
+                          console.log("so luong nguoi:", soLuongNguoi);
+
                           router.push({
                               pathname:'/CartScreen',
                               params:{
@@ -282,7 +377,8 @@ const MenuScreen = () => {
                                   soLuongNguoi,
                                   selectedItems: JSON.stringify(mon)
                               }
-                          })}>Xem giỏ hàng</Text>
+                          });}
+                      }>Xem giỏ hàng</Text>
             </View>
 
             <Modal animationType="slide" transparent={true} visible={viewMon} onRequestClose={() => setViewMon(false)}>
@@ -293,80 +389,103 @@ const MenuScreen = () => {
                         </TouchableOpacity>
 
                         {selectedMonToView && (
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                                <View style={{ height: 250, width: SCREEN_WIDTH }}>
-                                    <FlatList
-                                        data={selectedMonToView.danhSachAnh}
-                                        horizontal
-                                        pagingEnabled // Quan trọng: Giúp vuốt từng tấm ảnh một
-                                        showsHorizontalScrollIndicator={false}
-                                        keyExtractor={(img, index) => index.toString()}
-                                        getItemLayout={(_, index) => ({
-                                            length: SCREEN_WIDTH,
-                                            offset: SCREEN_WIDTH * index,
-                                            index,
-                                        })}
-                                        onMomentumScrollEnd={(event) => {
-                                            const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                                            setActiveIndex(index);
-                                        }}
-                                        renderItem={({ item: img }) => (
-                                            <Image
-                                                source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }}
-                                                style={{
-                                                    width: SCREEN_WIDTH, // Bạn có thể dùng Dimensions.get('window').width
-                                                    height: 250,
-                                                    borderTopLeftRadius: 25,
-                                                    borderTopRightRadius: 25
-                                                }}
-                                                resizeMode="cover"
-                                            />
+                            <>
+                                <ScrollView showsVerticalScrollIndicator={false}>
+                                    <View style={{ height: 250, width: SCREEN_WIDTH }}>
+                                        <FlatList
+                                            data={selectedMonToView.danhSachAnh}
+                                            horizontal
+                                            pagingEnabled // Quan trọng: Giúp vuốt từng tấm ảnh một
+                                            showsHorizontalScrollIndicator={false}
+                                            keyExtractor={(img, index) => index.toString()}
+                                            getItemLayout={(_, index) => ({
+                                                length: SCREEN_WIDTH,
+                                                offset: SCREEN_WIDTH * index,
+                                                index,
+                                            })}
+                                            onMomentumScrollEnd={(event) => {
+                                                const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                                                setActiveIndex(index);
+                                            }}
+                                            renderItem={({ item: img }) => (
+                                                <Image
+                                                    source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }}
+                                                    style={{
+                                                        width: SCREEN_WIDTH, // Bạn có thể dùng Dimensions.get('window').width
+                                                        height: 250,
+                                                        borderTopLeftRadius: 25,
+                                                        borderTopRightRadius: 25
+                                                    }}
+                                                    resizeMode="cover"
+                                                />
+                                            )}
+                                            // Nếu không có ảnh nào, hiển thị ảnh mặc định
+                                            ListEmptyComponent={
+                                                <Image
+                                                    source={{ uri: 'https://via.placeholder.com/150' }}
+                                                    style={styles.modalImage}
+                                                />
+                                            }
+                                        />
+                                        {selectedMonToView.danhSachAnh?.length > 1 && (
+                                            <View style={styles.imageBadge}>
+                                                <Text style={styles.imageBadgeText}>
+                                                    {activeIndex + 1} / {selectedMonToView.danhSachAnh.length}
+                                                </Text>
+                                            </View>
                                         )}
-                                        // Nếu không có ảnh nào, hiển thị ảnh mặc định
-                                        ListEmptyComponent={
-                                            <Image
-                                                source={{ uri: 'https://via.placeholder.com/150' }}
-                                                style={styles.modalImage}
-                                            />
-                                        }
-                                    />
-                                    {selectedMonToView.danhSachAnh?.length > 1 && (
-                                        <View style={styles.imageBadge}>
-                                            <Text style={styles.imageBadgeText}>
-                                                {activeIndex + 1} / {selectedMonToView.danhSachAnh.length}
+
+                                    </View>
+
+                                    <View style={styles.modalBody}>
+                                        <View style={styles.modalHeaderTitleRow}>
+                                            <Text style={styles.modalFoodName}>{selectedMonToView.tenSanPham}</Text>
+                                            <Text style={styles.modalPrice}>{selectedMonToView.gia.toLocaleString('vi-VN')}đ</Text>
+                                        </View>
+
+                                        {/* Dãy sao chi tiết */}
+                                        <View style={styles.modalRatingRow}>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <Ionicons
+                                                    key={star}
+                                                    name={star <= Math.round(getAverageRating(selectedMonToView.danhSachDanhGia)) ? "star" : "star-outline"}
+                                                    size={18}
+                                                    color="#FFB800"
+                                                />
+                                            ))}
+                                            <Text style={styles.modalRatingText}>
+                                                {getAverageRating(selectedMonToView.danhSachDanhGia)} / 5
                                             </Text>
                                         </View>
-                                    )}
 
-                                    {/* Indicator: Hiển thị số lượng ảnh (tùy chọn) */}
-                                    {selectedMonToView.danhSachAnh?.length > 1 && (
-                                        <View style={styles.imageBadge}>
-                                            <Text style={styles.imageBadgeText}>
-                                                {activeIndex + 1} / {selectedMonToView.danhSachAnh.length}
-                                            </Text>
-                                        </View>
-                                    )}
+                                        <Text style={styles.modalCategory}>{selectedMonToView.danhMuc?.tenDanhMuc}</Text>
+
+
+                                        <View style={styles.divider} />
+
+
+
+                                        <Text style={styles.modalSectionTitle}>Mô tả món ăn</Text>
+                                        <Text style={styles.modalDescription}>{selectedMonToView.moTa || ""}</Text>
+
+                                        <View style={styles.divider} />
+
+                                        <ReviewSection reviews={selectedMonToView.danhSachDanhGia} />
+
+
+                                    </View>
+
+                                </ScrollView>
+
+                                <View>
+                                <TouchableOpacity
+                                    style={styles.modalAddBtn}
+                                    onPress={() => { AddMonToCard(selectedMonToView);setViewMon(false);}}
+                                >
+                                    <Text style={styles.modalAddBtnText}>Thêm vào giỏ hàng</Text>
+                                </TouchableOpacity>
                                 </View>
-
-                                <View style={styles.modalBody}>
-                                    <Text style={styles.modalFoodName}>{selectedMonToView.tenSanPham}</Text>
-                                    <Text style={styles.modalCategory}>{selectedMonToView.danhMuc?.tenDanhMuc}</Text>
-                                    <Text style={styles.modalPrice}>{selectedMonToView.gia.toLocaleString('vi-VN')}đ</Text>
-
-                                    <View style={styles.divider} />
-
-                                    <Text style={styles.modalSectionTitle}>Mô tả món ăn</Text>
-                                    <Text style={styles.modalDescription}>{selectedMonToView.moTa || ""}</Text>
-
-                                    <TouchableOpacity
-                                        style={styles.modalAddBtn}
-                                        onPress={() => { AddMonToCard(selectedMonToView);setViewMon(false);}}
-                                    >
-                                        <Text style={styles.modalAddBtnText}>Thêm vào giỏ hàng</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                            </ScrollView>
+                            </>
                         )}
                     </View>
                 </View>
@@ -416,6 +535,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
+
     modalContent: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 25,
@@ -435,6 +555,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    modalHeaderTitleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between', // Đẩy 2 phần tử về 2 đầu
+        alignItems: 'center',            // Căn giữa theo chiều dọc
+        marginBottom: 5,
+    },
     closeModalText: { color: '#fff', fontWeight: 'bold' },
     modalImage: { width: '100%', height: 250, borderTopLeftRadius: 25, borderTopRightRadius: 25 },
     modalBody: { padding: 20 },
@@ -447,11 +573,50 @@ const styles = StyleSheet.create({
     modalAddBtn: {
         backgroundColor: '#FF6600',
         padding: 15,
-        borderRadius: 10,
+        borderRadius: 15,
         alignItems: 'center',
-        marginTop: 30
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 8,
     },
     modalAddBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    // Sao ở danh sách chính
+    ratingRowMain: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+    },
+    ratingTextMain: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#333',
+        marginLeft: 4,
+    },
+    reviewCountMain: {
+        fontSize: 12,
+        color: '#888',
+        marginLeft: 4,
+    },
+
+    // Sao trong Modal
+    modalHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start'
+    },
+    modalRatingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    modalRatingText: {
+        marginLeft: 8,
+        fontSize: 15,
+        color: '#666',
+        fontWeight: '600',
+    },
     imageBadge: {
         position: 'absolute',
         bottom: 10,
@@ -465,6 +630,37 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
     },
+    reviewContainer: { marginTop: 10 },
+    reviewHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15
+    },
+    avgBadge: {
+        flexDirection: 'row',
+        backgroundColor: '#FF6600',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        alignItems: 'center'
+    },
+    avgText: { color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 3 },
+    reviewItem: {
+        backgroundColor: '#F9F9F9',
+        padding: 12,
+        borderRadius: 10,
+        marginBottom: 10,
+    },
+    reviewUserRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 5
+    },
+    starsRow: { flexDirection: 'row' },
+    reviewDate: { fontSize: 11, color: '#999' },
+    reviewContent: { fontSize: 14, color: '#444', lineHeight: 20 },
+    noReviewText: { textAlign: 'center', color: '#999', fontStyle: 'italic', marginVertical: 20 },
 });
 
 export default MenuScreen;

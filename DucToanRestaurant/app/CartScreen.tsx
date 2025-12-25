@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, SafeAreaView, } from 'react-native';
 import {Stack, useLocalSearchParams, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import {push} from "expo-router/build/global-state/routing"; // Thư viện icon phổ biến
+import {push} from "expo-router/build/global-state/routing";
+import {BASE_URL_IMG} from "@/constants/api"; // Thư viện icon phổ biến
 
 
 // Sử dụng chung interface với MenuScreen
@@ -27,6 +28,15 @@ export interface ProductInCart {
     danhMuc: DanhMuc;
     danhSachAnh: { urlAnh: string }[];
     soluong: number;
+}
+
+interface SanPham {
+    maSanPham: number;
+    tenSanPham: string;
+    moTa: string;
+    gia: number;
+    danhMuc: DanhMuc;
+    danhSachAnh: { urlAnh: string }[];
 }
 
 const CartScreen = () => {
@@ -87,36 +97,49 @@ const CartScreen = () => {
         });
     };
 
+
+
     const totalPrice = cartItems.reduce((sum, item) => sum + item.gia * item.soluong, 0);
 
-    const renderItem = ({ item }: { item: any }) => (
-        <View style={styles.cartCard}>
-            {/* Lấy ảnh đầu tiên trong mảng danhSachAnh */}
-            <Image
-                source={{ uri: item.danhSachAnh?.[0]?.urlAnh || 'https://via.placeholder.com/150' }}
-                style={styles.itemImage}
-            />
-            <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.tenSanPham}</Text>
-                <Text style={styles.itemPrice}>{item.gia.toLocaleString('vi-VN')}đ</Text>
 
-                <View style={styles.quantityContainer}>
-                    <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -1)} style={styles.qtyBtn}>
-                        <Text style={styles.qtyBtnText}>-</Text>
-                    </TouchableOpacity>
-                    {/* Dùng soluong thay vì quantity */}
-                    <Text style={styles.qtyText}>{item.soluong}</Text>
-                    <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, 1)} style={styles.qtyBtn}>
-                        <Text style={styles.qtyBtnText}>+</Text>
-                    </TouchableOpacity>
+
+    const renderItem = ({ item }: { item: any }) => {
+
+        const imageName = item.danhSachAnh?.[0]?.urlAnh;
+
+        // Nối chuỗi để tạo URL đầy đủ
+        const fullImageUrl = imageName
+            ? `${BASE_URL_IMG}/${imageName}`
+            : 'https://via.placeholder.com/150';
+        return (
+            <View style={styles.cartCard}>
+                {/* Lấy ảnh đầu tiên trong mảng danhSachAnh */}
+                <Image
+                    source={{uri: fullImageUrl}}
+                    style={styles.itemImage}
+                />
+                <View style={styles.itemDetails}>
+                    <Text style={styles.itemName}>{item.tenSanPham}</Text>
+                    <Text style={styles.itemPrice}>{item.gia.toLocaleString('vi-VN')}đ</Text>
+
+                    <View style={styles.quantityContainer}>
+                        <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -1)} style={styles.qtyBtn}>
+                            <Text style={styles.qtyBtnText}>-</Text>
+                        </TouchableOpacity>
+                        {/* Dùng soluong thay vì quantity */}
+                        <Text style={styles.qtyText}>{item.soluong}</Text>
+                        <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, 1)} style={styles.qtyBtn}>
+                            <Text style={styles.qtyBtnText}>+</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
+                {/* Nút xóa nhanh */}
+                <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -item.soluong)}>
+                    <Ionicons name="trash-outline" size={24} color="#FF4D4D"/>
+                </TouchableOpacity>
             </View>
-            {/* Nút xóa nhanh */}
-            <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -item.soluong)}>
-                <Ionicons name="trash-outline" size={24} color="#FF4D4D" />
-            </TouchableOpacity>
-        </View>
-    );
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -155,7 +178,24 @@ const CartScreen = () => {
                         </TouchableOpacity>
                     </View>
                     <TouchableOpacity style={styles.checkoutBtn}>
-                        <Text style={styles.checkoutText}>XÁC NHẬN</Text>
+                        <Text style={styles.checkoutText}
+                              onPress={()=>{router.push({
+                                  pathname:'/OrderConfirmScreen',
+                                  params:{
+                                      tableId:tableId,
+                                      tableName:tableName,
+                                      maNv:maNv,
+                                      maKhachHang: maKhachHang,
+                                      bookingTime: bookingTime,
+                                      soLuongNguoi: soLuongNguoi,
+                                      selectedItems: JSON.stringify(cartItems),
+                                      totalPrice:totalPrice.toString(),
+                                  }
+
+                              })
+                                  console.log("tableid: ", tableId);;
+                              }}>XÁC NHẬN</Text>
+
                     </TouchableOpacity>
                 </View>
             )}

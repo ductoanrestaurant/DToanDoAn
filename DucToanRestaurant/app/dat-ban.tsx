@@ -42,7 +42,11 @@ const BookingScreen = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const router = useRouter();
-  
+
+
+  const [maNv, setMaNv] = useState<string>('');
+  const [maKhachHang, setMaKhachHang] = useState<string>('');
+  const [soLuongNguoi, setSoLuongNguoi] = useState<string>('');
 
   const handlePickTable = async () => {
     setErrorMessage('');
@@ -62,12 +66,24 @@ const BookingScreen = () => {
 
   // 3. Nếu hợp lệ, tiến hành gọi API đặt bàn
   try {
+
+    console.log("=== GỬI TỪ MENU -> CART ===");
+    console.log("tableId:", selectedTable?.maBan);
+    console.log("tableName:", selectedTable?.tenBan);
+    // console.log("maKhachHang:", maKhachHang);
+    // console.log("booking time:", bookingTime);
+    // console.log("manv:", maNv);
+    // console.log("so luong nguoi:", soLuongNguoi);
+
       router.push({
       pathname: '/orderFood',
       params:{
-        tableId: selectedTable?.maBan,
+        tableId: selectedTable?.maBan.toString(),
         tableName: selectedTable?.tenBan,
-        bookingTime: date.toISOString()
+        bookingTime: date.toISOString(),
+        maNv:maNv,
+        maKhachHang:maKhachHang,
+        soLuongNguoi:soLuongNguoi,
       }
 
     })

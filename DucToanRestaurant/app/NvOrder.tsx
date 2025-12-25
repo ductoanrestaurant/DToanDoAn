@@ -20,19 +20,24 @@ import {numberAsInset} from "react-native-gesture-handler/src/components/Pressab
 
 // Cập nhật Interface Table theo đúng Database
 interface Table {
-    maBan: number;
-    idRestaurant: number;
+    id: {
+        maBan: number;
+        idRestaurant: number;
+    };
     tenBan: string;
     sucChua: number;
     trangThai: boolean;
 }
 
+
 interface Employee {
-    maNhanVien: number;
-    idRestaurant: number;
+    id: {
+        maNhanVien: number;
+        idRestaurant: number;
+    };
     tenNhanVien: string;
-    [key: string]: any;
 }
+
 
 interface KhachHang {
     maTaiKhoan: number;
@@ -147,7 +152,7 @@ const NvOrderScreen = () => {
 
             if (foundNv) {
                 setErrorTenNv('');
-                setSelectedMaNv(foundNv.maNhanVien);
+                setSelectedMaNv(foundNv.id.maNhanVien);
             } else {
                 setErrorTenNv('Nhân viên không tồn tại trong hệ thống');
                 setSelectedMaNv(null);
@@ -174,8 +179,22 @@ const NvOrderScreen = () => {
     }).slice(0, 5);
 
     const handleOrder = async () => {
-        if (errorTenNv) {
-            Alert.alert("Lỗi", "Vui lòng chọn nhân viên đúng");
+
+        const foundNv = NvList.find(nv =>
+            nv.tenNhanVien?.trim().toLowerCase() === formData.hotenNv?.trim().toLowerCase()
+        );
+
+        const foundKhachHang = KHList.find(kh =>
+            kh.sdt === formData.sdtKhachHang.trim()
+        );
+
+
+        if (!selectedTable) {
+            Alert.alert("Lỗi", "Vui lòng chọn lại bàn.");
+            return;
+        }
+        if (!foundNv) {
+            Alert.alert("Lỗi", "Không xác định được nhân viên. Vui lòng chọn từ danh sách gợi ý.");
             return;
         }
 
@@ -186,9 +205,6 @@ const NvOrderScreen = () => {
         if(isNewSdt){
 
             const autoEmail = `guest_${formData.sdtKhachHang.trim()}@restaurant.com`;
-
-
-
             const newKH ={
                 hoTen: formData.hotenKhachHang.trim(),
                 sdt: formData.sdtKhachHang.trim(),
@@ -200,9 +216,6 @@ const NvOrderScreen = () => {
             };
 
              await axios.post(ENDPOINTS.KHACH_HANG, newKH);
-            console.log('them khach hang moi');
-
-
             await fetchData();
         }
     } catch (error) {
@@ -212,25 +225,34 @@ const NvOrderScreen = () => {
     }
 
 
+
+
+
+        console.log("=== CHUYỂN MÀN HÌNH VỚI DỮ LIỆU 12345678 ===");
+        console.log("Table ID:", selectedTable.id.maBan);
+
     console.log("Dữ liệu đơn hàng:", formData, selectedMaNv );
     try {
         // Code gọi API của bạn ở đây...
 
         const foundKhachHang = KHList.find(kh => kh.sdt === formData.sdtKhachHang.trim());
+        const foundNv = NvList.find(nv => nv.tenNhanVien === formData.hotenNv);
 
         router.push({
             pathname: '/orderFood',
             params:{
-                tableId: selectedTable?.maBan,
-                tableName: selectedTable?.tenBan,
+                tableId: selectedTable ? String(selectedTable.id.maBan) : '',
+                tableName: selectedTable ? selectedTable.tenBan : '',
                 bookingTime: date.toISOString(),
-                maNv: selectedMaNv,
-                soLuongNguoi: soLuong,
-                maKhachHang: foundKhachHang?.maTaiKhoan,
+                maNv: foundNv ? String(foundNv.id.maNhanVien) : '',
+                soLuongNguoi: String(soLuong),
+                maKhachHang: foundKhachHang ? String(foundKhachHang.maTaiKhoan) : '',
             }
 
         })
-        console.log("Dữ liệu đơn hàng:", formData, selectedMaNv, foundKhachHang?.maTaiKhoan,  );
+        console.log("Dữ liệu đơn hàng:", formData, selectedMaNv, );
+        console.log("makh: ", foundKhachHang?.maTaiKhoan);
+        console.log("Mã Nhân Viên 12345:", foundNv? String(foundNv.id.maNhanVien):'');
 
     } catch (error) {
         console.error("Lỗi chuyển màn hình:", error);
@@ -319,7 +341,7 @@ const NvOrderScreen = () => {
                                     <View style={styles.grid}>
                                         {filteredTables.map((table) => (
                                             <TouchableOpacity
-                                                key={table.maBan ? `${table.idRestaurant}-${table.maBan}` : Math.random().toString()}
+                                                key={`${table.id.idRestaurant}-${table.id.maBan}`}
                                                 style={[
                                                     styles.tableCard,
                                                     formData.tenBan === table.tenBan && styles.tableCardSelected
