@@ -78,7 +78,7 @@ const BookingScreen = () => {
       router.push({
       pathname: '/orderFood',
       params:{
-        tableId: selectedTable?.maBan.toString(),
+        tableId: selectedTable?.maBan,
         tableName: selectedTable?.tenBan,
         bookingTime: date.toISOString(),
         maNv:maNv,
