@@ -89,10 +89,11 @@ const MenuScreen = () => {
         maKhachHang: string;
         soLuongNguoi: string;
         updatedItems?: string;
+        verifyUser?: string;
     };
 
     const params = useLocalSearchParams<OrderFoodParams>();
-    const { tableId, tableName, bookingTime, maNv, maKhachHang, soLuongNguoi, updatedItems } = params;
+    const { tableId, tableName, bookingTime, maNv, maKhachHang, soLuongNguoi, updatedItems, verifyUser } = params;
 
 
     const [mon, setMon] = useState<ProductInCart[]>(() => {
@@ -358,14 +359,6 @@ const MenuScreen = () => {
                 </View>
                 <Text style={styles.viewCartBtn}
                       onPress={() =>{
-                          console.log("=== GỬI TỪ MENU -> CART ===");
-                          console.log("tableId:", tableId);
-                          console.log("tableName:", tableName);
-                          console.log("maKhachHang:", maKhachHang);
-                          console.log("booking time:", bookingTime);
-                          console.log("manv:", maNv);
-                          console.log("so luong nguoi:", soLuongNguoi);
-
                           router.push({
                               pathname:'/CartScreen',
                               params:{
@@ -375,7 +368,8 @@ const MenuScreen = () => {
                                   maNv,
                                   maKhachHang,
                                   soLuongNguoi,
-                                  selectedItems: JSON.stringify(mon)
+                                  selectedItems: JSON.stringify(mon),
+                                  ...(verifyUser && { verifyUser }),
                               }
                           });}
                       }>Xem giỏ hàng</Text>

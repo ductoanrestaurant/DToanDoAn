@@ -50,9 +50,10 @@ const CartScreen = () => {
         maKhachHang: string;
         soLuongNguoi: string;
         bookingTime: string;
+        verifyUser?: string;
     }>();
 
-    const { tableId, tableName, maNv, maKhachHang, soLuongNguoi, bookingTime } = params;
+    const { tableId, tableName, maNv, maKhachHang, soLuongNguoi, bookingTime, verifyUser } = params;
 
 
     const [cartItems, setCartItems] = useState<ProductInCart[]>(() => {
@@ -93,6 +94,7 @@ const CartScreen = () => {
                 soLuongNguoi,
                 bookingTime,
                 updatedItems: JSON.stringify(cartItems),
+                ...(verifyUser && { verifyUser }),
             },
         });
     };
@@ -179,7 +181,8 @@ const CartScreen = () => {
                     </View>
                     <TouchableOpacity style={styles.checkoutBtn}>
                         <Text style={styles.checkoutText}
-                              onPress={()=>{router.push({
+                              onPress={()=>{
+                                  router.push({
                                   pathname:'/OrderConfirmScreen',
                                   params:{
                                       tableId:tableId,
@@ -190,10 +193,11 @@ const CartScreen = () => {
                                       soLuongNguoi: soLuongNguoi,
                                       selectedItems: JSON.stringify(cartItems),
                                       totalPrice:totalPrice.toString(),
+                                      ...(verifyUser && { verifyUser }),
                                   }
 
                               })
-                                  console.log("tableid: ", tableId);;
+                                  console.log("tableid: ", tableId);
                               }}>XÁC NHẬN</Text>
 
                     </TouchableOpacity>

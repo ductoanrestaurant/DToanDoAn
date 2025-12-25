@@ -18,7 +18,7 @@ import {
 import {numberAsInset} from "react-native-gesture-handler/src/components/Pressable/utils";
 
 
-// Cập nhật Interface Table theo đúng Database
+
 interface Table {
     id: {
         maBan: number;
@@ -49,6 +49,8 @@ interface KhachHang {
     diemTichLuy?: number;
     trangThai?: boolean;
 }
+
+const [verifyUser, setVerifyUser] = useState('');
 
 const NvOrderScreen = () => {
     const [formData, setFormData] = useState({
@@ -226,14 +228,10 @@ const NvOrderScreen = () => {
 
 
 
-
-
-        console.log("=== CHUYỂN MÀN HÌNH VỚI DỮ LIỆU 12345678 ===");
         console.log("Table ID:", selectedTable.id.maBan);
 
     console.log("Dữ liệu đơn hàng:", formData, selectedMaNv );
     try {
-        // Code gọi API của bạn ở đây...
 
         const foundKhachHang = KHList.find(kh => kh.sdt === formData.sdtKhachHang.trim());
         const foundNv = NvList.find(nv => nv.tenNhanVien === formData.hotenNv);
@@ -247,6 +245,7 @@ const NvOrderScreen = () => {
                 maNv: foundNv ? String(foundNv.id.maNhanVien) : '',
                 soLuongNguoi: String(soLuong),
                 maKhachHang: foundKhachHang ? String(foundKhachHang.maTaiKhoan) : '',
+                verifyUser:'nhanvien',
             }
 
         })
@@ -279,7 +278,6 @@ const NvOrderScreen = () => {
                     </View>
 
                     <View style={styles.formContainer}>
-                        {/* INPUT NHÂN VIÊN */}
                         <View style={[styles.inputGroup, { zIndex: 1000 }]}>
                             <Text style={styles.label}>Nhân viên thực hiện</Text>
                             <View>

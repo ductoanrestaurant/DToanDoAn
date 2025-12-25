@@ -1,9 +1,10 @@
-import React, {useCallback, useEffect, useState} from 'react';
-import {View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Alert, ScrollView} from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { BASE_URL_IMG, ENDPOINTS } from '@/constants/api';
 import { Ionicons } from "@expo/vector-icons";
-import {BASE_URL_IMG, ENDPOINTS} from '@/constants/api';
 import axios from "axios";
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {verify} from "node:crypto";
 
 
 interface Employee {
@@ -45,6 +46,7 @@ const OrderConfirmationScreen = () => {
         bookingTime:string;
         selectedItems: string;
         totalPrice: string;
+        verifyUser?:string;
     }>();
 
 
@@ -78,7 +80,27 @@ const OrderConfirmationScreen = () => {
 
     const [paymentMethod, setPaymentMethod] = useState<'tiền mặt' | 'vnpay' | 'momo'>('tiền mặt');
 
+    const isStaffOrder = params.verifyUser === 'nhanvien';  //true = nhan vien, false = khach hang
 
+    const formatBookingTime = (timeString: string) => {
+        if (!timeString) return 'N/A';
+        try {
+            const date = new Date(timeString);
+            const dateStr = date.toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const timeStr = date.toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            return `${dateStr} lúc ${timeStr}`;
+        } catch (e) {
+            return timeString;
+        }
+    };
 
     const handleConfirmOrder = () => {
         Alert.alert(
@@ -92,7 +114,7 @@ const OrderConfirmationScreen = () => {
                         // Gọi API lưu đơn hàng ở đây
                         console.log("Gửi đơn hàng của bàn:", params.tableName);
                         Alert.alert("Thành công", "Đơn hàng đã được gửi đi!");
-
+                        console.log("kiem tra trang thai nguoi dat:  ", isStaffOrder)
                     }
                 }
             ]
@@ -120,23 +142,77 @@ const OrderConfirmationScreen = () => {
 
             <ScrollView contentContainerStyle={{ paddingBottom: 180 }}>
                 {/* 1. Thông tin chung (Header Card) */}
+                {/*<View style={styles.headerCard}>*/}
+                {/*    <View style={styles.infoRow}>*/}
+                {/*        <Ionicons name="restaurant-outline" size={18} color="#FF6600" />*/}
+                {/*        <Text style={styles.headerText}> Bàn: <Text style={styles.boldText}>{params.tableName}</Text></Text>*/}
+                {/*    </View>*/}
+                {/*    <View style={styles.infoRow}>*/}
+                {/*        <Ionicons name="person-outline" size={18} color="#FF6600" />*/}
+                {/*        <Text style={styles.headerText}> Nhân viên: <Text style={styles.boldText}>{findNV?.tenNhanVien}</Text></Text>*/}
+                {/*    </View>*/}
+                {/*    <View style={styles.infoRow}>*/}
+                {/*        <Ionicons name="people-outline" size={18} color="#FF6600" />*/}
+                {/*        <Text style={styles.headerText}> Khách hàng: <Text style={styles.boldText}>{findKH?.hoTen || "Khách vãng lai"}</Text></Text>*/}
+                {/*    </View>*/}
+                {/*    /!*<View style={styles.infoRow}>*!/*/}
+                {/*    /!*    <Ionicons name="call-outline" size={18} color="#FF6600" />*!/*/}
+                {/*    /!*    <Text style={styles.headerText}> SDT: <Text style={styles.boldText}>{params.soDienThoai || "N/A"}</Text></Text>*!/*/}
+                {/*    /!*</View>*!/*/}
+                {/*</View>*/}
+
+                {/* 1. Thông tin chung (Header Card) */}
                 <View style={styles.headerCard}>
-                    <View style={styles.infoRow}>
-                        <Ionicons name="restaurant-outline" size={18} color="#FF6600" />
-                        <Text style={styles.headerText}> Bàn: <Text style={styles.boldText}>{params.tableName}</Text></Text>
+                    {/* Badge hiển thị loại đơn hàng */}
+                    <View style={styles.orderTypeBadge}>
+                        <Ionicons
+                            name={isStaffOrder ? "restaurant" : "phone-portrait"}
+                            size={16}
+                            color="#FFF"
+                        />
+                        <Text style={styles.orderTypeText}>
+                            {isStaffOrder ? "Đơn tại nhà hàng" : "Đơn online"}
+                        </Text>
                     </View>
-                    <View style={styles.infoRow}>
-                        <Ionicons name="person-outline" size={18} color="#FF6600" />
-                        <Text style={styles.headerText}> Nhân viên: <Text style={styles.boldText}>{findNV?.tenNhanVien}</Text></Text>
-                    </View>
+
+                    {/* THÔNG TIN CHO ĐƠN NHÂN VIÊN */}
+                    {isStaffOrder && (
+                        <>
+                            {params.tableName && (
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="restaurant-outline" size={18} color="#FF6600" />
+                                    <Text style={styles.headerText}> Bàn: <Text style={styles.boldText}>{params.tableName}</Text></Text>
+                                </View>
+                            )}
+                            {findNV && (
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="person-outline" size={18} color="#FF6600" />
+                                    <Text style={styles.headerText}> Nhân viên: <Text style={styles.boldText}>{findNV?.tenNhanVien}</Text></Text>
+                                </View>
+                            )}
+                        </>
+                    )}
+
+                    {/* THÔNG TIN CHUNG - LUÔN HIỂN THỊ */}
                     <View style={styles.infoRow}>
                         <Ionicons name="people-outline" size={18} color="#FF6600" />
                         <Text style={styles.headerText}> Khách hàng: <Text style={styles.boldText}>{findKH?.hoTen || "Khách vãng lai"}</Text></Text>
                     </View>
-                    {/*<View style={styles.infoRow}>*/}
-                    {/*    <Ionicons name="call-outline" size={18} color="#FF6600" />*/}
-                    {/*    <Text style={styles.headerText}> SDT: <Text style={styles.boldText}>{params.soDienThoai || "N/A"}</Text></Text>*/}
-                    {/*</View>*/}
+
+                    {/* THÔNG TIN CHO ĐƠN ONLINE */}
+                    {/* THÔNG TIN CHO ĐƠN ONLINE */}
+                    {!isStaffOrder && findKH && (
+                        <>
+                            <View style={styles.infoRow}>
+                                <Ionicons name="call-outline" size={18} color="#FF6600" />
+                                <Text style={styles.headerText}> SDT: <Text style={styles.boldText}>{findKH?.sdt || "N/A"}</Text></Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Ionicons name="time-outline" size={18} color="#FF6600" />
+                                <Text style={styles.headerText}> Thời gian dùng bữa: <Text style={styles.boldText}>{formatBookingTime(params.bookingTime)}</Text></Text>
+                            </View>
+                        </>
+                    )}
                 </View>
 
                 {/* 2. Danh sách món ăn */}
@@ -220,7 +296,25 @@ const styles = StyleSheet.create({
     totalLabel: { fontSize: 15, color: '#444' },
     totalValue: { fontSize: 22, fontWeight: 'bold', color: '#E44D26' },
     confirmButton: { backgroundColor: '#FF6600', paddingVertical: 16, borderRadius: 15, alignItems: 'center' },
-    confirmButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
+    confirmButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+
+
+    orderTypeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        backgroundColor: '#FF6600',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginBottom: 15,
+    },
+    orderTypeText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 6,
+    },
 });
 
 export default OrderConfirmationScreen;

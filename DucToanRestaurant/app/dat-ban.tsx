@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { useRouter,useLocalSearchParams } from 'expo-router';
 
 
 interface IBan {
@@ -42,11 +42,18 @@ const BookingScreen = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const router = useRouter();
+  const loginParams = useLocalSearchParams<{ maKhachHang?: string }>();
 
 
   const [maNv, setMaNv] = useState<string>('');
   const [maKhachHang, setMaKhachHang] = useState<string>('');
   const [soLuongNguoi, setSoLuongNguoi] = useState<string>('');
+
+  useEffect(() => {
+    if (loginParams.maKhachHang) {
+      setMaKhachHang(loginParams.maKhachHang);
+    }
+  }, [loginParams.maKhachHang]);
 
   const handlePickTable = async () => {
     setErrorMessage('');
@@ -66,15 +73,6 @@ const BookingScreen = () => {
 
   // 3. Nếu hợp lệ, tiến hành gọi API đặt bàn
   try {
-
-    console.log("=== GỬI TỪ MENU -> CART ===");
-    console.log("tableId:", selectedTable?.maBan);
-    console.log("tableName:", selectedTable?.tenBan);
-    // console.log("maKhachHang:", maKhachHang);
-    // console.log("booking time:", bookingTime);
-    // console.log("manv:", maNv);
-    // console.log("so luong nguoi:", soLuongNguoi);
-
       router.push({
       pathname: '/orderFood',
       params:{
@@ -84,6 +82,7 @@ const BookingScreen = () => {
         maNv:maNv,
         maKhachHang:maKhachHang,
         soLuongNguoi:soLuongNguoi,
+        verifyUser: 'khach',
       }
 
     })

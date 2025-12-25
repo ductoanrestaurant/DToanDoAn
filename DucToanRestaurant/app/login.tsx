@@ -4,6 +4,7 @@ import { Image, ImageBackground } from 'expo-image';
 import { Stack, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 
 const LoginScreen= ()=>{
@@ -12,6 +13,9 @@ const LoginScreen= ()=>{
     const [loading, setLoading] = useState(false);
 
     const [errorMessage, setErrorMessage] = useState('');
+
+    const [verifyUser, setVerifyUser] = useState('khach');
+
 
     const handleLogin = async () => {
         // 1. Kiểm tra dữ liệu đầu vào
@@ -31,7 +35,12 @@ const LoginScreen= ()=>{
             const user = users.find((u: any) => u.email === email && u.matKhau === password);
 
             if (user) {
-                router.replace('/dat-ban')
+                router.push({
+                    pathname: '/dat-ban',
+                    params: {
+                        maKhachHang: String(user.maTaiKhoan),  // Truyền mã khách hàng từ user đã đăng nhập
+                    }
+                });
             } else {
                 Alert.alert("Lỗi", "Email hoặc Mật khẩu không chính xác");
             }
