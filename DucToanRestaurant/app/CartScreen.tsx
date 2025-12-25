@@ -55,6 +55,9 @@ const CartScreen = () => {
 
     const { tableId, tableName, maNv, maKhachHang, soLuongNguoi, bookingTime, verifyUser } = params;
 
+    console.log("=== DEBUG CART SCREEN ===");
+    console.log("params.tableId:", params.tableId);
+    console.log("tableId (destructured):", tableId);
 
     const [cartItems, setCartItems] = useState<ProductInCart[]>(() => {
         if (params.selectedItems) {

@@ -95,6 +95,14 @@ const MenuScreen = () => {
     const params = useLocalSearchParams<OrderFoodParams>();
     const { tableId, tableName, bookingTime, maNv, maKhachHang, soLuongNguoi, updatedItems, verifyUser } = params;
 
+    console.log("=== DEBUG ORDER FOOD ===");
+    console.log("params.tableId:", params.tableId);
+    console.log("params.tableName:", params.tableName);
+    console.log("tableId (destructured):", tableId);
+    console.log("ma khach hang in orderfood: ", maKhachHang);
+
+
+
 
     const [mon, setMon] = useState<ProductInCart[]>(() => {
         if (updatedItems) {

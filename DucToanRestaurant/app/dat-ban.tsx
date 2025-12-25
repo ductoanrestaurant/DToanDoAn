@@ -18,8 +18,10 @@ import { useRouter,useLocalSearchParams } from 'expo-router';
 
 
 interface IBan {
-  maBan: number;
-  idRestaurant: number;
+  id: {
+    maBan: number;
+    idRestaurant: number;
+  };
   tenBan: string;
   sucChua: number;
   trangThai: boolean;
@@ -58,6 +60,11 @@ const BookingScreen = () => {
   const handlePickTable = async () => {
     setErrorMessage('');
 
+    if (!selectedTable) {
+      setErrorMessage("Vui lòng chọn bàn!");
+      return;
+    }
+
     if (!timeSelected) {
       setErrorMessage("Vui lòng chọn giờ đến nhà hàng!");
       return;
@@ -73,10 +80,18 @@ const BookingScreen = () => {
 
   // 3. Nếu hợp lệ, tiến hành gọi API đặt bàn
   try {
+
+    console.log("=== DEBUG DAT BAN ===");
+    console.log("selectedTable:", selectedTable);
+    console.log("selectedTable.maBan:", selectedTable.id.maBan);
+    console.log("typeof selectedTable.maBan:", typeof selectedTable.id.maBan);
+    console.log("tableId sẽ truyền:", selectedTable.id.maBan != null ? String(selectedTable.id.maBan) : '');
+
+
       router.push({
       pathname: '/orderFood',
       params:{
-        tableId: selectedTable?.maBan,
+        tableId: String(selectedTable.id.maBan),
         tableName: selectedTable?.tenBan,
         bookingTime: date.toISOString(),
         maNv:maNv,
@@ -163,13 +178,13 @@ const BookingScreen = () => {
         {tables.map((table) => (
           <TouchableOpacity
     
-            key={table.maBan ? `${table.idRestaurant}-${table.maBan}` : Math.random().toString()}
+            key={table.id.maBan ? `${table.id.idRestaurant}-${table.id.maBan}` : Math.random().toString()}
             disabled={table.trangThai}
             onPress={() => setSelectedTable(table)}
             style={[
               styles.tableCard,
               table.trangThai && styles.tableFull,
-              selectedTable?.maBan === table.maBan && styles.tableSelected
+              selectedTable?.id.maBan === table.id.maBan && styles.tableSelected
             ]}
           >
             <Text style={[styles.tableName, table.trangThai && {color: '#ff4444'}]}>

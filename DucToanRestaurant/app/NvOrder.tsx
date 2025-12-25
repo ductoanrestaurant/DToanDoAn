@@ -16,6 +16,7 @@ import {
     View
 } from 'react-native';
 import {numberAsInset} from "react-native-gesture-handler/src/components/Pressable/utils";
+import {log} from "@expo/fingerprint/cli/build/utils/log";
 
 
 
@@ -186,9 +187,19 @@ const NvOrderScreen = () => {
             nv.tenNhanVien?.trim().toLowerCase() === formData.hotenNv?.trim().toLowerCase()
         );
 
-        const foundKhachHang = KHList.find(kh =>
-            kh.sdt === formData.sdtKhachHang.trim()
-        );
+
+
+
+
+
+
+        // const foundKhachHang = KHList.find(kh =>
+        //     kh.sdt === formData.sdtKhachHang.trim()
+        // );
+
+
+
+
 
 
         if (!selectedTable) {
@@ -201,6 +212,8 @@ const NvOrderScreen = () => {
         }
 
         const soLuong = parseInt(formData.soLuongNguoi, 10) || 0;
+        let finalMaKhachHang = '';
+
     try {
         setLoading(true);
 
@@ -217,9 +230,41 @@ const NvOrderScreen = () => {
                 numberLog:null,
             };
 
-             await axios.post(ENDPOINTS.KHACH_HANG, newKH);
-            await fetchData();
+            const response = await axios.post(ENDPOINTS.KHACH_HANG, newKH);
+
+
+            if (response.data && response.data.maTaiKhoan) {
+                finalMaKhachHang = String(response.data.maTaiKhoan);
+            }
+        } else {
+            // TRƯỜNG HỢP KHÁCH ĐÃ CÓ: Tìm mã tài khoản trong danh sách hiện tại
+            const foundKhachHang = KHList.find(kh => kh.sdt === formData.sdtKhachHang.trim());
+            if (foundKhachHang) {
+                finalMaKhachHang = String(foundKhachHang.maTaiKhoan);
+            }
         }
+
+
+        if (finalMaKhachHang) {
+
+            console.log("ma khach hang: ", finalMaKhachHang);
+
+            router.push({
+                pathname: '/orderFood',
+                params: {
+                    tableId: String(selectedTable.id.maBan),
+                    tableName: selectedTable.tenBan,
+                    bookingTime: date.toISOString(),
+                    maNv: String(foundNv.id.maNhanVien),
+                    soLuongNguoi: soLuong,
+                    maKhachHang: finalMaKhachHang,
+                    verifyUser: 'nhanvien',
+                }
+            });
+        } else {
+            Alert.alert("Lỗi", "Không thể xác định mã tài khoản khách hàng.");
+        }
+
     } catch (error) {
             console.log(error);
     } finally {
@@ -244,7 +289,8 @@ const NvOrderScreen = () => {
                 bookingTime: date.toISOString(),
                 maNv: foundNv ? String(foundNv.id.maNhanVien) : '',
                 soLuongNguoi: String(soLuong),
-                maKhachHang: foundKhachHang ? String(foundKhachHang.maTaiKhoan) : '',
+                // maKhachHang: foundKhachHang ? String(foundKhachHang.maTaiKhoan) : '',
+                maKhachHang: finalMaKhachHang,
                 verifyUser:'nhanvien',
             }
 
@@ -389,12 +435,6 @@ const NvOrderScreen = () => {
                                 onChangeText={(text) => setFormData({...formData, hotenKhachHang: text})}
                             />
                         </View>
-
-
-
-
-
-
 
 
                         <TouchableOpacity

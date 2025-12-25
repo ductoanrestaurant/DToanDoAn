@@ -4,7 +4,7 @@ import axios from "axios";
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import {verify} from "node:crypto";
+
 
 
 interface Employee {
@@ -113,8 +113,12 @@ const OrderConfirmationScreen = () => {
                     onPress: () => {
                         // Gọi API lưu đơn hàng ở đây
                         console.log("Gửi đơn hàng của bàn:", params.tableName);
+                        console.log("ma ban: ", params.tableId);
                         Alert.alert("Thành công", "Đơn hàng đã được gửi đi!");
                         console.log("kiem tra trang thai nguoi dat:  ", isStaffOrder)
+                        console.log("ten khach hang:  ", findKH?.hoTen)
+                        console.log("ma khach hang 1111: ", params.maKhachHang);
+
                     }
                 }
             ]
@@ -200,9 +204,14 @@ const OrderConfirmationScreen = () => {
                     </View>
 
                     {/* THÔNG TIN CHO ĐƠN ONLINE */}
-                    {/* THÔNG TIN CHO ĐƠN ONLINE */}
                     {!isStaffOrder && findKH && (
                         <>
+                            {params.tableName && (
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="restaurant-outline" size={18} color="#FF6600"/>
+                                    <Text style={styles.headerText}>Bàn đã đặt: <Text style={styles.boldText}>{params.tableName}</Text></Text>
+                                </View>
+                            )}
                             <View style={styles.infoRow}>
                                 <Ionicons name="call-outline" size={18} color="#FF6600" />
                                 <Text style={styles.headerText}> SDT: <Text style={styles.boldText}>{findKH?.sdt || "N/A"}</Text></Text>
@@ -262,7 +271,7 @@ const OrderConfirmationScreen = () => {
                 </View>
 
                 <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmOrder}>
-                    <Text style={styles.confirmButtonText}>XÁC NHẬN & GỬI ĐƠN</Text>
+                    <Text style={styles.confirmButtonText}>XÁC NHẬN</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
