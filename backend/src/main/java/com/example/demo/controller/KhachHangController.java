@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/khach-hang")
 // Quan trọng: Cho phép React Native/Frontend truy cập API
@@ -33,9 +35,24 @@ public class KhachHangController {
     }
 
     // 3. Thêm mới khách hàng (Đăng ký)
+//    @PostMapping
+//    public KhachHang create(@RequestBody KhachHang khachHang) {
+//        return khachHangService.luuKhachHang(khachHang);
+//    }
+
     @PostMapping
-    public KhachHang create(@RequestBody KhachHang khachHang) {
-        return khachHangService.luuKhachHang(khachHang);
+    public ResponseEntity<?> create(@RequestBody KhachHang khachHang) {
+        // Kiểm tra email trùng
+        if (khachHangService.kiemTraEmailTonTai(khachHang.getEmail())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Email này đã được sử dụng."));
+        }
+        try {
+            return ResponseEntity.ok(khachHangService.luuKhachHang(khachHang));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Lỗi khi đăng ký: " + e.getMessage()));
+        }
     }
 
     // 4. Cập nhật thông tin khách hàng

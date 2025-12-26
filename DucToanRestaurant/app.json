@@ -2,6 +2,7 @@
   "expo": {
     "name": "DucToanRestaurant",
     "slug": "DucToanRestaurant",
+    "owner": "devtoan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -40,7 +41,8 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

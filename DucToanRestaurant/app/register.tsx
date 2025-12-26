@@ -85,7 +85,7 @@ const checkEmailExists = async (inputEmail: string) => {
                 sdt: phonenumber,
                 matKhau:password,
                 numberLog: 0,
-                firstLog: new Date().toISOString().split('T')[0]
+                // firstLog: new Date().toISOString().split('T')[0],
             };
 
             const response = await axios.post(ENDPOINTS.KHACH_HANG, newUser);
@@ -94,9 +94,13 @@ const checkEmailExists = async (inputEmail: string) => {
                     { text: "Đăng nhập ngay", onPress: () => router.replace('/login') }
                 ]);
             }
-        } catch(error){
-            console.error(error);
-            Alert.alert("Lỗi", "Đăng ký thất bại.")
+        } catch(error: any){
+            console.error("Lỗi đăng ký:", error);
+            const errorMessage = error.response?.data?.message ||
+                error.response?.data?.error ||
+                error.message ||
+                "Đăng ký thất bại. Vui lòng thử lại.";
+            Alert.alert("Lỗi", errorMessage);
         } finally{
             setLoading(false)
         }
