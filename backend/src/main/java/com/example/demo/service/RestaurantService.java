@@ -30,6 +30,8 @@ public class RestaurantService {
         restaurantRepository.deleteById(id);
     }
 
+
+
     public List<Restaurant> getByStatus(String status) {
         return restaurantRepository.findByStatus(status);
     }

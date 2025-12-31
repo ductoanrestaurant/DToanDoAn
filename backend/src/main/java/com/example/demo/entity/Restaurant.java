@@ -36,6 +36,21 @@ public class Restaurant {
     @Column(name = "PARENT_ID")
     private Integer parentId;
 
+    @Column(name = "bank_id", length = 20)
+    private String bankId; // VD: "MB" hoặc BinCode "970422"
+
+    @Column(name = "account_no", length = 50)
+    private String accountNo;
+
+    @Column(name = "template", length = 20)
+    private String template; // VD: "compact"
+
+    @Column(name = "account_name", length = 100)
+    private String accountName;
+
+    @Column(name = "content", length = 255)
+    private String content;
+
     // Self-referencing relationship for parent restaurant
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PARENT_ID", insertable = false, updatable = false)

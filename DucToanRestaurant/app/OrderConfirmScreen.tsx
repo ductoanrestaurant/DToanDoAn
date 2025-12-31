@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal } from 'react-native';
 
 
 
@@ -27,16 +27,38 @@ interface KhachHang {
     trangThai?: boolean;
 }
 
+interface Restaurant {
+    idRestaurant: number;
+    ten: string;
+    sdt: string;
+    diaChi: string;
+    bankId: string;      // Ví dụ: MB
+    accountNo: string;   // Ví dụ: 686868686888
+    template: string;    // Ví dụ: compact
+    accountName: string; // Ví dụ: NGUYEN DUC TOAN
+    content: string;     // Ví dụ: thanh toan
+}
+
 
 const OrderConfirmationScreen = () => {
 
     const [NvList, setNvList] = useState<Employee[]>([]);
     const [KHList, setKHList] = useState<KhachHang[]>([]);
+    const [restaurantList, setRestaurantList] = useState<Restaurant[]>([]);
 
     const [loading, setLoading] = useState(true);
 
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+
 
     const router = useRouter();
+
+
+    const handleSelectBankTransfer = () => {
+        setPaymentMethod('chuyển khoản');
+    };
+
+
     const params = useLocalSearchParams<{
         tableId: string;
         tableName: string;
@@ -53,13 +75,15 @@ const OrderConfirmationScreen = () => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [resNv, resKH] = await Promise.all([
+            const [resNv, resKH, resRes] = await Promise.all([
                 axios.get(ENDPOINTS.NHAN_VIEN),
                 axios.get(ENDPOINTS.KHACH_HANG),
+                axios.get(ENDPOINTS.RESTAURANT),
             ]);
 
             if (resNv.data) setNvList(resNv.data);
             if (resKH.data) setKHList(resKH.data);
+            if (resRes.data) setRestaurantList(resRes.data);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu bổ sung:", error);
             // Bạn có thể không cần Alert ở đây để tránh làm phiền người dùng nếu params đã có thông tin cơ bản
@@ -78,9 +102,32 @@ const OrderConfirmationScreen = () => {
     const finalCartItems = params.selectedItems ? JSON.parse(params.selectedItems) : [];
     const totalAmount = parseInt(params.totalPrice || '0');
 
-    const [paymentMethod, setPaymentMethod] = useState<'tiền mặt' | 'vnpay' | 'momo'>('tiền mặt');
+    const [paymentMethod, setPaymentMethod] = useState<'tiền mặt' | 'vnpay' | 'momo' | 'chuyển khoản'>('tiền mặt');
+
+
 
     const isStaffOrder = params.verifyUser === 'nhanvien';  //true = nhan vien, false = khach hang
+
+// Tìm nhà hàng hiện tại để lấy thông tin ngân hàng
+    // Logic: Nếu là nhân viên đặt -> lấy theo idRestaurant của nhân viên
+    //        Nếu là khách đặt -> lấy theo idRestaurant của khách
+    const currentRestaurantId = isStaffOrder
+        ? findNV?.id?.idRestaurant
+        : findKH?.idRestaurant;
+
+    const currentRestaurant = restaurantList.find(r => r.idRestaurant === currentRestaurantId);
+
+
+    const BANK_ID = currentRestaurant?.bankId || 'MB';
+    const ACCOUNT_NO = currentRestaurant?.accountNo || '';
+    const TEMPLATE = currentRestaurant?.template || 'compact';
+    const ACCOUNT_NAME = currentRestaurant?.accountName || '';
+
+    const CONTENT = `${currentRestaurant?.content || 'thanh toán'} ${params.tableName}`
+
+
+    const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-${TEMPLATE}.png?amount=${totalAmount}&addInfo=${CONTENT}&accountName=${ACCOUNT_NAME}`;
+
 
     const formatBookingTime = (timeString: string) => {
         if (!timeString) return 'N/A';
@@ -102,27 +149,55 @@ const OrderConfirmationScreen = () => {
         }
     };
 
-    const handleConfirmOrder = () => {
-        Alert.alert(
-            "Xác nhận đơn hàng",
-            "Đơn hàng của bạn sẽ được gửi trực tiếp đến bộ phận bếp. Bạn có chắc chắn không?",
-            [
-                { text: "Hủy", style: "cancel" },
-                {
-                    text: "Xác nhận",
-                    onPress: () => {
-                        // Gọi API lưu đơn hàng ở đây
-                        console.log("Gửi đơn hàng của bàn:", params.tableName);
-                        console.log("ma ban: ", params.tableId);
-                        Alert.alert("Thành công", "Đơn hàng đã được gửi đi!");
-                        console.log("kiem tra trang thai nguoi dat:  ", isStaffOrder)
-                        console.log("ten khach hang:  ", findKH?.hoTen)
-                        console.log("ma khach hang 1111: ", params.maKhachHang);
+    // const handleConfirmOrder = () => {
+    //     Alert.alert(
+    //         "Xác nhận đơn hàng",
+    //         "Đơn hàng của bạn sẽ được gửi trực tiếp đến bộ phận bếp. Bạn có chắc chắn không?",
+    //         [
+    //             { text: "Hủy", style: "cancel" },
+    //             {
+    //                 text: "Xác nhận",
+    //                 onPress: () => {
+    //                     // Gọi API lưu đơn hàng ở đây
+    //                     console.log("Gửi đơn hàng của bàn:", params.tableName);
+    //                     console.log("ma ban: ", params.tableId);
+    //                     Alert.alert("Thành công", "Đơn hàng đã được gửi đi!");
+    //                     console.log("kiem tra trang thai nguoi dat:  ", isStaffOrder)
+    //                     console.log("ten khach hang:  ", findKH?.hoTen)
+    //                     console.log("ma khach hang 1111: ", params.maKhachHang);
+    //
+    //                     handleSelectBankTransfer;
+    //
+    //                 }
+    //             }
+    //         ]
+    //     );
+    // };
 
+    const handleConfirmOrder = () => {
+        // 1. Log kiểm tra
+        console.log("Xử lý đơn hàng cho bàn:", params.tableName);
+        console.log("Phương thức thanh toán:", paymentMethod);
+
+        // --- GỌI API LƯU ĐƠN HÀNG (Backend) TẠI ĐÂY ---
+        // await axios.post(ENDPOINTS.ORDER, payload)...
+
+        // 2. Kiểm tra phương thức thanh toán
+        if (paymentMethod === 'chuyển khoản') {
+            // Nếu là Chuyển khoản -> Mở popup QR ngay
+            setShowPaymentModal(true);
+        } else {
+            // Nếu là Tiền mặt (hoặc khác) -> Báo thành công luôn
+            Alert.alert("Thành công", "Đơn hàng đã được gửi đi!", [
+                {
+                    text: "OK",
+                    onPress: () => {
+                        // Có thể điều hướng về trang chủ hoặc reset trang tại đây
+                        // router.push('/home');
                     }
                 }
-            ]
-        );
+            ]);
+        }
     };
 
     const renderItem = ({ item }: { item: any }) => (
@@ -235,32 +310,58 @@ const OrderConfirmationScreen = () => {
                 </View>
 
                 {/* 3. Phương thức thanh toán */}
+
                 <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-                <View style={styles.paymentContainer}>
-                    <TouchableOpacity
-                        style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
-                        onPress={() => setPaymentMethod('tiền mặt')}
-                    >
-                        <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
-                        <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
-                    </TouchableOpacity>
+                {isStaffOrder && (
+                    <View style={styles.paymentContainer}>
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
+                            onPress={() => setPaymentMethod('tiền mặt')}
+                        >
+                            <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
+                            <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.paymentOption, paymentMethod === 'vnpay' && styles.paymentActive]}
-                        onPress={() => setPaymentMethod('vnpay')}
-                    >
-                        <Ionicons name="wallet-outline" size={24} color={paymentMethod === 'vnpay' ? "#FFF" : "#FF6600"} />
-                        <Text style={[styles.paymentText, paymentMethod === 'vnpay' && styles.paymentTextActive]}>VN Pay</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMethod === 'chuyển khoản' && styles.paymentActive]}
+                            onPress={() => setPaymentMethod('chuyển khoản')}
+                        >
+                            <Ionicons name="qr-code-outline" size={24} color={paymentMethod === 'chuyển khoản' ? "#FFF" : "#FF6600"} />
+                            <Text style={[styles.paymentText, paymentMethod === 'chuyển khoản' && styles.paymentTextActive]}>Chuyển khoản</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
-                    <TouchableOpacity
-                        style={[styles.paymentOption, paymentMethod === 'momo' && styles.paymentActive]}
-                        onPress={() => setPaymentMethod('momo')}
-                    >
-                        <Ionicons name="card-outline" size={24} color={paymentMethod === 'momo' ? "#FFF" : "#FF6600"} />
-                        <Text style={[styles.paymentText, paymentMethod === 'momo' && styles.paymentTextActive]}>Momo</Text>
-                    </TouchableOpacity>
-                </View>
+
+                {!isStaffOrder && (
+                    <View style={styles.paymentContainer}>
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
+                            onPress={() => setPaymentMethod('tiền mặt')}
+                        >
+                            <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
+                            <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMethod === 'vnpay' && styles.paymentActive]}
+                            onPress={() => setPaymentMethod('vnpay')}
+                        >
+                            <Ionicons name="wallet-outline" size={24} color={paymentMethod === 'vnpay' ? "#FFF" : "#FF6600"} />
+                            <Text style={[styles.paymentText, paymentMethod === 'vnpay' && styles.paymentTextActive]}>VN Pay</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMethod === 'momo' && styles.paymentActive]}
+                            onPress={() => setPaymentMethod('momo')}
+                        >
+                            <Ionicons name="card-outline" size={24} color={paymentMethod === 'momo' ? "#FFF" : "#FF6600"} />
+                            <Text style={[styles.paymentText, paymentMethod === 'momo' && styles.paymentTextActive]}>Momo</Text>
+                        </TouchableOpacity>
+                    </View>
+                    )
+                }
+
             </ScrollView>
 
             {/* 4. Footer thanh toán */}
@@ -274,6 +375,75 @@ const OrderConfirmationScreen = () => {
                     <Text style={styles.confirmButtonText}>XÁC NHẬN</Text>
                 </TouchableOpacity>
             </View>
+
+
+
+
+            {/* --- MODAL THANH TOÁN (POPUP) --- */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={showPaymentModal}
+                onRequestClose={() => setShowPaymentModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        {/* Header Modal */}
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Thông tin chuyển khoản</Text>
+                            <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+                                <Ionicons name="close-circle" size={28} color="#999" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Nội dung QR */}
+                        <View style={styles.qrContainer}>
+                            <Text style={styles.qrLabel}>Quét mã để thanh toán nhanh</Text>
+                            <Image
+                                source={{ uri: qrUrl }}
+                                style={styles.qrImage}
+                                resizeMode="contain"
+                            />
+                        </View>
+
+                        {/* Thông tin chi tiết text */}
+                        <View style={styles.bankInfoContainer}>
+                            <View style={styles.bankRow}>
+                                <Text style={styles.bankLabel}>Ngân hàng:</Text>
+                                <Text style={styles.bankValue}>MB Bank</Text>
+                            </View>
+                            <View style={styles.bankRow}>
+                                <Text style={styles.bankLabel}>Số tài khoản:</Text>
+                                <Text style={styles.bankValueCopy}>{ACCOUNT_NO}</Text>
+                            </View>
+                            <View style={styles.bankRow}>
+                                <Text style={styles.bankLabel}>Chủ tài khoản:</Text>
+                                <Text style={styles.bankValue}>{ACCOUNT_NAME}</Text>
+                            </View>
+                            <View style={styles.bankRow}>
+                                <Text style={styles.bankLabel}>Số tiền:</Text>
+                                <Text style={[styles.bankValue, { color: '#E44D26', fontWeight: 'bold' }]}>
+                                    {totalAmount.toLocaleString('vi-VN')}đ
+                                </Text>
+                            </View>
+                            <View style={styles.bankRow}>
+                                <Text style={styles.bankLabel}>Nội dung:</Text>
+                                <Text style={styles.bankValue}>{CONTENT}</Text>
+                            </View>
+                        </View>
+
+                        {/* Nút Đã thanh toán */}
+                        <TouchableOpacity
+                            style={[styles.doneButton, { backgroundColor: '#DDDDDD' }]}
+                            onPress={() => {
+                                setShowPaymentModal(false);
+                            }}
+                        >
+                            <Text style={[styles.doneButtonText, { color: '#333' }]}>HỦY</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -324,6 +494,93 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginLeft: 6,
     },
+
+    // ... các styles cũ
+
+    // Styles cho Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)', // Màu nền mờ tối
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '90%',
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    modalHeader: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    qrContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    qrLabel: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 10,
+    },
+    qrImage: {
+        width: 250,
+        height: 250, // VietQR thường trả về ảnh vuông
+    },
+    bankInfoContainer: {
+        width: '100%',
+        backgroundColor: '#F5F5F5',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 20,
+    },
+    bankRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    bankLabel: {
+        color: '#666',
+        fontSize: 14,
+    },
+    bankValue: {
+        color: '#333',
+        fontWeight: '600',
+        fontSize: 14,
+        maxWidth: '65%',
+        textAlign: 'right'
+    },
+    bankValueCopy: {
+        color: '#007AFF', // Màu xanh tạo cảm giác có thể copy
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    doneButton: {
+        backgroundColor: '#FF6600',
+        width: '100%',
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    doneButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+    }
 });
 
 export default OrderConfirmationScreen;

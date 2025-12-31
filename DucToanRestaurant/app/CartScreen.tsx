@@ -182,26 +182,27 @@ const CartScreen = () => {
                                 onPress={goBackWithData}>THÊM MÓN</Text>
                         </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={styles.checkoutBtn}>
-                        <Text style={styles.checkoutText}
-                              onPress={()=>{
-                                  router.push({
-                                  pathname:'/OrderConfirmScreen',
-                                  params:{
-                                      tableId:tableId,
-                                      tableName:tableName,
-                                      maNv:maNv,
-                                      maKhachHang: maKhachHang,
-                                      bookingTime: bookingTime,
-                                      soLuongNguoi: soLuongNguoi,
-                                      selectedItems: JSON.stringify(cartItems),
-                                      totalPrice:totalPrice.toString(),
-                                      ...(verifyUser && { verifyUser }),
-                                  }
+                    <TouchableOpacity style={styles.checkoutBtn}
+                        onPress={()=> {
+                            router.push({
+                                pathname: '/OrderConfirmScreen',
+                                params: {
+                                    tableId: tableId,
+                                    tableName: tableName,
+                                    maNv: maNv,
+                                    maKhachHang: maKhachHang,
+                                    bookingTime: bookingTime,
+                                    soLuongNguoi: soLuongNguoi,
+                                    selectedItems: JSON.stringify(cartItems),
+                                    totalPrice: totalPrice.toString(),
+                                    ...(verifyUser && {verifyUser}),
+                                }
 
-                              })
-                                  console.log("tableid: ", tableId);
-                              }}>XÁC NHẬN</Text>
+                            });
+                            console.log("tableid: ", tableId);
+                        }}
+                    >
+                        <Text style={styles.checkoutText}>XÁC NHẬN</Text>
 
                     </TouchableOpacity>
                 </View>

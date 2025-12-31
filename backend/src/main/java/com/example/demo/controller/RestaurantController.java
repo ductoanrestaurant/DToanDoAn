@@ -43,9 +43,18 @@ public class RestaurantController {
             restaurant.setMoTa(restaurantDetails.getMoTa());
             restaurant.setStatus(restaurantDetails.getStatus());
             restaurant.setParentId(restaurantDetails.getParentId());
+
+
+            restaurant.setBankId(restaurantDetails.getBankId());
+            restaurant.setAccountNo(restaurantDetails.getAccountNo());
+            restaurant.setTemplate(restaurantDetails.getTemplate());
+            restaurant.setAccountName(restaurantDetails.getAccountName());
+            restaurant.setContent(restaurantDetails.getContent());
             return ResponseEntity.ok(restaurantService.save(restaurant));
         }).orElse(ResponseEntity.notFound().build());
     }
+
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {

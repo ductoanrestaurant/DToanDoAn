@@ -12,6 +12,10 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     // 1. Kiểm tra sự tồn tại (Trả về true/false)
     boolean existsByEmail(String email);
 
+    boolean existsBySdt(String sdt);
+
+
+
     // 2. Tìm khách hàng theo email (Trả về đối tượng) - Phù hợp cho chức năng Đăng nhập
     Optional<KhachHang> findByEmail(String email);
 }

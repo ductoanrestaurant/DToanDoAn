@@ -13,20 +13,17 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/khach-hang")
-// Quan trọng: Cho phép React Native/Frontend truy cập API
-@CrossOrigin(origins = "*") 
+@CrossOrigin(origins = "*")
 public class KhachHangController {
 
     @Autowired
     private KhachHangService khachHangService;
 
-    // 1. Lấy toàn bộ danh sách
     @GetMapping
     public List<KhachHang> getAll() {
         return khachHangService.layTatCaKhachHang();
     }
 
-    // 2. Lấy chi tiết 1 khách hàng theo ID
     @GetMapping("/{id}")
     public ResponseEntity<KhachHang> getById(@PathVariable Integer id) {
         return khachHangService.layTheoId(id)
@@ -34,19 +31,13 @@ public class KhachHangController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 3. Thêm mới khách hàng (Đăng ký)
-//    @PostMapping
-//    public KhachHang create(@RequestBody KhachHang khachHang) {
-//        return khachHangService.luuKhachHang(khachHang);
-//    }
-
     @PostMapping
     public ResponseEntity<?> create(@RequestBody KhachHang khachHang) {
-        // Kiểm tra email trùng
         if (khachHangService.kiemTraEmailTonTai(khachHang.getEmail())) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Email này đã được sử dụng."));
         }
+        // You should add a similar check for the phone number here before saving
         try {
             return ResponseEntity.ok(khachHangService.luuKhachHang(khachHang));
         } catch (Exception e) {
@@ -55,7 +46,6 @@ public class KhachHangController {
         }
     }
 
-    // 4. Cập nhật thông tin khách hàng
     @PutMapping("/{id}")
     public ResponseEntity<KhachHang> update(@PathVariable Integer id, @RequestBody KhachHang details) {
         return khachHangService.layTheoId(id).map(kh -> {
@@ -64,12 +54,10 @@ public class KhachHangController {
             kh.setSdt(details.getSdt());
             kh.setDiachi(details.getDiachi());
             kh.setAvatar(details.getAvatar());
-            // Cập nhật các trường khác nếu cần
             return ResponseEntity.ok(khachHangService.luuKhachHang(kh));
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 5. Xóa khách hàng
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         if (khachHangService.layTheoId(id).isPresent()) {
@@ -79,16 +67,23 @@ public class KhachHangController {
         return ResponseEntity.notFound().build();
     }
 
-    // 6. Kiểm tra email tồn tại
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
-        // Gọi thông qua instance service đã được tiêm (injected)
         boolean exists = khachHangService.kiemTraEmailTonTai(email);
-    
         HashMap<String, Object> response = new HashMap<>();
         response.put("exists", exists);
         response.put("message", exists ? "Email đã tồn tại" : "Email hợp lệ");
-    
+        return ResponseEntity.ok(response);
+    }
+
+    // Add this new endpoint to check for phone number
+    @GetMapping("/check-phone")
+    public ResponseEntity<?> checkPhone(@RequestParam("sdt") String phoneNumber) {
+        // You will need to implement kiemTraSdtTonTai in your KhachHangService
+        boolean exists = khachHangService.kiemTraSdtTonTai(phoneNumber);
+        HashMap<String, Object> response = new HashMap<>();
+        response.put("exists", exists);
+        response.put("message", exists ? "Số điện thoại đã tồn tại" : "Số điện thoại hợp lệ");
         return ResponseEntity.ok(response);
     }
 }
