@@ -3,7 +3,18 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal } from 'react-native';
+import {
+    Alert,
+    Image,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    Modal,
+    ActivityIndicator
+} from 'react-native';
 
 
 
@@ -72,25 +83,43 @@ const OrderConfirmationScreen = () => {
     }>();
 
 
+    const [cartItems, setCartItems] = useState<any[]>([]);
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [resNv, resKH, resRes] = await Promise.all([
+            const [resNv, resKH, resRes, resSanPham] = await Promise.all([
                 axios.get(ENDPOINTS.NHAN_VIEN),
                 axios.get(ENDPOINTS.KHACH_HANG),
                 axios.get(ENDPOINTS.RESTAURANT),
+                axios.get(ENDPOINTS.SAN_PHAM),
             ]);
 
             if (resNv.data) setNvList(resNv.data);
             if (resKH.data) setKHList(resKH.data);
             if (resRes.data) setRestaurantList(resRes.data);
+
+            if (resSanPham.data && params.selectedItems) {
+                const allProducts = resSanPham.data;
+                const paramItems = JSON.parse(params.selectedItems);
+
+                const mergedItems = paramItems.map((pItem: any) => {
+                    // Tìm sản phẩm trong danh sách gốc để lấy giá, tên, ảnh
+                    const product = allProducts.find((p: any) => p.maSanPham === pItem.maSanPham);
+                    if (product) {
+                        return { ...product, soluong: pItem.soluong };
+                    }
+                    return null;
+                }).filter((item: any) => item !== null);
+
+                setCartItems(mergedItems); // Lưu vào state để hiển thị
+            }
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu bổ sung:", error);
             // Bạn có thể không cần Alert ở đây để tránh làm phiền người dùng nếu params đã có thông tin cơ bản
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [params.selectedItems]);
 
     useEffect(() => {
         fetchData();
@@ -178,6 +207,15 @@ const OrderConfirmationScreen = () => {
         // 1. Log kiểm tra
         console.log("Xử lý đơn hàng cho bàn:", params.tableName);
         console.log("Phương thức thanh toán:", paymentMethod);
+        console.log("ma ban: ", params.tableId);
+        console.log("manhanvien: ", params.maNv);
+        console.log("makhachhang: ", params.maKhachHang);
+        console.log("soluongnguoi: ", params.soLuongNguoi);
+        console.log("bookingtime: ", params.bookingTime);
+        console.log("selectedItems: ", params.selectedItems);
+        console.log("totalPrice: ", params.totalPrice);
+        console.log("verifyuser: ", params.verifyUser);
+
 
         // --- GỌI API LƯU ĐƠN HÀNG (Backend) TẠI ĐÂY ---
         // await axios.post(ENDPOINTS.ORDER, payload)...
@@ -208,12 +246,21 @@ const OrderConfirmationScreen = () => {
             />
             <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.tenSanPham}</Text>
-                <Text style={styles.itemDetail}>SL: {item.soluong} x {item.gia.toLocaleString('vi-VN')}đ</Text>
+                <Text style={styles.itemDetail}>SL: {item.soluong} x {(item.gia || 0).toLocaleString('vi-VN')}đ</Text>
             </View>
-            <Text style={styles.itemSubtotal}>{(item.gia * item.soluong).toLocaleString('vi-VN')}đ</Text>
+            <Text style={styles.itemSubtotal}>{((item.gia || 0) * item.soluong).toLocaleString('vi-VN')}đ</Text>
         </View>
     );
 
+
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.container, {justifyContent:'center', alignItems:'center'}]}>
+                <ActivityIndicator size="large" color="#FF6600" />
+                <Text style={{marginTop: 10}}>Đang xử lý đơn hàng...</Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -302,7 +349,7 @@ const OrderConfirmationScreen = () => {
                 {/* 2. Danh sách món ăn */}
                 <Text style={styles.sectionTitle}>Chi tiết món ăn</Text>
                 <View style={styles.listContainer}>
-                    {finalCartItems.map((item: any, index: number) => (
+                    {cartItems.map((item: any, index: number) => (
                         <View key={index}>
                             {renderItem({ item })}
                         </View>

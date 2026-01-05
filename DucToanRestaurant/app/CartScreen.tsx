@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, SafeAreaView, } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+    View,
+    Text,
+    FlatList,
+    Image,
+    TouchableOpacity,
+    StyleSheet,
+    SafeAreaView,
+    ActivityIndicator,
+} from 'react-native';
 import {Stack, useLocalSearchParams, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import {push} from "expo-router/build/global-state/routing";
-import {BASE_URL_IMG} from "@/constants/api"; // Thư viện icon phổ biến
+import {BASE_URL_IMG, ENDPOINTS} from "@/constants/api";
+import axios from "axios"; // Thư viện icon phổ biến
 
 
 // Sử dụng chung interface với MenuScreen
@@ -55,9 +64,6 @@ const CartScreen = () => {
 
     const { tableId, tableName, maNv, maKhachHang, soLuongNguoi, bookingTime, verifyUser } = params;
 
-    console.log("=== DEBUG CART SCREEN ===");
-    console.log("params.tableId:", params.tableId);
-    console.log("tableId (destructured):", tableId);
 
     const [cartItems, setCartItems] = useState<ProductInCart[]>(() => {
         if (params.selectedItems) {
@@ -77,6 +83,47 @@ const CartScreen = () => {
     //     { maSanPham: 1, tenSanPham: 'Phở Bò Nam Định', gia: 45000, quantity: 2, urlAnh: 'https://via.placeholder.com/150' },
     //     { maSanPham: 2, tenSanPham: 'Bún Chả Hà Nội', gia: 55000, quantity: 1, urlAnh: 'https://via.placeholder.com/150' },
     // ]);
+    const [loading, setLoading] = useState<boolean>(true);
+    useEffect(() => {
+        const fetchAndMergeData = async () => {
+            try {
+                // 1. Lấy danh sách ID và số lượng từ Params
+                let paramItems: { maSanPham: number, soluong: number }[] = [];
+                if (params.selectedItems) {
+                    paramItems = JSON.parse(params.selectedItems);
+                }
+
+                if (paramItems.length === 0) {
+                    setLoading(false);
+                    return;
+                }
+
+                // 2. Gọi API lấy danh sách toàn bộ sản phẩm (hoặc API lấy chi tiết theo danh sách ID nếu có)
+                const response = await axios.get(ENDPOINTS.SAN_PHAM);
+                const allProducts: SanPham[] = response.data;
+
+                // 3. Khớp dữ liệu: Ghép thông tin từ API vào danh sách ID từ params
+                const fullDetailsCart: ProductInCart[] = paramItems.map(pItem => {
+                    const foundProduct = allProducts.find(prod => prod.maSanPham === pItem.maSanPham);
+                    if (foundProduct) {
+                        return {
+                            ...foundProduct,
+                            soluong: pItem.soluong
+                        };
+                    }
+                    return null;
+                }).filter((item): item is ProductInCart => item !== null); // Loại bỏ các item không tìm thấy
+
+                setCartItems(fullDetailsCart);
+            } catch (error) {
+                console.error("Lỗi khi tải thông tin giỏ hàng:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAndMergeData();
+    }, [params.selectedItems]);
 
     const updateQuantity = (id: number, delta: number) => {
         setCartItems(prev => prev.map(item =>
@@ -125,7 +172,7 @@ const CartScreen = () => {
                 />
                 <View style={styles.itemDetails}>
                     <Text style={styles.itemName}>{item.tenSanPham}</Text>
-                    <Text style={styles.itemPrice}>{item.gia.toLocaleString('vi-VN')}đ</Text>
+                    <Text style={styles.itemPrice}>{(item.gia || 0).toLocaleString('vi-VN')}đ</Text>
 
                     <View style={styles.quantityContainer}>
                         <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -1)} style={styles.qtyBtn}>
@@ -143,6 +190,15 @@ const CartScreen = () => {
                     <Ionicons name="trash-outline" size={24} color="#FF4D4D"/>
                 </TouchableOpacity>
             </View>
+        );
+    }
+
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.container, {justifyContent:'center', alignItems:'center'}]}>
+                <ActivityIndicator size="large" color="#FF6600" />
+                <Text style={{marginTop: 10, color: '#666'}}>Đang cập nhật giỏ hàng...</Text>
+            </SafeAreaView>
         );
     }
 
@@ -184,6 +240,14 @@ const CartScreen = () => {
                     </View>
                     <TouchableOpacity style={styles.checkoutBtn}
                         onPress={()=> {
+                            const inforOrder = cartItems.map(item => ({
+                                maSanPham: item.maSanPham,
+                                soluong: item.soluong
+                            }));
+                            console.log("===check data cartscreen===");
+                            console.log("du lieu gui di: ", {tableId, tableName, maNv, maKhachHang, soLuongNguoi, bookingTime,selectedItems: JSON.stringify(inforOrder),
+                                ...(verifyUser && { verifyUser }),} );
+
                             router.push({
                                 pathname: '/OrderConfirmScreen',
                                 params: {
@@ -193,7 +257,7 @@ const CartScreen = () => {
                                     maKhachHang: maKhachHang,
                                     bookingTime: bookingTime,
                                     soLuongNguoi: soLuongNguoi,
-                                    selectedItems: JSON.stringify(cartItems),
+                                    selectedItems: JSON.stringify(inforOrder),
                                     totalPrice: totalPrice.toString(),
                                     ...(verifyUser && {verifyUser}),
                                 }

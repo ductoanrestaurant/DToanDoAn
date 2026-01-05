@@ -67,19 +67,6 @@ const MenuScreen = () => {
         setViewMon(true);
     };
 
-    // const BASE_URL_IMAGE = 'http://10.6.61.18:8080/uploads/';
-
-    // const { updatedItems, ...restParams } = useLocalSearchParams<{ updatedItems?: string }>();
-    //
-    // const {tableId, tableName, bookingTime, maNv, maKhachHang, soLuongNguoi} = useLocalSearchParams<{
-    //     tableId: string;
-    //     tableName: string;
-    //     bookingTime: string;
-    //     maNv: string,
-    //     soLuongNguoi: string,
-    //     maKhachHang: string,
-    // }>();
-
 
     type OrderFoodParams = {
         tableId: string;
@@ -95,11 +82,7 @@ const MenuScreen = () => {
     const params = useLocalSearchParams<OrderFoodParams>();
     const { tableId, tableName, bookingTime, maNv, maKhachHang, soLuongNguoi, updatedItems, verifyUser } = params;
 
-    console.log("=== DEBUG ORDER FOOD ===");
-    console.log("params.tableId:", params.tableId);
-    console.log("params.tableName:", params.tableName);
-    console.log("tableId (destructured):", tableId);
-    console.log("ma khach hang in orderfood: ", maKhachHang);
+
 
 
 
@@ -367,6 +350,22 @@ const MenuScreen = () => {
                 </View>
                 <Text style={styles.viewCartBtn}
                       onPress={() =>{
+                          const inforItemPush = mon.map(item => ({
+                              maSanPham: item.maSanPham,
+                              soluong: item.soluong,
+                          }));
+
+                          console.log("du lieu gui di: ", {
+                              tableId,
+                              tableName,
+                              bookingTime,
+                              maNv,
+                              maKhachHang,
+                              soLuongNguoi,
+                              selectedItems: JSON.stringify(inforItemPush),
+                              ...(verifyUser && { verifyUser }),
+                          });
+
                           router.push({
                               pathname:'/CartScreen',
                               params:{
@@ -376,7 +375,7 @@ const MenuScreen = () => {
                                   maNv,
                                   maKhachHang,
                                   soLuongNguoi,
-                                  selectedItems: JSON.stringify(mon),
+                                  selectedItems: JSON.stringify(inforItemPush),
                                   ...(verifyUser && { verifyUser }),
                               }
                           });}
