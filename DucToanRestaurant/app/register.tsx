@@ -17,9 +17,9 @@ const RegisterScreen = () => {
     const [emailError, setEmailError] = useState('');
     const [phoneError, setPhoneError] = useState('');
 
-    // --- Validation Rule Functions ---
+
     const isPhoneNumberValid = (phone: string) => {
-        // Validates Vietnamese phone numbers (10 digits, starting with 03, 05, 07, 08, 09)
+
         const phoneRegex = /^(0[35789])\d{8}$/;
         return phoneRegex.test(phone);
     };
@@ -29,7 +29,7 @@ const RegisterScreen = () => {
         return emailRegex.test(email);
     };
 
-    // --- Blur Handlers for Real-time Feedback ---
+
     const handleEmailBlur = async () => {
         if (!email) {
             setEmailError('');
@@ -48,7 +48,7 @@ const RegisterScreen = () => {
             }
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 404) {
-                setEmailError(''); // 404 means not found, which is valid for a new user
+                setEmailError('');
             } else {
                 console.error("Lỗi kiểm tra email:", error);
             }
@@ -56,10 +56,10 @@ const RegisterScreen = () => {
     };
 
     const handlePhoneBlur = async () => {
-        // Clear previous errors when user starts typing again
+
         if (phoneError) setPhoneError('');
 
-        // Only perform validation check when the user has entered 10 digits
+
         if (phonenumber.length !== 10) {
             return;
         }
@@ -78,20 +78,20 @@ const RegisterScreen = () => {
             }
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 404) {
-                setPhoneError(''); // 404 means not found, which is valid
+                setPhoneError('');
             } else {
                 console.error("Lỗi kiểm tra số điện thoại:", error);
             }
         }
     };
 
-    // --- Main Registration Handler ---
+
     const handleRegister = async () => {
         setErrorMessage('');
         setEmailError('');
         setPhoneError('');
 
-        // 1. Client-side validation first
+
         let hasClientError = false;
         if (!email || !fullname || !phonenumber || !password || !confirmpassword) {
             setErrorMessage('Vui lòng nhập đầy đủ thông tin!');
@@ -116,7 +116,7 @@ const RegisterScreen = () => {
 
         setLoading(true);
 
-        // 2. Server-side validation for existing data
+
         try {
             const emailCheck = axios.get(ENDPOINTS.CHECK_EMAIL, { params: { email } });
             const phoneCheck = axios.get(ENDPOINTS.CHECK_PHONE, { params: { sdt: phonenumber } });
@@ -144,7 +144,7 @@ const RegisterScreen = () => {
             return;
         }
 
-        // 3. Submit registration
+
         try {
             const newUser = { email, hoTen: fullname, sdt: phonenumber, matKhau: password };
             const response = await axios.post(ENDPOINTS.KHACH_HANG, newUser);

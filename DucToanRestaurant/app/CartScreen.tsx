@@ -12,10 +12,10 @@ import {
 import {Stack, useLocalSearchParams, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {BASE_URL_IMG, ENDPOINTS} from "@/constants/api";
-import axios from "axios"; // Thư viện icon phổ biến
+import axios from "axios";
 
 
-// Sử dụng chung interface với MenuScreen
+
 interface CartItem {
     maSanPham: number;
     tenSanPham: string;
@@ -78,7 +78,7 @@ const CartScreen = () => {
     });
 
 
-    // Giả lập dữ liệu từ state hoặc params (Thực tế bạn nên dùng Context API hoặc Redux)
+
     // const [cartItems, setCartItems] = useState<CartItem[]>([
     //     { maSanPham: 1, tenSanPham: 'Phở Bò Nam Định', gia: 45000, quantity: 2, urlAnh: 'https://via.placeholder.com/150' },
     //     { maSanPham: 2, tenSanPham: 'Bún Chả Hà Nội', gia: 55000, quantity: 1, urlAnh: 'https://via.placeholder.com/150' },
@@ -87,7 +87,7 @@ const CartScreen = () => {
     useEffect(() => {
         const fetchAndMergeData = async () => {
             try {
-                // 1. Lấy danh sách ID và số lượng từ Params
+
                 let paramItems: { maSanPham: number, soluong: number }[] = [];
                 if (params.selectedItems) {
                     paramItems = JSON.parse(params.selectedItems);
@@ -98,11 +98,11 @@ const CartScreen = () => {
                     return;
                 }
 
-                // 2. Gọi API lấy danh sách toàn bộ sản phẩm (hoặc API lấy chi tiết theo danh sách ID nếu có)
+
                 const response = await axios.get(ENDPOINTS.SAN_PHAM);
                 const allProducts: SanPham[] = response.data;
 
-                // 3. Khớp dữ liệu: Ghép thông tin từ API vào danh sách ID từ params
+
                 const fullDetailsCart: ProductInCart[] = paramItems.map(pItem => {
                     const foundProduct = allProducts.find(prod => prod.maSanPham === pItem.maSanPham);
                     if (foundProduct) {
@@ -159,13 +159,12 @@ const CartScreen = () => {
 
         const imageName = item.danhSachAnh?.[0]?.urlAnh;
 
-        // Nối chuỗi để tạo URL đầy đủ
+
         const fullImageUrl = imageName
             ? `${BASE_URL_IMG}/${imageName}`
             : 'https://via.placeholder.com/150';
         return (
             <View style={styles.cartCard}>
-                {/* Lấy ảnh đầu tiên trong mảng danhSachAnh */}
                 <Image
                     source={{uri: fullImageUrl}}
                     style={styles.itemImage}
@@ -178,14 +177,14 @@ const CartScreen = () => {
                         <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -1)} style={styles.qtyBtn}>
                             <Text style={styles.qtyBtnText}>-</Text>
                         </TouchableOpacity>
-                        {/* Dùng soluong thay vì quantity */}
+
                         <Text style={styles.qtyText}>{item.soluong}</Text>
                         <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, 1)} style={styles.qtyBtn}>
                             <Text style={styles.qtyBtnText}>+</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-                {/* Nút xóa nhanh */}
+
                 <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -item.soluong)}>
                     <Ionicons name="trash-outline" size={24} color="#FF4D4D"/>
                 </TouchableOpacity>

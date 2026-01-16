@@ -6,7 +6,8 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "jsx": "react-native" // Thêm dòng này để cho phép JSX
   },
   "include": [
     "**/*.ts",

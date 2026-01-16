@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.Restaurant;
@@ -30,11 +31,13 @@ public class RestaurantController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public Restaurant create(@RequestBody Restaurant restaurant) {
         return restaurantService.save(restaurant);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Restaurant> update(@PathVariable Integer id, @RequestBody Restaurant restaurantDetails) {
         return restaurantService.getById(id).map(restaurant -> {
             restaurant.setTen(restaurantDetails.getTen());
@@ -50,6 +53,7 @@ public class RestaurantController {
             restaurant.setTemplate(restaurantDetails.getTemplate());
             restaurant.setAccountName(restaurantDetails.getAccountName());
             restaurant.setContent(restaurantDetails.getContent());
+            restaurant.setImg(restaurantDetails.getImg());
             return ResponseEntity.ok(restaurantService.save(restaurant));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -57,6 +61,7 @@ public class RestaurantController {
 
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         restaurantService.delete(id);
         return ResponseEntity.ok().build();

@@ -1,16 +1,19 @@
 package com.example.demo.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
+import com.example.demo.dto.YeuCauDonRequest;
 import com.example.demo.entity.YeuCauDon;
 import com.example.demo.service.YeuCauDonService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/yeu-cau-don")
+@PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
 @CrossOrigin("*")
 public class YeuCauDonController {
 
@@ -32,9 +35,18 @@ public class YeuCauDonController {
     }
 
     @PostMapping
-    public YeuCauDon create(@RequestBody YeuCauDon yeuCauDon) {
-        return yeuCauDonService.save(yeuCauDon);
+    public ResponseEntity<YeuCauDon> create(@RequestBody YeuCauDonRequest yeuCauDonRequest) {
+        try {
+            YeuCauDon newYeuCauDon = yeuCauDonService.createYeuCauDon(yeuCauDonRequest);
+            return new ResponseEntity<>(newYeuCauDon, HttpStatus.CREATED);
+        } catch (Exception e) {
+
+            System.err.println("Error creating order: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
+
 
     @PutMapping("/{maDonHang}/{idRestaurant}")
     public ResponseEntity<YeuCauDon> update(
@@ -77,4 +89,3 @@ public class YeuCauDonController {
         return yeuCauDonService.getByTrangThaiThanhToan(trangThai);
     }
 }
-

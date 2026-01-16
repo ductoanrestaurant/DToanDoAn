@@ -2,18 +2,19 @@ package com.example.demo.entity;
 
 import jakarta.persistence.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "khachhang")
-
 public class KhachHang {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "mataikhoan")
     private Integer maTaiKhoan;
+
+    @Column(name = "id_restaurant")
+    private Integer idRestaurant;
 
     @Column(name = "matkhau")
     private String matKhau;
@@ -26,10 +27,10 @@ public class KhachHang {
 
     @Column(name = "hoten")
     private String hoTen;
-    
+
     @Column(name = "avatar")
     private String avatar;
-    
+
     @Column(name = "diachi")
     private String diachi;
 
@@ -45,6 +46,14 @@ public class KhachHang {
 
     public void setMaTaiKhoan(Integer maTaiKhoan) {
         this.maTaiKhoan = maTaiKhoan;
+    }
+
+    public Integer getIdRestaurant() {
+        return 1; // Hardcoded to 1 as requested
+    }
+
+    public void setIdRestaurant(Integer idRestaurant) {
+        this.idRestaurant = idRestaurant;
     }
 
     public String getMatKhau() {

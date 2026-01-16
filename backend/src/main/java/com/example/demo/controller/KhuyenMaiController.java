@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.KhuyenMai;
@@ -30,11 +31,13 @@ public class KhuyenMaiController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public KhuyenMai create(@RequestBody KhuyenMai khuyenMai) {
         return khuyenMaiService.save(khuyenMai);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<KhuyenMai> update(@PathVariable Integer id, @RequestBody KhuyenMai khuyenMaiDetails) {
         return khuyenMaiService.getById(id).map(khuyenMai -> {
             khuyenMai.setMaKhuyenMai(khuyenMaiDetails.getMaKhuyenMai());
@@ -48,6 +51,7 @@ public class KhuyenMaiController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         khuyenMaiService.delete(id);
         return ResponseEntity.ok().build();

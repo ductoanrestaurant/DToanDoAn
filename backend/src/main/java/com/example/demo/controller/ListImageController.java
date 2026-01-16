@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.ListImage;
@@ -35,6 +36,7 @@ public class ListImageController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<ListImage> update(@PathVariable Integer id, @RequestBody ListImage listImageDetails) {
         return listImageService.getById(id).map(listImage -> {
             listImage.setUrlAnh(listImageDetails.getUrlAnh());
@@ -44,6 +46,7 @@ public class ListImageController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         listImageService.delete(id);
         return ResponseEntity.ok().build();

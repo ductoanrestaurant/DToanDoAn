@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.TonKho;
@@ -18,11 +19,13 @@ public class TonKhoController {
     private TonKhoService tonKhoService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public List<TonKho> getAll() {
         return tonKhoService.getAll();
     }
 
     @GetMapping("/{maNguyenLieu}/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public ResponseEntity<TonKho> getById(
             @PathVariable Integer maNguyenLieu,
             @PathVariable Integer idRestaurant) {
@@ -32,11 +35,13 @@ public class TonKhoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public TonKho create(@RequestBody TonKho tonKho) {
         return tonKhoService.save(tonKho);
     }
 
     @PutMapping("/{maNguyenLieu}/{idRestaurant}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<TonKho> update(
             @PathVariable Integer maNguyenLieu,
             @PathVariable Integer idRestaurant,
@@ -49,6 +54,7 @@ public class TonKhoController {
     }
 
     @DeleteMapping("/{maNguyenLieu}/{idRestaurant}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(
             @PathVariable Integer maNguyenLieu,
             @PathVariable Integer idRestaurant) {
@@ -57,11 +63,13 @@ public class TonKhoController {
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public List<TonKho> getByIdRestaurant(@PathVariable Integer idRestaurant) {
         return tonKhoService.getByIdRestaurant(idRestaurant);
     }
 
     @GetMapping("/nguyen-lieu/{maNguyenLieu}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public List<TonKho> getByMaNguyenLieu(@PathVariable Integer maNguyenLieu) {
         return tonKhoService.getByMaNguyenLieu(maNguyenLieu);
     }

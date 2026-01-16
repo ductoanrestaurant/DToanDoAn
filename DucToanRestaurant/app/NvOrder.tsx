@@ -51,7 +51,7 @@ interface KhachHang {
     trangThai?: boolean;
 }
 
-const [verifyUser, setVerifyUser] = useState('');
+// const [verifyUser, setVerifyUser] = useState('');
 
 const NvOrderScreen = () => {
     const [formData, setFormData] = useState({
@@ -119,32 +119,32 @@ const NvOrderScreen = () => {
         const inputSdt = formData.sdtKhachHang.trim();
 
 
-        // Kiểm tra số điện thoại trong database
+
         if (inputSdt.length === 10) {
             const foundKhachHang = KHList.find(kh => kh.sdt === inputSdt);
 
             console.log(foundKhachHang?.hoTen);
 
             if (foundKhachHang) {
-                // Nếu tìm thấy: tự động điền tên khách hàng
+
                 setFormData(prev => ({
                     ...prev,
                     hotenKhachHang: foundKhachHang.hoTen
                 }));
                 setIsNewSdt(false);
             } else {
-                // Nếu không tìm thấy: xóa tên và hiển thị cảnh báo
+
                 setFormData(prev => ({ ...prev, hotenKhachHang: '' }));
                 setIsNewSdt(true);
             }
         } else {
-            // Rỗng hoặc không hợp lệ: reset lại
+
             setIsNewSdt(false);
             setFormData(prev => ({ ...prev, hotenKhachHang: '' }));
         }
 
 
-        // 1. Kiểm tra tên nhân viên
+
         if (inputTenNv === '') {
             setErrorTenNv('Tên nhân viên không được để trống');
             setSelectedMaNv(null);
@@ -162,7 +162,7 @@ const NvOrderScreen = () => {
             }
         }
 
-        // 2. Lọc bàn trống theo số lượng người
+
         const soLuong = parseInt(formData.soLuongNguoi, 10) ;
         if (!isNaN(soLuong) && soLuong > 0 && allTables.length > 0) {
             const validTables = allTables.filter(table =>
@@ -237,7 +237,7 @@ const NvOrderScreen = () => {
                 finalMaKhachHang = String(response.data.maTaiKhoan);
             }
         } else {
-            // TRƯỜNG HỢP KHÁCH ĐÃ CÓ: Tìm mã tài khoản trong danh sách hiện tại
+
             const foundKhachHang = KHList.find(kh => kh.sdt === formData.sdtKhachHang.trim());
             if (foundKhachHang) {
                 finalMaKhachHang = String(foundKhachHang.maTaiKhoan);
@@ -289,7 +289,7 @@ const NvOrderScreen = () => {
                 bookingTime: date.toISOString(),
                 maNv: foundNv ? String(foundNv.id.maNhanVien) : '',
                 soLuongNguoi: String(soLuong),
-                // maKhachHang: foundKhachHang ? String(foundKhachHang.maTaiKhoan) : '',
+
                 maKhachHang: finalMaKhachHang,
                 verifyUser:'nhanvien',
             }
@@ -425,7 +425,6 @@ const NvOrderScreen = () => {
                             )}
                         </View>
 
-                        {/* TÊN KHÁCH HÀNG */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Tên khách hàng</Text>
                             <TextInput
@@ -454,7 +453,7 @@ const NvOrderScreen = () => {
     );
 };
 
-// Styles không đổi...
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F2F4F7' },
     scrollContent: { padding: 16 },
@@ -488,7 +487,7 @@ const styles = StyleSheet.create({
     buttonDisabled: { backgroundColor: '#D1D1D1' },
     buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
     inputWarning: {
-        borderColor: '#FFA500', // Màu cam cảnh báo
+        borderColor: '#FFA500',
     },
     warningTextSmall: {
         color: "#FFA500",

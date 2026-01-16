@@ -4,6 +4,7 @@ import com.example.demo.entity.Ban;
 import com.example.demo.service.BanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,20 +17,23 @@ public class BanController {
     @Autowired
     private BanService banService;
 
-    // 1. Lấy toàn bộ danh sách bàn
+    // getall danh sách bàn - login
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<Ban> getAll() {
         return banService.layTatCaBan();
     }
 
-    // 2. Lấy danh sách bàn theo restaurant
+    // getall danh sach ban by restaurant - login
     @GetMapping("/restaurant/{idRestaurant}")
+    @PreAuthorize("isAuthenticated()")
     public List<Ban> getByRestaurant(@PathVariable Integer idRestaurant) {
         return banService.layBanTheoRestaurant(idRestaurant);
     }
 
-    // 3. Lấy chi tiết 1 bàn theo ID (composite key)
+    // get chi tiet thong tin ban by ID - login
     @GetMapping("/{maBan}/{idRestaurant}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Ban> getById(
             @PathVariable Integer maBan,
             @PathVariable Integer idRestaurant) {
@@ -38,14 +42,16 @@ public class BanController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 4. Thêm mới bàn
+    // add new ban - role QUAN_LY
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public Ban create(@RequestBody Ban ban) {
         return banService.luuBan(ban);
     }
 
-    // 5. Cập nhật thông tin bàn
+    // update info ban - role QUAN_LY
     @PutMapping("/{maBan}/{idRestaurant}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Ban> update(
             @PathVariable Integer maBan,
             @PathVariable Integer idRestaurant,
@@ -58,8 +64,9 @@ public class BanController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 6. Xóa bàn
+    // delete ban - role QUAN_LY
     @DeleteMapping("/{maBan}/{idRestaurant}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(
             @PathVariable Integer maBan,
             @PathVariable Integer idRestaurant) {
@@ -70,4 +77,3 @@ public class BanController {
         return ResponseEntity.notFound().build();
     }
 }
-

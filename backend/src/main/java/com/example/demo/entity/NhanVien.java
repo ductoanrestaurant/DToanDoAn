@@ -22,7 +22,7 @@ public class NhanVien {
     @Column(name = "EMAIL", length = 50)
     private String email;
 
-    @Column(name = "PASSWORD", length = 50)
+    @Column(name = "PASSWORD", length = 255)
     private String password;
 
     @Column(name = "MOTA", columnDefinition = "TEXT")
@@ -47,4 +47,3 @@ public class NhanVien {
     @Column(name = "MAVAITRO")
     private Integer maVaiTro;
 }
-

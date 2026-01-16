@@ -51,6 +51,9 @@ public class Restaurant {
     @Column(name = "content", length = 255)
     private String content;
 
+    @Column(name = "IMG", length = 255)
+    private String img;
+
     // Self-referencing relationship for parent restaurant
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PARENT_ID", insertable = false, updatable = false)

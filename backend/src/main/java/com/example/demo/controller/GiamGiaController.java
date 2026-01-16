@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.GiamGia;
@@ -37,11 +38,13 @@ public class GiamGiaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public GiamGia create(@RequestBody GiamGia giamGia) {
         return giamGiaService.save(giamGia);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<GiamGia> update(@PathVariable Integer id, @RequestBody GiamGia giamGiaDetails) {
         return giamGiaService.getById(id).map(giamGia -> {
             giamGia.setCode(giamGiaDetails.getCode());
@@ -52,6 +55,7 @@ public class GiamGiaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         giamGiaService.delete(id);
         return ResponseEntity.ok().build();

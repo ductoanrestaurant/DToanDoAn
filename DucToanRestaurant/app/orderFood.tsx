@@ -61,7 +61,7 @@ const MenuScreen = () => {
     const [viewMon, setViewMon] = useState(false);
 
 
-    // trang thai xem chi tiet 1 mon an
+
     const handleOpenDetails = (product: SanPham) => {
         setSelectedMonToView(product);
         setViewMon(true);
@@ -114,11 +114,11 @@ const MenuScreen = () => {
         });
     };
 
-    // so luong va tong tien tam tinh
+
     const totalItems = mon.reduce((sum, item) => sum + item.soluong, 0);
     const totalPrice = mon.reduce((sum, item) => sum + (item.gia * item.soluong),0);
 
-    // Hàm lấy dữ liệu (Sản phẩm và Danh mục)
+
     const fetchData = useCallback(async () => {
         try {
             if (!refreshing) setLoading(true);
@@ -135,7 +135,6 @@ const MenuScreen = () => {
             const menuWithReviews = allProducts.map((product) => {
                 return {
                     ...product,
-                    // Tìm các đánh giá có mã sản phẩm khớp với sản phẩm hiện tại
                     danhSachDanhGia: allReviews.filter(
                         (review) => review.id.maSanPham === product.maSanPham
                     )
@@ -162,12 +161,12 @@ const MenuScreen = () => {
         fetchData();
     };
 
-    // Logic lọc sản phẩm dựa trên Category đang chọn
+
     const filteredItems = selectedCategoryId 
         ? menuItems.filter(item => item.danhMuc?.maDanhMuc === selectedCategoryId)
         : menuItems;
 
-    // Render nút danh mục
+
     const renderCategoryItem = ({ item }: { item: any }) => {
         const isSelected = selectedCategoryId === item.maDanhMuc;
         return (
@@ -259,11 +258,10 @@ const MenuScreen = () => {
     // );
 
     const renderProductItem = ({ item }: { item: SanPham }) => {
-        // Lấy tên file ảnh từ danh sách
         const imageName = item.danhSachAnh?.[0]?.urlAnh;
         const avgRating = getAverageRating(item.danhSachDanhGia);
 
-        // Nối chuỗi để tạo URL đầy đủ
+
         const fullImageUrl = imageName
             ? `${BASE_URL_IMG}/${imageName}`
             : 'https://via.placeholder.com/150';
@@ -317,7 +315,7 @@ const MenuScreen = () => {
             <Text style={styles.headerTitle}>Menu nhà hàng</Text>
 
 
-            {/* Thanh lọc danh mục (Nằm ngang) */}
+
             <View style={styles.categoryContainer}>
                 <FlatList
                     horizontal
@@ -396,7 +394,7 @@ const MenuScreen = () => {
                                         <FlatList
                                             data={selectedMonToView.danhSachAnh}
                                             horizontal
-                                            pagingEnabled // Quan trọng: Giúp vuốt từng tấm ảnh một
+                                            pagingEnabled
                                             showsHorizontalScrollIndicator={false}
                                             keyExtractor={(img, index) => index.toString()}
                                             getItemLayout={(_, index) => ({
@@ -412,7 +410,7 @@ const MenuScreen = () => {
                                                 <Image
                                                     source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }}
                                                     style={{
-                                                        width: SCREEN_WIDTH, // Bạn có thể dùng Dimensions.get('window').width
+                                                        width: SCREEN_WIDTH,
                                                         height: 250,
                                                         borderTopLeftRadius: 25,
                                                         borderTopRightRadius: 25
@@ -420,7 +418,7 @@ const MenuScreen = () => {
                                                     resizeMode="cover"
                                                 />
                                             )}
-                                            // Nếu không có ảnh nào, hiển thị ảnh mặc định
+
                                             ListEmptyComponent={
                                                 <Image
                                                     source={{ uri: 'https://via.placeholder.com/150' }}
@@ -444,7 +442,7 @@ const MenuScreen = () => {
                                             <Text style={styles.modalPrice}>{selectedMonToView.gia.toLocaleString('vi-VN')}đ</Text>
                                         </View>
 
-                                        {/* Dãy sao chi tiết */}
+
                                         <View style={styles.modalRatingRow}>
                                             {[1, 2, 3, 4, 5].map((star) => (
                                                 <Ionicons
@@ -558,8 +556,8 @@ const styles = StyleSheet.create({
     },
     modalHeaderTitleRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between', // Đẩy 2 phần tử về 2 đầu
-        alignItems: 'center',            // Căn giữa theo chiều dọc
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 5,
     },
     closeModalText: { color: '#fff', fontWeight: 'bold' },
@@ -601,7 +599,7 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
 
-    // Sao trong Modal
+
     modalHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',

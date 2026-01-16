@@ -29,11 +29,11 @@ interface IBan {
 
 const BookingScreen = () => {
   const [tables, setTables] = useState<IBan[]>([]);
-  // Khai báo kiểu dữ liệu cho state để hết lỗi gạch đỏ 
+
   const [selectedTable, setSelectedTable] = useState<IBan | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Khai báo biến để sửa lỗi "Cannot find name" 
+
   const [refreshing, setRefreshing] = useState(false);
 
   const [date, setDate] = useState(new Date());
@@ -71,14 +71,14 @@ const BookingScreen = () => {
     }
 
     const now = new Date();
-    const minBookingTime = new Date(now.getTime() + 30 * 60000); // Thời điểm hiện tại + 30 phút
-    // 2. So sánh thời gian
+    const minBookingTime = new Date(now.getTime() + 30 * 60000);
+
     if (date.getTime() < minBookingTime.getTime()) {
       setErrorMessage("Vui lòng đặt bàn trước ít nhất 30 phút");
       return;
     }
 
-  // 3. Nếu hợp lệ, tiến hành gọi API đặt bàn
+
   try {
 
     console.log("=== DEBUG DAT BAN ===");
@@ -108,7 +108,7 @@ const BookingScreen = () => {
   }
   }
 
-  // Hàm gọi API
+
   const fetchTables = useCallback(async () => {
     try {
       if (!refreshing) setLoading(true);
@@ -124,7 +124,7 @@ const BookingScreen = () => {
     }
   }, [refreshing]);
 
-  // Hàm xử lý khi kéo xuống để refresh
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchTables();
@@ -143,7 +143,7 @@ const BookingScreen = () => {
   }
 
   const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    // Với Android, khi nhấn Cancel event.type sẽ là 'set' hoặc 'dismissed'
+
     setShowPicker(Platform.OS === 'ios'); 
     if (selectedDate) {
       setDate(selectedDate);

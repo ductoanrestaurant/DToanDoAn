@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.NguyenLieu;
@@ -18,11 +19,13 @@ public class NguyenLieuController {
     private NguyenLieuService nguyenLieuService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public List<NguyenLieu> getAll() {
         return nguyenLieuService.getAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public ResponseEntity<NguyenLieu> getById(@PathVariable Integer id) {
         return nguyenLieuService.getById(id)
                 .map(ResponseEntity::ok)
@@ -30,11 +33,13 @@ public class NguyenLieuController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public NguyenLieu create(@RequestBody NguyenLieu nguyenLieu) {
         return nguyenLieuService.save(nguyenLieu);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<NguyenLieu> update(@PathVariable Integer id, @RequestBody NguyenLieu nguyenLieuDetails) {
         return nguyenLieuService.getById(id).map(nguyenLieu -> {
             nguyenLieu.setTenNguyenLieu(nguyenLieuDetails.getTenNguyenLieu());
@@ -49,17 +54,20 @@ public class NguyenLieuController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         nguyenLieuService.delete(id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public List<NguyenLieu> getByRestaurant(@PathVariable Integer idRestaurant) {
         return nguyenLieuService.getByRestaurant(idRestaurant);
     }
 
     @GetMapping("/trang-thai/{trangThai}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
     public List<NguyenLieu> getByTrangThai(@PathVariable String trangThai) {
         return nguyenLieuService.getByTrangThai(trangThai);
     }
