@@ -42,14 +42,14 @@ public class BanController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // add new ban - role QUAN_LY
+    // add new ban
     @PostMapping
     @PreAuthorize("hasRole('QUAN_LY')")
     public Ban create(@RequestBody Ban ban) {
         return banService.luuBan(ban);
     }
 
-    // update info ban - role QUAN_LY
+    // update info ban
     @PutMapping("/{maBan}/{idRestaurant}")
     @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Ban> update(
@@ -64,7 +64,7 @@ public class BanController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // delete ban - role QUAN_LY
+    // delete ban
     @DeleteMapping("/{maBan}/{idRestaurant}")
     @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(

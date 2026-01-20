@@ -1,5 +1,4 @@
-import { ENDPOINTS } from '@/constants/api';
-import axios from 'axios';
+import api, { ENDPOINTS } from '@/constants/api';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,13 +31,13 @@ const BookingScreen = () => {
 
   const [selectedTable, setSelectedTable] = useState<IBan | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
 
   const [refreshing, setRefreshing] = useState(false);
 
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
-  const [timeSelected, setTimeSelected] = useState(false); 
+  const [timeSelected, setTimeSelected] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -101,7 +100,7 @@ const BookingScreen = () => {
       }
 
     })
-    
+
   } catch (error) {
     console.error("Lỗi chuyển màn hình:", error);
     setErrorMessage("Có lỗi xảy ra, vui lòng thử lại.");
@@ -112,7 +111,7 @@ const BookingScreen = () => {
   const fetchTables = useCallback(async () => {
     try {
       if (!refreshing) setLoading(true);
-      const response = await axios.get(ENDPOINTS.BAN);
+      const response = await api.get(ENDPOINTS.BAN);
       // Đảm bảo dữ liệu từ API là một mảng
       setTables(response.data || []);
     } catch (error) {
@@ -144,7 +143,7 @@ const BookingScreen = () => {
 
   const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
 
-    setShowPicker(Platform.OS === 'ios'); 
+    setShowPicker(Platform.OS === 'ios');
     if (selectedDate) {
       setDate(selectedDate);
       setTimeSelected(true);
@@ -165,7 +164,7 @@ const BookingScreen = () => {
   };
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -173,11 +172,11 @@ const BookingScreen = () => {
     >
 
       <Text style={styles.header}>Sơ Đồ Đặt Bàn</Text>
-      
+
       <View style={styles.grid}>
         {tables.map((table) => (
           <TouchableOpacity
-    
+
             key={table.id.maBan ? `${table.id.idRestaurant}-${table.id.maBan}` : Math.random().toString()}
             disabled={table.trangThai}
             onPress={() => setSelectedTable(table)}
@@ -198,8 +197,8 @@ const BookingScreen = () => {
       {selectedTable && (
         <View style={styles.form}>
           <Text style={styles.formTitle}>Đặt bàn: {selectedTable.tenBan}</Text>
-          <TouchableOpacity 
-            style={styles.input} 
+          <TouchableOpacity
+            style={styles.input}
             onPress={() => setShowPicker(true)}
           >
             <Text style={{ color: timeSelected ? '#000' : '#888' }}>
@@ -257,7 +256,7 @@ const styles = StyleSheet.create({
         color: "#FF3333",
         fontWeight: "bold",
         marginTop: -15,
-        marginBottom: 10 
+        marginBottom: 10
     },
   pickerBtn: {
     backgroundColor: '#fff',

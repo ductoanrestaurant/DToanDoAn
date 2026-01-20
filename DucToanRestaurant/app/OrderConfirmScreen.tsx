@@ -1,6 +1,5 @@
-import { BASE_URL_IMG, ENDPOINTS } from '@/constants/api';
+import api, { BASE_URL_IMG, ENDPOINTS } from '@/constants/api'; // Use the authenticated api instance
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -60,6 +59,7 @@ const OrderConfirmationScreen = () => {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
 
@@ -78,16 +78,18 @@ const OrderConfirmationScreen = () => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
+            setError(null);
+
             const [resNv, resKH, resRes, resSanPham] = await Promise.all([
-                axios.get(ENDPOINTS.NHAN_VIEN),
-                axios.get(ENDPOINTS.KHACH_HANG),
-                axios.get(ENDPOINTS.RESTAURANT),
-                axios.get(ENDPOINTS.SAN_PHAM),
+                api.get(ENDPOINTS.NHAN_VIEN),
+                api.get(ENDPOINTS.KHACH_HANG),
+                api.get(ENDPOINTS.RESTAURANT),
+                api.get(ENDPOINTS.SAN_PHAM),
             ]);
 
-            if (resNv.data) setNvList(resNv.data);
-            if (resKH.data) setKHList(resKH.data);
-            if (resRes.data) setRestaurantList(resRes.data);
+            setNvList(resNv.data || []);
+            setKHList(resKH.data || []);
+            setRestaurantList(resRes.data || []);
 
 
             if (resSanPham.data && params.selectedItems) {
@@ -101,9 +103,9 @@ const OrderConfirmationScreen = () => {
 
                 setCartItems(mergedItems);
             }
-        } catch (error) {
-            console.error("Lỗi khi tải dữ liệu:", error);
-            Alert.alert("Lỗi", "Không thể tải dữ liệu cần thiết cho đơn hàng.");
+        } catch (err: any) {
+            console.error("Lỗi khi tải dữ liệu:", err.response?.data || err.message);
+            setError("Không thể tải dữ liệu cần thiết cho đơn hàng. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
@@ -121,9 +123,11 @@ const OrderConfirmationScreen = () => {
 
     const isStaffOrder = params.verifyUser === 'nhanvien';
 
+    // Determine currentRestaurantId more robustly
     const currentRestaurantId =
-        (isStaffOrder ? findNV?.id?.idRestaurant : findKH?.idRestaurant)
-        || restaurantList[0]?.idRestaurant;
+        (isStaffOrder && findNV?.id?.idRestaurant) ||
+        (!isStaffOrder && findKH?.idRestaurant) ||
+        restaurantList[0]?.idRestaurant;
 
     const currentRestaurant = restaurantList.find(r => r.idRestaurant === currentRestaurantId);
 
@@ -131,16 +135,21 @@ const OrderConfirmationScreen = () => {
     const ACCOUNT_NO = currentRestaurant?.accountNo || '';
     const TEMPLATE = currentRestaurant?.template || 'compact';
     const ACCOUNT_NAME = currentRestaurant?.accountName || '';
-    const CONTENT = `${currentRestaurant?.content || 'thanh toan'} ${params.tableName}`;
+    const CONTENT = `${currentRestaurant?.content || 'thanh toan'} ${params.tableName || ''}`;
     const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-${TEMPLATE}.png?amount=${totalAmount}&addInfo=${CONTENT}&accountName=${ACCOUNT_NAME}`;
 
-    const formatBookingTime = (timeString: string) => {
+    const formatBookingTime = (timeString: string | undefined) => {
         if (!timeString) return 'N/A';
         try {
             const date = new Date(timeString);
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                return 'Thời gian không hợp lệ';
+            }
             return `${date.toLocaleDateString('vi-VN')} lúc ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
         } catch (e) {
-            return timeString;
+            console.error("Error formatting booking time:", e);
+            return 'N/A';
         }
     };
 
@@ -196,7 +205,7 @@ const OrderConfirmationScreen = () => {
         };
 
         try {
-            const response = await axios.post(ENDPOINTS.YEU_CAU_DON, payload);
+            const response = await api.post(ENDPOINTS.YEU_CAU_DON, payload); // Use api.post
 
             if (response.status === 201) {
                 if (paymentMethod === 'chuyển khoản' && isStaffOrder) {
@@ -205,16 +214,16 @@ const OrderConfirmationScreen = () => {
                     Alert.alert("Thành công", "Đơn hàng đã được tạo thành công!", [
                         {
                             text: "OK",
-                            onPress: () => router.push(isStaffOrder ? '/NvOrder' : '/(tabs)')
+                            onPress: () => router.push(isStaffOrder ? '/NvOrder' : '/HomeScreen')
                         }
                     ]);
                 }
             } else {
                 Alert.alert("Lỗi", `Không thể tạo đơn hàng. Status: ${response.status}`);
             }
-        } catch (error: any) {
-            console.error("Lỗi khi tạo đơn hàng:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
-            Alert.alert("Lỗi", "Đã có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.");
+        } catch (err: any) {
+            console.error("Lỗi khi tạo đơn hàng:", err.response ? JSON.stringify(err.response.data, null, 2) : err.message);
+            Alert.alert("Lỗi", `Đã có lỗi xảy ra khi tạo đơn hàng. ${err.response?.data?.error || err.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -239,6 +248,18 @@ const OrderConfirmationScreen = () => {
             <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color="#FF6600" />
                 <Text style={{ marginTop: 10 }}>Đang tải thông tin đơn hàng...</Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (error) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Ionicons name="alert-circle-outline" size={48} color="#999" />
+                <Text style={{ marginTop: 10, textAlign: 'center', color: '#666' }}>{error}</Text>
+                <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20, padding: 10, backgroundColor: '#FF6600', borderRadius: 8 }}>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Quay lại</Text>
+                </TouchableOpacity>
             </SafeAreaView>
         );
     }
@@ -321,7 +342,14 @@ const OrderConfirmationScreen = () => {
                     </View>
                 ) : (
                     <View style={styles.paymentContainer}>
-
+                        {/* For non-staff orders, default to cash or other online methods */}
+                        <TouchableOpacity
+                            style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
+                            onPress={() => setPaymentMethod('tiền mặt')}>
+                            <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
+                            <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
+                        </TouchableOpacity>
+                        {/* Add other online payment options if available for customers */}
                     </View>
                 )}
             </ScrollView>

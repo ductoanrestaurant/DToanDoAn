@@ -4,6 +4,7 @@ import com.example.demo.filter.ApiKeyAuthFilter;
 import com.example.demo.service.NhanVienDetailsServiceImpl;
 import com.example.demo.service.UserDetailsServiceImpl;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@Slf4j
 public class SecurityConfig {
 
     @Value("${jwt.secret}")
@@ -50,7 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("QUAN_LY")
                         .requestMatchers("/api/cashier/**").hasAnyRole("QUAN_LY", "THU_NGAN")
                         .requestMatchers("/api/orders/**", "/api/my-profile/**").hasRole("USER")
-                        .requestMatchers("/api/yeu-cau-don/**").hasAnyRole("POS_CLIENT", "QUAN_LY", "THU_NGAN", "BEP")
+                        .requestMatchers("/api/yeu-cau-don/**").hasAnyRole("USER", "POS_CLIENT", "QUAN_LY", "THU_NGAN", "BEP")
                         .requestMatchers("/uploads/**").permitAll()
 
                         .requestMatchers("/api/khach-hang/**", "/api/san-pham/**", "/api/restaurant/**", "/api/danh-gia/**").permitAll()
@@ -69,6 +71,7 @@ public class SecurityConfig {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthoritiesClaimName("scope");
         grantedAuthoritiesConverter.setAuthorityPrefix("");
+
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
         return jwtAuthenticationConverter;

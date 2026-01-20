@@ -254,7 +254,7 @@ const HomeScreen = () => {
         <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Món ngon phải thử</Text>
-                <TouchableOpacity><Text style={styles.seeMore}>Xem tất cả</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/ViewAll-MonAn-Sc')}><Text style={styles.seeMore}>Xem tất cả</Text></TouchableOpacity>
             </View>
             {mustTryFood.map((item) => (
                 <TouchableOpacity

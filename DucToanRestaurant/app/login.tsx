@@ -27,7 +27,7 @@ const LoginScreen = () => {
                 password: password,
             });
 
-            // Nếu đăng nhập thành công, backend sẽ trả về token
+            // backend sẽ trả về token
             const { token, maTaiKhoan } = response.data;
 
             if (token) {
@@ -50,7 +50,6 @@ const LoginScreen = () => {
         } catch (error: any) {
             console.error("Login error:", error.response?.data || error.message);
             if (error.response && error.response.status === 401) {
-                // Lỗi 401
                 setErrorMessage("Email hoặc mật khẩu không chính xác.");
             } else {
                 setErrorMessage("Không thể kết nối tới máy chủ. Vui lòng thử lại.");

@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,9 @@ public class NhanVienService {
     @Autowired
     private NhanVienRepository nhanVienRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder; // Inject PasswordEncoder
+
     public List<NhanVien> getAll() {
         return nhanVienRepository.findAll();
     }
@@ -28,7 +32,15 @@ public class NhanVienService {
         return nhanVienRepository.findById(nhanVienId);
     }
 
+    public Optional<NhanVien> findByEmail(String email) {
+        return nhanVienRepository.findByEmail(email);
+    }
+
+
     public NhanVien save(NhanVien nhanVien) {
+        if (nhanVien.getPassword() != null && !nhanVien.getPassword().startsWith("$2a$")) {
+            nhanVien.setPassword(passwordEncoder.encode(nhanVien.getPassword()));
+        }
         return nhanVienRepository.save(nhanVien);
     }
 
@@ -49,4 +61,3 @@ public class NhanVienService {
         return nhanVienRepository.findByMaVaiTro(maVaiTro);
     }
 }
-

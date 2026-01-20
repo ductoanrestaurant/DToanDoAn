@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.example.demo.entity.NhanVien;
 import com.example.demo.repository.NhanVienRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,6 +11,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+
+@Slf4j
 
 @Service
 public class NhanVienDetailsServiceImpl implements UserDetailsService {
@@ -22,13 +25,12 @@ public class NhanVienDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        System.out.println("--- ĐANG TÌM KIẾM TRONG BẢNG NHAN VIEN CHO USER: " + username);
+        log.info("--- ĐANG TÌM KIẾM TRONG BẢNG NHAN VIEN CHO USER: " + username);
         NhanVien nhanVien = nhanVienRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy nhân viên với email: " + username));
 
         String roleName = nhanVien.getVaiTro().getTenVaiTro().toUpperCase();
-        System.out.println("--- TÌM THẤY NHAN VIEN: " + username + ", GÁN QUYỀN ROLE_" + roleName);
-
+        log.info("--- TÌM THẤY NHAN VIEN: " + username + ", GÁN QUYỀN" + roleName);
         return new User(
                 nhanVien.getEmail(),
                 nhanVien.getPassword(),

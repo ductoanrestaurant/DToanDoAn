@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ENDPOINTS } from '@/constants/api';
+import api, { ENDPOINTS } from '@/constants/api'; // Import the configured api instance
 
 const COLORS = {
     primary: '#FF6600',
@@ -159,11 +159,13 @@ const DonHangScreen = () => {
             const fetchRequests = async () => {
                 try {
                     setLoading(true);
-                    const customerInfo = await AsyncStorage.getItem('customer-info');
-                    if (customerInfo) {
-                        const { maTaiKhoan } = JSON.parse(customerInfo);
-                        const response = await fetch(`${ENDPOINTS.YEU_CAU_DON}/khach-hang/${maTaiKhoan}`);
-                        const data: YeuCauDon[] = await response.json();
+                    const token = await AsyncStorage.getItem('accessToken');
+                    console.log('[DEBUG] Token from AsyncStorage:', token); // Log the token
+
+                    const maKhachHang = await AsyncStorage.getItem('maKhachHang');
+                    if (maKhachHang) {
+                        const response = await api.get(`${ENDPOINTS.YEU_CAU_DON}/khach-hang/${maKhachHang}`);
+                        const data: YeuCauDon[] = response.data;
                         setAllRequests(data.sort((a, b) => new Date(b.ngayTaoDon).getTime() - new Date(a.ngayTaoDon).getTime()));
                     }
                 } catch (error) {

@@ -1,14 +1,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const IP_ADDRESS = '10.6.60.234';
+const IP_ADDRESS = '10.6.61.91';
 const PORT = '8080';
 
 export const BASE_URL = `http://${IP_ADDRESS}:${PORT}/api`;
 export const BASE_URL_IMG= `http://${IP_ADDRESS}:${PORT}/uploads`;
 
 export const ENDPOINTS = {
-
     AUTH: `${BASE_URL}/auth/login`,
     KHACH_HANG: `${BASE_URL}/khach-hang`,
     BAN: `${BASE_URL}/ban`,
@@ -31,16 +30,17 @@ const api = axios.create({
 
 api.interceptors.request.use(
     async (config) => {
+        if (config.url === ENDPOINTS.AUTH) {
+            return config;
+        }
 
         const token = await AsyncStorage.getItem('accessToken');
         if (token) {
-
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
     (error) => {
-
         return Promise.reject(error);
     }
 );

@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/yeu-cau-don")
-@PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+
 @CrossOrigin("*")
 public class YeuCauDonController {
 
@@ -21,11 +21,13 @@ public class YeuCauDonController {
     private YeuCauDonService yeuCauDonService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getAll() {
         return yeuCauDonService.getAll();
     }
 
     @GetMapping("/{maDonHang}/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('USER', 'QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> getById(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant) {
@@ -35,6 +37,7 @@ public class YeuCauDonController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> create(@RequestBody YeuCauDonRequest yeuCauDonRequest) {
         try {
             YeuCauDon newYeuCauDon = yeuCauDonService.createYeuCauDon(yeuCauDonRequest);
@@ -49,6 +52,7 @@ public class YeuCauDonController {
 
 
     @PutMapping("/{maDonHang}/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> update(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant,
@@ -67,6 +71,7 @@ public class YeuCauDonController {
     }
 
     @DeleteMapping("/{maDonHang}/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<Void> delete(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant) {
@@ -75,16 +80,21 @@ public class YeuCauDonController {
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByIdRestaurant(@PathVariable Integer idRestaurant) {
         return yeuCauDonService.getByIdRestaurant(idRestaurant);
     }
 
+
     @GetMapping("/khach-hang/{maTaiKhoan}")
+    @PreAuthorize("hasRole('USER') or hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByMaTaiKhoan(@PathVariable Integer maTaiKhoan) {
+
         return yeuCauDonService.getByMaTaiKhoan(maTaiKhoan);
     }
 
     @GetMapping("/trang-thai/{trangThai}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByTrangThaiThanhToan(@PathVariable String trangThai) {
         return yeuCauDonService.getByTrangThaiThanhToan(trangThai);
     }

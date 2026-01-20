@@ -20,16 +20,14 @@ public class KhachHangController {
     private KhachHangService khachHangService;
 
 
-    // API này có thể cần được bảo vệ chặt chẽ hơn, nhưng tạm thời xóa để app hoạt động
+
     @GetMapping
-    // @PreAuthorize("hasRole('THU_NGAN')") // Tạm thời vô hiệu hóa để sửa lỗi 403
     public List<KhachHang> getAll() {
         return khachHangService.layTatCaKhachHang();
     }
 
-    // Một người dùng đã đăng nhập có thể xem thông tin của chính họ
+
     @GetMapping("/{id}")
-    // @PreAuthorize("hasRole('THU_NGAN')") // Tạm thời vô hiệu hóa để sửa lỗi 403
     public ResponseEntity<KhachHang> getById(@PathVariable Integer id) {
         return khachHangService.layTheoId(id)
                 .map(ResponseEntity::ok)
@@ -38,7 +36,7 @@ public class KhachHangController {
 
 
 
-    // Chỉ QUAN_LY mới được cập nhật thông tin của một khách hàng bất kỳ
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<KhachHang> update(@PathVariable Integer id, @RequestBody KhachHang details) {
@@ -52,7 +50,7 @@ public class KhachHangController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // Chỉ QUAN_LY mới được xóa khách hàng
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
@@ -63,7 +61,7 @@ public class KhachHangController {
         return ResponseEntity.notFound().build();
     }
 
-    // Public API để kiểm tra email khi đăng ký
+
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
         boolean exists = khachHangService.kiemTraEmailTonTai(email);
@@ -73,7 +71,7 @@ public class KhachHangController {
         return ResponseEntity.ok(response);
     }
 
-    // Public API để kiểm tra SĐT khi đăng ký
+
     @GetMapping("/check-phone")
     public ResponseEntity<?> checkPhone(@RequestParam("sdt") String phoneNumber) {
         boolean exists = khachHangService.kiemTraSdtTonTai(phoneNumber);
