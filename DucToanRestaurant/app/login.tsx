@@ -21,29 +21,38 @@ const LoginScreen = () => {
         setErrorMessage(''); // Xóa thông báo lỗi cũ
 
         try {
-
             const response = await api.post(ENDPOINTS.AUTH, {
                 email: email,
                 password: password,
             });
 
-            // backend sẽ trả về token
-            const { token, maTaiKhoan } = response.data;
+            // Backend returns token, role, and user-specific data
+            const { token, role, maTaiKhoan, maNhanVien, tenNhanVien } = response.data;
 
             if (token) {
-
                 await AsyncStorage.setItem('accessToken', token);
-                
 
-                if (maTaiKhoan) {
+                if (role === 'nhanvien' && maNhanVien && tenNhanVien) {
+                    // Employee login
+                    await AsyncStorage.setItem('maNhanVien', String(maNhanVien));
+                    await AsyncStorage.setItem('tenNhanVien', tenNhanVien);
+
+                    router.replace({
+                        pathname: '/NvOrder',
+                        params: { tenNhanVien: tenNhanVien } // Pass employee name to NvOrder
+                    });
+
+                } else if (role === 'khachhang' && maTaiKhoan) {
+                    // Customer login
                     await AsyncStorage.setItem('maKhachHang', String(maTaiKhoan));
+                    router.replace({
+                        pathname: '/HomeScreen',
+                        params: { maKhachHang: String(maTaiKhoan) }
+                    });
+                } else {
+                    // Handle cases where role is missing or data is incomplete
+                     setErrorMessage("Đăng nhập không thành công: Vai trò không xác định.");
                 }
-
-
-                router.replace({
-                    pathname: '/HomeScreen',
-                    params: { maKhachHang: String(maTaiKhoan) }
-                });
             } else {
                 setErrorMessage("Đăng nhập không thành công, không nhận được token.");
             }

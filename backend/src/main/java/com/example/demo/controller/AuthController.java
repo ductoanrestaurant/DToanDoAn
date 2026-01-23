@@ -55,7 +55,7 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "maTaiKhoan", khachHang.getMaTaiKhoan(),
-                    "role", "USER"
+                    "role", "khachhang"
             ));
         } else {
             NhanVien nhanVien = nhanVienService.findByEmail(loginRequest.email())
@@ -63,7 +63,8 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "maNhanVien", nhanVien.getId().getMaNhanVien(),
-                    "role", nhanVien.getVaiTro().getTenVaiTro()
+                    "tenNhanVien", nhanVien.getTenNhanVien(),
+                    "role", "nhanvien"
             ));
         }
     }

@@ -3,7 +3,7 @@ import {
     ActivityIndicator, Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
     TouchableOpacity, View
 } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import api, { ENDPOINTS } from '@/constants/api'; // Use the authenticated api instance
 
 // --- INTERFACES ---
@@ -32,6 +32,7 @@ interface KhachHang {
 
 // --- MAIN COMPONENT ---
 const NvOrderScreen = () => {
+    const params = useLocalSearchParams();
     const [formData, setFormData] = useState({
         hotenNv: '',
         hotenKhachHang: '',
@@ -50,6 +51,7 @@ const NvOrderScreen = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [selectedTable, setSelectedTable] = useState<Table | null>(null);
     const [isNewSdt, setIsNewSdt] = useState(false);
+    const [isEmployeeLoggedIn, setIsEmployeeLoggedIn] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
@@ -72,7 +74,12 @@ const NvOrderScreen = () => {
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+        const employeeName = params.tenNhanVien;
+        if (employeeName && typeof employeeName === 'string') {
+            setFormData(prev => ({ ...prev, hotenNv: employeeName }));
+            setIsEmployeeLoggedIn(true);
+        }
+    }, [fetchData, params.tenNhanVien]);
 
     // Effect for filtering tables based on number of people
     useEffect(() => {
@@ -134,21 +141,6 @@ const NvOrderScreen = () => {
         const foundNv = nvList.find(nv =>
             nv.tenNhanVien?.trim().toLowerCase() === formData.hotenNv?.trim().toLowerCase()
         );
-
-
-
-
-
-
-
-        // const foundKhachHang = KHList.find(kh =>
-        //     kh.sdt === formData.sdtKhachHang.trim()
-        // );
-
-
-
-
-
 
         if (!selectedTable) {
             Alert.alert("Lỗi", "Vui lòng chọn lại bàn.");
@@ -226,14 +218,15 @@ const NvOrderScreen = () => {
                         <View style={[styles.inputGroup, { zIndex: 10 }]}>
                             <Text style={styles.label}>Nhân viên thực hiện</Text>
                             <TextInput
-                                style={[styles.input, errorTenNv && styles.inputError]}
+                                style={[styles.input, errorTenNv && styles.inputError, isEmployeeLoggedIn && styles.inputDisabled]}
                                 placeholder='Nhập tên nhân viên...'
                                 value={formData.hotenNv}
                                 onChangeText={(text) => setFormData({ ...formData, hotenNv: text })}
-                                onFocus={() => setShowSuggestions(true)}
+                                onFocus={() => !isEmployeeLoggedIn && setShowSuggestions(true)}
                                 onBlur={() => setShowSuggestions(false)}
+                                editable={!isEmployeeLoggedIn}
                             />
-                            {showSuggestions && filteredNvSuggestions.length > 0 && (
+                            {showSuggestions && !isEmployeeLoggedIn && filteredNvSuggestions.length > 0 && (
                                 <View style={styles.suggestionContainer}>
                                     {filteredNvSuggestions.map((nv) => (
                                         <TouchableOpacity
@@ -329,6 +322,10 @@ const styles = StyleSheet.create({
     inputGroup: { marginBottom: 16 },
     label: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 6, textTransform: 'uppercase' },
     input: { height: 50, backgroundColor: '#F8F9FA', borderRadius: 14, paddingHorizontal: 16, fontSize: 16, color: '#222', borderWidth: 1.5, borderColor: '#E9ECEF' },
+    inputDisabled: {
+        backgroundColor: '#E9ECEF',
+        color: '#6c757d',
+    },
     inputHighlight: { borderColor: '#007AFF', backgroundColor: '#F0F7FF' },
     inputError: { borderColor: '#FF3333', backgroundColor: '#FFF5F5' },
     inputWarning: { borderColor: '#FFA500', backgroundColor: '#FFFBF0' },
