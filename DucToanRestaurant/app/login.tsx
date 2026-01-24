@@ -32,7 +32,8 @@ const LoginScreen = () => {
             if (token) {
                 await AsyncStorage.setItem('accessToken', token);
 
-                if (role === 'nhanvien' && maNhanVien && tenNhanVien) {
+                const allowedRoles = ['NHAN_VIEN', 'QUAN_LY'];
+                if (role === allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
                     // Employee login
                     await AsyncStorage.setItem('maNhanVien', String(maNhanVien));
                     await AsyncStorage.setItem('tenNhanVien', tenNhanVien);
@@ -42,7 +43,7 @@ const LoginScreen = () => {
                         params: { tenNhanVien: tenNhanVien } // Pass employee name to NvOrder
                     });
 
-                } else if (role === 'khachhang' && maTaiKhoan) {
+                } else if (role === 'KHACH_HANG' && maTaiKhoan) {
                     // Customer login
                     await AsyncStorage.setItem('maKhachHang', String(maTaiKhoan));
                     router.replace({
@@ -51,7 +52,7 @@ const LoginScreen = () => {
                     });
                 } else {
                     // Handle cases where role is missing or data is incomplete
-                     setErrorMessage("Đăng nhập không thành công: Vai trò không xác định.");
+                    setErrorMessage("Đăng nhập không thành công: Vai trò không xác định.");
                 }
             } else {
                 setErrorMessage("Đăng nhập không thành công, không nhận được token.");
@@ -111,7 +112,7 @@ const LoginScreen = () => {
                 )}
             </View>
             <Pressable style={{ backgroundColor: "#FFA500", paddingHorizontal: 50, paddingVertical: 10, borderRadius: 30, width: 200, margin: 15 }}
-                onPress={handleLogin} disabled={loading}
+                       onPress={handleLogin} disabled={loading}
             >
                 <Text style={{ color: "#FFFFFF", fontWeight: "bold", fontSize: 15, textAlign: 'center' }}>Đăng nhập</Text>
             </Pressable>

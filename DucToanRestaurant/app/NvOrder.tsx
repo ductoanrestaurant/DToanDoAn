@@ -3,8 +3,9 @@ import {
     ActivityIndicator, Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
     TouchableOpacity, View
 } from 'react-native';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import api, { ENDPOINTS } from '@/constants/api'; // Use the authenticated api instance
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- INTERFACES ---
 interface Table {
@@ -74,12 +75,28 @@ const NvOrderScreen = () => {
 
     useEffect(() => {
         fetchData();
-        const employeeName = params.tenNhanVien;
-        if (employeeName && typeof employeeName === 'string') {
-            setFormData(prev => ({ ...prev, hotenNv: employeeName }));
-            setIsEmployeeLoggedIn(true);
-        }
-    }, [fetchData, params.tenNhanVien]);
+    }, [fetchData]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const loadEmployeeName = async () => {
+                const employeeName = await AsyncStorage.getItem('tenNhanVien');
+                if (employeeName) {
+                    setFormData(prev => ({ ...prev, hotenNv: employeeName }));
+                    setIsEmployeeLoggedIn(true);
+                } else {
+                    // Fallback to params if AsyncStorage is empty
+                    const paramEmployeeName = params.tenNhanVien;
+                    if (paramEmployeeName && typeof paramEmployeeName === 'string') {
+                        setFormData(prev => ({ ...prev, hotenNv: paramEmployeeName }));
+                        setIsEmployeeLoggedIn(true);
+                    }
+                }
+            };
+            loadEmployeeName();
+        }, [params.tenNhanVien])
+    );
+
 
     // Effect for filtering tables based on number of people
     useEffect(() => {

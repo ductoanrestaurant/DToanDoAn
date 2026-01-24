@@ -26,11 +26,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         KhachHang khachHang = khachHangRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + username));
 
-        System.out.println("--- TÌM THẤY KHACH HANG: " + username + ", GÁN QUYỀN ROLE_USER");
+        System.out.println("--- TÌM THẤY KHACH HANG: " + username );
         return new User(
                 khachHang.getEmail(),
                 khachHang.getMatKhau(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                Collections.singletonList(new SimpleGrantedAuthority("KHACH_HANG"))
         );
     }
 }

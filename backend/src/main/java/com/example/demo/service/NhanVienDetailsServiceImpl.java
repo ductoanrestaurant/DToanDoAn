@@ -34,7 +34,7 @@ public class NhanVienDetailsServiceImpl implements UserDetailsService {
         return new User(
                 nhanVien.getEmail(),
                 nhanVien.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + roleName))
+                Collections.singletonList(new SimpleGrantedAuthority(roleName))
         );
     }
 }

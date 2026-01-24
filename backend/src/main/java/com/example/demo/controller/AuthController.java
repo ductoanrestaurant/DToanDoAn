@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin("*")
 @Slf4j
 public class AuthController {
 
@@ -49,13 +48,13 @@ public class AuthController {
                 .findFirst()
                 .orElse("");
 
-        if ("ROLE_USER".equals(role)) {
+        if ("KHACH_HANG".equals(role)) {
             KhachHang khachHang = khachHangService.findByEmail(loginRequest.email())
                     .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + loginRequest.email()));
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "maTaiKhoan", khachHang.getMaTaiKhoan(),
-                    "role", "khachhang"
+                    "role", "KHACH_HANG"
             ));
         } else {
             NhanVien nhanVien = nhanVienService.findByEmail(loginRequest.email())
@@ -64,7 +63,7 @@ public class AuthController {
                     "token", token,
                     "maNhanVien", nhanVien.getId().getMaNhanVien(),
                     "tenNhanVien", nhanVien.getTenNhanVien(),
-                    "role", "nhanvien"
+                    "role", nhanVien.getVaiTro().getTenVaiTro()
             ));
         }
     }
