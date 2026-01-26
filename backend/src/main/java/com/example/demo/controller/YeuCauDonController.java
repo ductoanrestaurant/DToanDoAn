@@ -9,11 +9,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Year;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/yeu-cau-don")
-
 @CrossOrigin("*")
 public class YeuCauDonController {
 
@@ -24,6 +25,15 @@ public class YeuCauDonController {
     @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getAll() {
         return yeuCauDonService.getAll();
+    }
+
+    @GetMapping("/stats/orders-by-month")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<List<Map<String, Object>>> getOrdersByMonth(
+            @RequestParam(value = "year", required = false) Integer year) {
+        int queryYear = (year == null) ? Year.now().getValue() : year;
+        List<Map<String, Object>> stats = yeuCauDonService.getMonthlyOrderCounts(queryYear);
+        return ResponseEntity.ok(stats);
     }
 
     @GetMapping("/{maDonHang}/{idRestaurant}")
@@ -43,7 +53,6 @@ public class YeuCauDonController {
             YeuCauDon newYeuCauDon = yeuCauDonService.createYeuCauDon(yeuCauDonRequest);
             return new ResponseEntity<>(newYeuCauDon, HttpStatus.CREATED);
         } catch (Exception e) {
-
             System.err.println("Error creating order: " + e.getMessage());
             e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -89,7 +98,6 @@ public class YeuCauDonController {
     @GetMapping("/khach-hang/{maTaiKhoan}")
     @PreAuthorize("hasRole('USER') or hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByMaTaiKhoan(@PathVariable Integer maTaiKhoan) {
-
         return yeuCauDonService.getByMaTaiKhoan(maTaiKhoan);
     }
 

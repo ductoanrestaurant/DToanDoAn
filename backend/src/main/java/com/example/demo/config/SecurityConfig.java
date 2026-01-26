@@ -1,6 +1,5 @@
 package com.example.demo.config;
 
-import com.example.demo.filter.ApiKeyAuthFilter;
 import com.example.demo.service.NhanVienDetailsServiceImpl;
 import com.example.demo.service.UserDetailsServiceImpl;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
@@ -26,7 +25,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -39,7 +37,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true) // Ensure PreAuthorize works
 @Slf4j
 public class SecurityConfig {
 
@@ -47,23 +45,20 @@ public class SecurityConfig {
     private String secretKeyString;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, ApiKeyAuthFilter apiKeyAuthFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults()) // Bật CORS với cấu hình mặc định (sẽ dùng Bean ở dưới)
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        // .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Không cần dòng này nữa khi dùng cors(Customizer.withDefaults())
-                        .requestMatchers("/api/admin/**").hasRole("QUAN_LY")
-                        .requestMatchers("/api/cashier/**").hasAnyRole("QUAN_LY", "THU_NGAN")
-                        .requestMatchers("/api/orders/**", "/api/my-profile/**").hasRole("USER")
-                        .requestMatchers("/api/yeu-cau-don/**").hasAnyRole("USER", "POS_CLIENT", "QUAN_LY", "THU_NGAN", "BEP")
-                        .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/api/khach-hang/**", "/api/san-pham/**", "/api/restaurant/**", "/api/danh-gia/**").permitAll()
+                        // Permit all requests to the authentication endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Permit all requests to public data endpoints
+                        .requestMatchers("/uploads/**", "/api/khach-hang/**", "/api/san-pham/**", "/api/restaurant/**", "/api/danh-gia/**").permitAll()
+                        // All other requests must be authenticated
                         .anyRequest().authenticated()
                 )
+                // Configure the server as an OAuth2 resource server, validating JWTs
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 );
@@ -73,9 +68,10 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        // The origin of your frontend application
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8081"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-API-Key"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
@@ -85,8 +81,10 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("scope");
-        grantedAuthoritiesConverter.setAuthorityPrefix("");
+        // This is the claim name in your JWT that contains the roles. Default is "scope" or "scp".
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("scope"); 
+        // Spring Security expects roles to start with 'ROLE_'. This prefix is added automatically.
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
@@ -97,6 +95,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             DaoAuthenticationProvider khachHangAuthenticationProvider,
             DaoAuthenticationProvider nhanVienAuthenticationProvider) {
+        // This manager will try to authenticate with each provider until one succeeds.
         return new ProviderManager(Arrays.asList(khachHangAuthenticationProvider, nhanVienAuthenticationProvider));
     }
 

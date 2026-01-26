@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -23,4 +24,11 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
 
     @Query("SELECT MAX(y.id.maDonHang) FROM YeuCauDon y WHERE y.id.idRestaurant = :idRestaurant")
     Optional<Integer> findMaxMaDonHangByIdRestaurant(@Param("idRestaurant") Integer idRestaurant);
+
+    @Query("SELECT new map(month(y.ngayTaoDon) as month, count(y.id.maDonHang) as orderCount) " +
+           "FROM YeuCauDon y " +
+           "WHERE year(y.ngayTaoDon) = :year " +
+           "GROUP BY month(y.ngayTaoDon) " +
+           "ORDER BY month(y.ngayTaoDon)")
+    List<Map<String, Object>> countOrdersByMonth(@Param("year") int year);
 }

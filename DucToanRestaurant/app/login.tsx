@@ -33,7 +33,8 @@ const LoginScreen = () => {
                 await AsyncStorage.setItem('accessToken', token);
 
                 const allowedRoles = ['NHAN_VIEN', 'QUAN_LY'];
-                if (role === allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
+                // Corrected condition: Check if the role is included in allowedRoles
+                if (allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
                     // Employee login
                     await AsyncStorage.setItem('maNhanVien', String(maNhanVien));
                     await AsyncStorage.setItem('tenNhanVien', tenNhanVien);

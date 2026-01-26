@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -94,5 +95,9 @@ public class YeuCauDonService {
 
     public List<YeuCauDon> getByTrangThaiThanhToan(String trangThai) {
         return yeuCauDonRepository.findByTrangThaiThanhToan(trangThai);
+    }
+
+    public List<Map<String, Object>> getMonthlyOrderCounts(int year) {
+        return yeuCauDonRepository.countOrdersByMonth(year);
     }
 }

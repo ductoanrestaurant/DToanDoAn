@@ -1,7 +1,7 @@
 'use client';
 
 import api, { ENDPOINTS } from '@/constants/api';
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
 
@@ -14,6 +14,20 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+
+  useEffect(() => {
+    // Xóa token
+    localStorage.removeItem('accessToken');
+
+    // Nên xóa sạch cả các thông tin đi kèm để đảm bảo không bị lỗi dữ liệu cũ
+    localStorage.removeItem('maNhanVien');
+    localStorage.removeItem('tenNhanVien');
+    localStorage.removeItem('userRole');
+
+    console.log("Đã xóa token và thông tin đăng nhập cũ.");
+  }, []);
+
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // 1. Bắt buộc có để không bị load lại trang

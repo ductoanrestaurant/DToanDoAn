@@ -25,18 +25,19 @@ public class JwtService {
     public String generateToken(Authentication authentication) {
         Instant now = Instant.now();
 
-        // 1. Lấy danh sách các quyền (authorities) từ đối tượng Authentication
+        // 1. Lấy danh sách các quyền và loại bỏ tiền tố "ROLE_"
         String scope = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .map(authority -> authority.startsWith("ROLE_") ? authority.substring(5) : authority)
                 .collect(Collectors.joining(" "));
 
-        // 2. Thêm danh sách quyền vào claim "scope" của JWT
+        // 2. Thêm danh sách quyền đã được xử lý vào claim "scope" của JWT
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
                 .expiresAt(now.plus(1, ChronoUnit.HOURS))
                 .subject(authentication.getName())
-                .claim("scope", scope) // Thêm claim chứa các quyền
+                .claim("scope", scope) // Thêm claim chứa các quyền đã được xử lý
                 .build();
 
         JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
