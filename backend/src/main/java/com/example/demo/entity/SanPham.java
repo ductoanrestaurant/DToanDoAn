@@ -31,7 +31,7 @@ public class SanPham {
     private DanhMuc danhMuc;
 
     // Thêm vào bên trong class SanPham
-    @OneToMany(mappedBy = "sanPham", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "sanPham", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // Added orphanRemoval = true
     private List<ListImage> danhSachAnh;
 
 }
