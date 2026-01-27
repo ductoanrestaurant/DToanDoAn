@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -14,40 +14,85 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../constants/firebase'; // Import db từ firebase.ts
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, where } from 'firebase/firestore';
 
 interface Message {
     id: string;
     text: string;
     sender: 'user' | 'restaurant';
     time: string;
+    senderId?: number;
+    receiverId?: number;
+    timestamp?: any;
 }
 
 const ChatScreen = () => {
     const router = useRouter();
     const flatListRef = useRef<FlatList>(null);
     const [inputText, setInputText] = useState('');
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [userId, setUserId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const getUserId = async () => {
+            const storedUserId = await AsyncStorage.getItem('userId');
+            if (storedUserId) {
+                setUserId(parseInt(storedUserId, 10));
+            }
+        };
+        getUserId();
+    }, []);
+
+    useEffect(() => {
+        if (!userId) return;
+
+        const q = query(
+            collection(db, "messages"),
+            orderBy("timestamp", "asc")
+        );
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const fetchedMessages: Message[] = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                // Lọc tin nhắn chỉ dành cho user hiện tại và admin (id: 1)
+                if ((data.senderId === userId && data.receiverId === 1) || (data.senderId === 1 && data.receiverId === userId)) {
+                    fetchedMessages.push({
+                        id: doc.id,
+                        text: data.content,
+                        sender: data.senderId === userId ? 'user' : 'restaurant',
+                        time: data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...',
+                        senderId: data.senderId,
+                        receiverId: data.receiverId,
+                        timestamp: data.timestamp
+                    });
+                }
+            });
+            setMessages(fetchedMessages);
+        });
+
+        return () => unsubscribe();
+    }, [userId]);
 
 
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', text: 'Xin chào! Nhà hàng có thể giúp gì cho bạn?', sender: 'restaurant', time: '10:00 AM' },
-        { id: '2', text: 'Mình muốn đặt bàn cho 2 người vào tối nay.', sender: 'user', time: '10:05 AM' },
-        { id: '3', text: 'Vâng, bạn muốn đặt lúc mấy giờ ạ?', sender: 'restaurant', time: '10:06 AM' },
-    ]);
+    const handleSend = async () => {
+        if (inputText.trim().length === 0 || !userId) return;
 
-
-    const handleSend = () => {
-        if (inputText.trim().length === 0) return;
-
-        const newMessage: Message = {
-            id: Date.now().toString(),
-            text: inputText,
-            sender: 'user',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        const messageData = {
+            content: inputText,
+            senderId: userId,
+            receiverId: 1, // ID của admin/nhà hàng
+            timestamp: serverTimestamp(),
         };
 
-        setMessages(prevMessages => [...prevMessages, newMessage]);
-        setInputText('');
+        try {
+            await addDoc(collection(db, "messages"), messageData);
+            setInputText('');
+        } catch (error) {
+            console.error("Error sending message: ", error);
+        }
     };
 
 
@@ -96,7 +141,7 @@ const ChatScreen = () => {
                     </TouchableOpacity>
 
                     <View style={styles.headerInfo}>
-                        <Text style={styles.headerTitle}>Nhà hàng ABC</Text>
+                        <Text style={styles.headerTitle}>Nhà hàng</Text>
                         <View style={styles.statusContainer}>
                             <View style={styles.statusDot} />
                             <Text style={styles.statusText}>Đang hoạt động</Text>

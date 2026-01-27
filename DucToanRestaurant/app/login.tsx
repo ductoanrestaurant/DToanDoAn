@@ -47,6 +47,9 @@ const LoginScreen = () => {
                 } else if (role === 'KHACH_HANG' && maTaiKhoan) {
                     // Customer login
                     await AsyncStorage.setItem('maKhachHang', String(maTaiKhoan));
+                    // === FIX: Save userId for the chat feature ===
+                    await AsyncStorage.setItem('userId', String(maTaiKhoan)); 
+
                     router.replace({
                         pathname: '/HomeScreen',
                         params: { maKhachHang: String(maTaiKhoan) }

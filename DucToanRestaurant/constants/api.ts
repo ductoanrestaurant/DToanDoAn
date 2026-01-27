@@ -6,6 +6,7 @@ const PORT = '8080';
 
 export const BASE_URL = `http://${IP_ADDRESS}:${PORT}/api`;
 export const BASE_URL_IMG= `http://${IP_ADDRESS}:${PORT}/uploads`;
+export const WEBSOCKET_URL = `ws://${IP_ADDRESS}:${PORT}/ws`;
 
 export const ENDPOINTS = {
     AUTH: `${BASE_URL}/auth/login`,
@@ -20,6 +21,9 @@ export const ENDPOINTS = {
     RESTAURANT: `${BASE_URL}/restaurant`,
     YEU_CAU_DON: `${BASE_URL}/yeu-cau-don`,
     KHUYEN_MAI: `${BASE_URL}/khuyen-mai`,
+    // Chat endpoints
+    CHAT_MESSAGES: `${BASE_URL}/chat`,
+    CHAT_USERS: `${BASE_URL}/chat/users`,
 };
 
 
