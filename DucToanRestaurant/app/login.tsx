@@ -27,13 +27,12 @@ const LoginScreen = () => {
             });
 
             // Backend returns token, role, and user-specific data
-            const { token, role, maTaiKhoan, maNhanVien, tenNhanVien } = response.data;
+            const { token, role, maTaiKhoan, tenKhachHang, maNhanVien, tenNhanVien } = response.data;
 
             if (token) {
                 await AsyncStorage.setItem('accessToken', token);
 
                 const allowedRoles = ['NHAN_VIEN', 'QUAN_LY'];
-                // Corrected condition: Check if the role is included in allowedRoles
                 if (allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
                     // Employee login
                     await AsyncStorage.setItem('maNhanVien', String(maNhanVien));
@@ -41,22 +40,21 @@ const LoginScreen = () => {
 
                     router.replace({
                         pathname: '/NvOrder',
-                        params: { tenNhanVien: tenNhanVien } // Pass employee name to NvOrder
+                        params: { tenNhanVien: tenNhanVien }
                     });
 
-                } else if (role === 'KHACH_HANG' && maTaiKhoan) {
+                } else if (role === 'KHACH_HANG' && maTaiKhoan && tenKhachHang) {
                     // Customer login
                     await AsyncStorage.setItem('maKhachHang', String(maTaiKhoan));
-                    // === FIX: Save userId for the chat feature ===
-                    await AsyncStorage.setItem('userId', String(maTaiKhoan)); 
+                    await AsyncStorage.setItem('userId', String(maTaiKhoan));
+                    await AsyncStorage.setItem('customerName', tenKhachHang); // Lưu tên khách hàng
 
                     router.replace({
                         pathname: '/HomeScreen',
                         params: { maKhachHang: String(maTaiKhoan) }
                     });
                 } else {
-                    // Handle cases where role is missing or data is incomplete
-                    setErrorMessage("Đăng nhập không thành công: Vai trò không xác định.");
+                    setErrorMessage("Đăng nhập không thành công: Dữ liệu trả về không đầy đủ hoặc vai trò không xác định.");
                 }
             } else {
                 setErrorMessage("Đăng nhập không thành công, không nhận được token.");

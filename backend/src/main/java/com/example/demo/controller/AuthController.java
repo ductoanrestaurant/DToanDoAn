@@ -54,6 +54,7 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "maTaiKhoan", khachHang.getMaTaiKhoan(),
+                    "tenKhachHang", khachHang.getHoTen(),
                     "role", "KHACH_HANG"
             ));
         } else {

@@ -33,10 +33,10 @@ interface Message {
     text: string;
     sender: 'user' | 'restaurant';
     time: string;
-    senderUID?: string; // Thay vì senderId, dùng senderUID để khớp với web
+    senderUID?: string;
 }
 
-const ADMIN_ID = 'admin_user_id'; // ID cố định cho admin/nhà hàng
+const ADMIN_ID = 'admin_user_id';
 
 const ChatScreen = () => {
     const router = useRouter();
@@ -44,24 +44,26 @@ const ChatScreen = () => {
     const [inputText, setInputText] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
+    const [customerName, setCustomerName] = useState<string | null>(null);
     const [conversationId, setConversationId] = useState<string | null>(null);
 
-    // 1. Lấy userId từ AsyncStorage
+    // Lấy userId và customerName từ AsyncStorage
     useEffect(() => {
-        const getUserId = async () => {
+        const loadUserData = async () => {
             const storedUserId = await AsyncStorage.getItem('userId');
+            const storedCustomerName = await AsyncStorage.getItem('customerName');
             if (storedUserId) {
-                const fullUserId = `customer_${storedUserId}`; // Tạo ID người dùng đầy đủ
+                const fullUserId = `customer_${storedUserId}`;
                 setUserId(fullUserId);
-                // Tạo ID cuộc trò chuyện duy nhất và có thể đoán trước
+                setCustomerName(storedCustomerName || `Khách hàng ${storedUserId}`); // Dùng tên thật hoặc tên tạm
                 const convoId = [ADMIN_ID, fullUserId].sort().join('_');
                 setConversationId(convoId);
             }
         };
-        getUserId();
+        loadUserData();
     }, []);
 
-    // 2. Lắng nghe tin nhắn trong sub-collection
+    // Lắng nghe tin nhắn
     useEffect(() => {
         if (!conversationId) return;
 
@@ -87,22 +89,22 @@ const ChatScreen = () => {
     }, [conversationId, userId]);
 
 
-    // 3. Hàm gửi tin nhắn đã được cập nhật
+    // Hàm gửi tin nhắn
     const handleSend = async () => {
-        if (inputText.trim().length === 0 || !userId || !conversationId) return;
+        if (inputText.trim().length === 0 || !userId || !conversationId || !customerName) return;
 
         const conversationRef = doc(db, 'conversations', conversationId);
         const messagesColRef = collection(conversationRef, 'messages');
 
         try {
-            // Tạo hoặc cập nhật document của cuộc trò chuyện
             const convoDoc = await getDoc(conversationRef);
             if (!convoDoc.exists()) {
+                // Khi tạo cuộc trò chuyện mới, dùng customerName đã lưu
                 await setDoc(conversationRef, {
-                    customerName: `Khách hàng ${userId.split('_')[1]}`, // Tên tạm thời
+                    customerName: customerName,
                     lastMessageText: inputText,
                     lastMessageTimestamp: serverTimestamp(),
-                    unreadByAdmin: true, // Đánh dấu là chưa đọc cho admin
+                    unreadByAdmin: true,
                 });
             } else {
                 await updateDoc(conversationRef, {
@@ -112,7 +114,6 @@ const ChatScreen = () => {
                 });
             }
 
-            // Thêm tin nhắn mới vào sub-collection
             await addDoc(messagesColRef, {
                 senderUID: userId,
                 text: inputText,
@@ -125,7 +126,7 @@ const ChatScreen = () => {
         }
     };
 
-    // Tự động cuộn xuống cuối
+    // Tự động cuộn
     useEffect(() => {
         setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
