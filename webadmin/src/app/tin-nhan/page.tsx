@@ -213,7 +213,7 @@ export default function TinNhanPage() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Nhập tin nhắn..."
-                      className="flex-1 px-4 py-2 bg-gray-100 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 placeholder-gray-500 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button type="submit" className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:bg-blue-300" disabled={!newMessage.trim()}>
                       <Send size={20} />

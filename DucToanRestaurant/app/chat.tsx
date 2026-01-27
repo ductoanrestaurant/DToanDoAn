@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -10,92 +10,122 @@ import {
     Platform,
     SafeAreaView,
     Image,
-    Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../constants/firebase'; // Import db từ firebase.ts
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, where } from 'firebase/firestore';
+import { db } from '../constants/firebase';
+import {
+    collection,
+    addDoc,
+    query,
+    orderBy,
+    onSnapshot,
+    serverTimestamp,
+    doc,
+    setDoc,
+    getDoc,
+    updateDoc
+} from 'firebase/firestore';
 
 interface Message {
     id: string;
     text: string;
     sender: 'user' | 'restaurant';
     time: string;
-    senderId?: number;
-    receiverId?: number;
-    timestamp?: any;
+    senderUID?: string; // Thay vì senderId, dùng senderUID để khớp với web
 }
+
+const ADMIN_ID = 'admin_user_id'; // ID cố định cho admin/nhà hàng
 
 const ChatScreen = () => {
     const router = useRouter();
     const flatListRef = useRef<FlatList>(null);
     const [inputText, setInputText] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
-    const [userId, setUserId] = useState<number | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [conversationId, setConversationId] = useState<string | null>(null);
 
+    // 1. Lấy userId từ AsyncStorage
     useEffect(() => {
         const getUserId = async () => {
             const storedUserId = await AsyncStorage.getItem('userId');
             if (storedUserId) {
-                setUserId(parseInt(storedUserId, 10));
+                const fullUserId = `customer_${storedUserId}`; // Tạo ID người dùng đầy đủ
+                setUserId(fullUserId);
+                // Tạo ID cuộc trò chuyện duy nhất và có thể đoán trước
+                const convoId = [ADMIN_ID, fullUserId].sort().join('_');
+                setConversationId(convoId);
             }
         };
         getUserId();
     }, []);
 
+    // 2. Lắng nghe tin nhắn trong sub-collection
     useEffect(() => {
-        if (!userId) return;
+        if (!conversationId) return;
 
-        const q = query(
-            collection(db, "messages"),
-            orderBy("timestamp", "asc")
-        );
+        const messagesColRef = collection(db, 'conversations', conversationId, 'messages');
+        const q = query(messagesColRef, orderBy('timestamp', 'asc'));
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const fetchedMessages: Message[] = [];
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                // Lọc tin nhắn chỉ dành cho user hiện tại và admin (id: 1)
-                if ((data.senderId === userId && data.receiverId === 1) || (data.senderId === 1 && data.receiverId === userId)) {
-                    fetchedMessages.push({
-                        id: doc.id,
-                        text: data.content,
-                        sender: data.senderId === userId ? 'user' : 'restaurant',
-                        time: data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...',
-                        senderId: data.senderId,
-                        receiverId: data.receiverId,
-                        timestamp: data.timestamp
-                    });
-                }
+                fetchedMessages.push({
+                    id: doc.id,
+                    text: data.text,
+                    sender: data.senderUID === userId ? 'user' : 'restaurant',
+                    time: data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...',
+                    senderUID: data.senderUID,
+                });
             });
             setMessages(fetchedMessages);
         });
 
         return () => unsubscribe();
-    }, [userId]);
+    }, [conversationId, userId]);
 
 
+    // 3. Hàm gửi tin nhắn đã được cập nhật
     const handleSend = async () => {
-        if (inputText.trim().length === 0 || !userId) return;
+        if (inputText.trim().length === 0 || !userId || !conversationId) return;
 
-        const messageData = {
-            content: inputText,
-            senderId: userId,
-            receiverId: 1, // ID của admin/nhà hàng
-            timestamp: serverTimestamp(),
-        };
+        const conversationRef = doc(db, 'conversations', conversationId);
+        const messagesColRef = collection(conversationRef, 'messages');
 
         try {
-            await addDoc(collection(db, "messages"), messageData);
+            // Tạo hoặc cập nhật document của cuộc trò chuyện
+            const convoDoc = await getDoc(conversationRef);
+            if (!convoDoc.exists()) {
+                await setDoc(conversationRef, {
+                    customerName: `Khách hàng ${userId.split('_')[1]}`, // Tên tạm thời
+                    lastMessageText: inputText,
+                    lastMessageTimestamp: serverTimestamp(),
+                    unreadByAdmin: true, // Đánh dấu là chưa đọc cho admin
+                });
+            } else {
+                await updateDoc(conversationRef, {
+                    lastMessageText: inputText,
+                    lastMessageTimestamp: serverTimestamp(),
+                    unreadByAdmin: true,
+                });
+            }
+
+            // Thêm tin nhắn mới vào sub-collection
+            await addDoc(messagesColRef, {
+                senderUID: userId,
+                text: inputText,
+                timestamp: serverTimestamp(),
+            });
+
             setInputText('');
         } catch (error) {
             console.error("Error sending message: ", error);
         }
     };
 
-
+    // Tự động cuộn xuống cuối
     useEffect(() => {
         setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
