@@ -33,6 +33,13 @@ public class BanService {
     }
 
     public Ban luuBan(Ban ban) {
+        BanId id = ban.getId();
+        // Nếu là bàn mới (maBan chưa có), thì tự động tạo mã bàn mới
+        if (id.getMaBan() == null) {
+            Integer maxMaBan = banRepository.findMaxMaBanByIdRestaurant(id.getIdRestaurant());
+            int newMaBan = (maxMaBan == null) ? 1 : maxMaBan + 1;
+            id.setMaBan(newMaBan);
+        }
         return banRepository.save(ban);
     }
 
@@ -45,4 +52,3 @@ public class BanService {
         banRepository.deleteById(banId);
     }
 }
-

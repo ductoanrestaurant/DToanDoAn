@@ -4,6 +4,7 @@ import com.example.demo.entity.Ban;
 import com.example.demo.entity.BanId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,5 +20,8 @@ public interface BanRepository extends JpaRepository<Ban, BanId> {
     // Tìm tất cả bàn, sắp xếp theo mã bàn
     @Query("SELECT b FROM Ban b ORDER BY b.id.maBan ASC")
     List<Ban> findAllOrderByMaBanAsc();
-}
 
+    // Tìm giá trị maBan lớn nhất cho một idRestaurant
+    @Query("SELECT MAX(b.id.maBan) FROM Ban b WHERE b.id.idRestaurant = :idRestaurant")
+    Integer findMaxMaBanByIdRestaurant(@Param("idRestaurant") Integer idRestaurant);
+}

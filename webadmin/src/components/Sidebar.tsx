@@ -62,7 +62,7 @@ export default function Sidebar() {
                     <ShoppingBag size={20} />
                     <span>Doanh thu</span>
                 </Link>
-                <Link href="/tinnhan" className={getLinkClass('/tinnhan')}>
+                <Link href="/tin-nhan" className={getLinkClass('/tinnhan')}>
                     <MessageSquare size={20} />
                     <span>Tin nhắn</span>
                 </Link>
