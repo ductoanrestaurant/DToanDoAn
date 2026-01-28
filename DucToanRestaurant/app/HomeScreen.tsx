@@ -435,6 +435,12 @@ const HomeScreen = () => {
                     </View>
                 </View>
             </Modal>
+            <TouchableOpacity
+                style={styles.chatbotButton}
+                onPress={() => router.push('/chatbot')}
+            >
+                <Ionicons name="chatbubbles-outline" size={32} color={COLORS.white} />
+            </TouchableOpacity>
 
             {renderBottomNavBar()}
         </View>
@@ -515,6 +521,22 @@ const styles = StyleSheet.create({
     reviewDate: { fontSize: 11, color: '#999' },
     reviewContent: { fontSize: 14, color: '#444', lineHeight: 20 },
     noReviewText: { textAlign: 'center', color: '#999', fontStyle: 'italic', marginVertical: 20 },
+    chatbotButton: {
+        position: 'absolute',
+        bottom: 100,
+        right: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+    },
 });
 
 export default HomeScreen;

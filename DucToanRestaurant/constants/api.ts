@@ -24,6 +24,8 @@ export const ENDPOINTS = {
     // Chat endpoints
     CHAT_MESSAGES: `${BASE_URL}/chat`,
     CHAT_USERS: `${BASE_URL}/chat/users`,
+
+    AI_CHAT: `${BASE_URL}/chat/gemini`,
 };
 
 
