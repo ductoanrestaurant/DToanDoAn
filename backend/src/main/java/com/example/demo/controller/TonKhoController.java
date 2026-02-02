@@ -19,13 +19,13 @@ public class TonKhoController {
     private TonKhoService tonKhoService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'BEP')")
     public List<TonKho> getAll() {
         return tonKhoService.getAll();
     }
 
     @GetMapping("/{maNguyenLieu}/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'BEP')")
     public ResponseEntity<TonKho> getById(
             @PathVariable Integer maNguyenLieu,
             @PathVariable Integer idRestaurant) {
@@ -63,13 +63,13 @@ public class TonKhoController {
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'BEP')")
     public List<TonKho> getByIdRestaurant(@PathVariable Integer idRestaurant) {
         return tonKhoService.getByIdRestaurant(idRestaurant);
     }
 
     @GetMapping("/nguyen-lieu/{maNguyenLieu}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'BEP')")
     public List<TonKho> getByMaNguyenLieu(@PathVariable Integer maNguyenLieu) {
         return tonKhoService.getByMaNguyenLieu(maNguyenLieu);
     }

@@ -28,6 +28,8 @@ api.interceptors.request.use(
 
 export const ENDPOINTS = {
   AUTH: '/auth/login',
+  KHACH_HANG: '/khach-hang',
+  NHAN_VIEN: '/nhan-vien', // Added NHAN_VIEN endpoint
   // Thêm các endpoints khác ở đây
 };
 

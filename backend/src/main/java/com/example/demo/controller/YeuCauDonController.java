@@ -37,7 +37,7 @@ public class YeuCauDonController {
     }
 
     @GetMapping("/{maDonHang}/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('USER', 'QUAN_LY', 'THU_NGAN')")
+    @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> getById(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant) {
@@ -47,7 +47,7 @@ public class YeuCauDonController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'QUAN_LY', 'THU_NGAN')")
+    @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> create(@RequestBody YeuCauDonRequest yeuCauDonRequest) {
         try {
             YeuCauDon newYeuCauDon = yeuCauDonService.createYeuCauDon(yeuCauDonRequest);
@@ -96,7 +96,7 @@ public class YeuCauDonController {
 
 
     @GetMapping("/khach-hang/{maTaiKhoan}")
-    @PreAuthorize("hasRole('USER') or hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    @PreAuthorize("hasAnyRole('KHACH_HANG' ,'QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByMaTaiKhoan(@PathVariable Integer maTaiKhoan) {
         return yeuCauDonService.getByMaTaiKhoan(maTaiKhoan);
     }

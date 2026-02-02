@@ -41,16 +41,26 @@ public class NhanVienService {
         if (nhanVien.getPassword() != null && !nhanVien.getPassword().startsWith("$2a$")) {
             nhanVien.setPassword(passwordEncoder.encode(nhanVien.getPassword()));
         }
+        if (nhanVien.getTrangthai() == null) {
+            nhanVien.setTrangthai(true);
+        }
         return nhanVienRepository.save(nhanVien);
     }
 
-    public void delete(NhanVienId id) {
-        nhanVienRepository.deleteById(id);
+    public Optional<NhanVien> updateStatus(Integer maNhanVien, Integer idRestaurant, Boolean trangthai) {
+        NhanVienId nhanVienId = new NhanVienId(maNhanVien, idRestaurant);
+        return nhanVienRepository.findById(nhanVienId).map(nhanVien -> {
+            nhanVien.setTrangthai(trangthai);
+            return nhanVienRepository.save(nhanVien);
+        });
     }
 
     public void delete(Integer maNhanVien, Integer idRestaurant) {
         NhanVienId nhanVienId = new NhanVienId(maNhanVien, idRestaurant);
-        nhanVienRepository.deleteById(nhanVienId);
+        nhanVienRepository.findById(nhanVienId).ifPresent(nhanVien -> {
+            nhanVien.setTrangthai(false);
+            nhanVienRepository.save(nhanVien);
+        });
     }
 
     public List<NhanVien> getByIdRestaurant(Integer idRestaurant) {

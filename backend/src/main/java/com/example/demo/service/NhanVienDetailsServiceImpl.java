@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.entity.NhanVien;
 import com.example.demo.repository.NhanVienRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,8 +30,14 @@ public class NhanVienDetailsServiceImpl implements UserDetailsService {
         NhanVien nhanVien = nhanVienRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy nhân viên với email: " + username));
 
-        String roleName = nhanVien.getVaiTro().getTenVaiTro().toUpperCase();
-        log.info("--- TÌM THẤY NHAN VIEN: " + username + ", GÁN QUYỀN" + roleName);
+        // Kiểm tra trạng thái tài khoản
+        if (nhanVien.getTrangthai() == null || !nhanVien.getTrangthai()) {
+            log.warn("--- TÀI KHOẢN NHÂN VIÊN BỊ VÔ HIỆU HÓA: " + username);
+            throw new DisabledException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản lý.");
+        }
+
+        String roleName = "ROLE_" + nhanVien.getVaiTro().getTenVaiTro().toUpperCase();
+        log.info("--- TÌM THẤY NHAN VIEN: " + username + ", GÁN QUYỀN " + roleName);
         return new User(
                 nhanVien.getEmail(),
                 nhanVien.getPassword(),

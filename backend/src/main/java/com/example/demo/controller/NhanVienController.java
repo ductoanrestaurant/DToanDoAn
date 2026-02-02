@@ -9,6 +9,7 @@ import com.example.demo.entity.NhanVien;
 import com.example.demo.service.NhanVienService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/nhan-vien")
@@ -19,11 +20,13 @@ public class NhanVienController {
     private NhanVienService nhanVienService;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<NhanVien> getAll() {
         return nhanVienService.getAll();
     }
 
     @GetMapping("/{maNhanVien}/{idRestaurant}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<NhanVien> getById(
             @PathVariable Integer maNhanVien,
             @PathVariable Integer idRestaurant) {
@@ -39,7 +42,7 @@ public class NhanVienController {
     }
 
     @PutMapping("/{maNhanVien}/{idRestaurant}")
-    @PreAuthorize("hasRole('QUAN_LY')")
+    @PreAuthorize("hasAnyRole('QUAN_LY','NHAN_VIEN')")
     public ResponseEntity<NhanVien> update(
             @PathVariable Integer maNhanVien,
             @PathVariable Integer idRestaurant,
@@ -56,6 +59,17 @@ public class NhanVienController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/{maNhanVien}/{idRestaurant}/status")
+    @PreAuthorize("hasRole('QUAN_LY')")
+    public ResponseEntity<NhanVien> updateStatus(
+            @PathVariable Integer maNhanVien,
+            @PathVariable Integer idRestaurant,
+            @RequestBody Map<String, Boolean> status) {
+        return nhanVienService.updateStatus(maNhanVien, idRestaurant, status.get("trangthai"))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{maNhanVien}/{idRestaurant}")
     @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(
@@ -66,13 +80,14 @@ public class NhanVienController {
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
+    @PreAuthorize("isAuthenticated()")
     public List<NhanVien> getByIdRestaurant(@PathVariable Integer idRestaurant) {
         return nhanVienService.getByIdRestaurant(idRestaurant);
     }
 
     @GetMapping("/vai-tro/{maVaiTro}")
+    @PreAuthorize("isAuthenticated()")
     public List<NhanVien> getByMaVaiTro(@PathVariable Integer maVaiTro) {
         return nhanVienService.getByMaVaiTro(maVaiTro);
     }
 }
-

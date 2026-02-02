@@ -17,4 +17,6 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, NhanVienId> 
     List<NhanVien> findByMaVaiTro(Integer maVaiTro);
 
     Optional<NhanVien> findByEmail(String email);
+
+    List<NhanVien> findByTrangthai(Boolean trangthai);
 }

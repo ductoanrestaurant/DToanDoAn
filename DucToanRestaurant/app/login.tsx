@@ -24,6 +24,7 @@ const LoginScreen = () => {
             const response = await api.post(ENDPOINTS.AUTH, {
                 email: email,
                 password: password,
+                clientType: 'app', // Thêm clientType để backend biết đây là app mobile
             });
 
             // Backend returns token, role, and user-specific data
@@ -32,7 +33,8 @@ const LoginScreen = () => {
             if (token) {
                 await AsyncStorage.setItem('accessToken', token);
 
-                const allowedRoles = ['NHAN_VIEN', 'QUAN_LY'];
+                // Cập nhật vai trò nhân viên được phép truy cập app
+                const allowedRoles = ['QUAN_LY', 'THU_NGAN'];
                 if (allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
                     // Employee login
                     await AsyncStorage.setItem('maNhanVien', String(maNhanVien));
@@ -54,14 +56,17 @@ const LoginScreen = () => {
                         params: { maKhachHang: String(maTaiKhoan) }
                     });
                 } else {
-                    setErrorMessage("Đăng nhập không thành công: Dữ liệu trả về không đầy đủ hoặc vai trò không xác định.");
+                    setErrorMessage("Đăng nhập không thành công: Vai trò của bạn không được hỗ trợ trên ứng dụng này.");
                 }
             } else {
                 setErrorMessage("Đăng nhập không thành công, không nhận được token.");
             }
         } catch (error: any) {
             console.error("Login error:", error.response?.data || error.message);
-            if (error.response && error.response.status === 401) {
+            const backendError = error.response?.data?.error;
+            if (backendError) {
+                setErrorMessage(backendError);
+            } else if (error.response && error.response.status === 401) {
                 setErrorMessage("Email hoặc mật khẩu không chính xác.");
             } else {
                 setErrorMessage("Không thể kết nối tới máy chủ. Vui lòng thử lại.");

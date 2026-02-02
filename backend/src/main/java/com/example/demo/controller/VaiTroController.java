@@ -20,11 +20,13 @@ public class VaiTroController {
     private VaiTroService vaiTroService;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<VaiTro> getAll() {
         return vaiTroService.getAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<VaiTro> getById(@PathVariable Integer id) {
         return vaiTroService.getById(id)
                 .map(ResponseEntity::ok)
@@ -32,11 +34,13 @@ public class VaiTroController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('QUAN_LY')")
     public VaiTro create(@RequestBody VaiTro vaiTro) {
         return vaiTroService.save(vaiTro);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<VaiTro> update(@PathVariable Integer id, @RequestBody VaiTro vaiTroDetails) {
         return vaiTroService.getById(id).map(vaiTro -> {
             vaiTro.setTenVaiTro(vaiTroDetails.getTenVaiTro());
@@ -46,6 +50,7 @@ public class VaiTroController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         vaiTroService.delete(id);
         return ResponseEntity.ok().build();

@@ -51,7 +51,7 @@ public class BanController {
 
     // update info ban
     @PutMapping("/{maBan}/{idRestaurant}")
-    @PreAuthorize("hasRole('QUAN_LY')")
+    @PreAuthorize("hasAnyRole('QUAN_LY','NHAN_VIEN')")
     public ResponseEntity<Ban> update(
             @PathVariable Integer maBan,
             @PathVariable Integer idRestaurant,

@@ -51,12 +51,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // Permit all requests to the authentication endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Permit all requests to public data endpoints
-                        .requestMatchers("/uploads/**", "/api/khach-hang/**", "/api/san-pham/**", "/api/restaurant/**", "/api/danh-gia/**").permitAll()
-                        // All other requests must be authenticated
-                        .anyRequest().authenticated()
+//                        // Permit all requests to the authentication endpoints
+//                        .requestMatchers("/api/auth/**").permitAll()
+//                        // Permit all requests to public data endpoints
+//                        .requestMatchers("/uploads/**", "/api/khach-hang/**", "/api/san-pham/**", "/api/restaurant/**", "/api/danh-gia/**").permitAll()
+//                        // All other requests must be authenticated
+//                        .anyRequest().authenticated()
+                                .anyRequest().permitAll()
                 )
                 // Configure the server as an OAuth2 resource server, validating JWTs
                 .oauth2ResourceServer(oauth2 -> oauth2

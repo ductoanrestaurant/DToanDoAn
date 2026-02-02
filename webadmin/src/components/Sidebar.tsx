@@ -4,25 +4,23 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
-    ShoppingBag,
-    ShoppingCart,
-    Users,
-    Package,
     MessageSquare,
     Bell,
-    Table2Icon,
-    ClipboardList,
+    ClipboardList, // Đơn hàng
+    UtensilsCrossed, // Sản phẩm (Món ăn)
+    Armchair, // Quản lý bàn (Ghế/Chỗ ngồi)
+    Users, // Khách hàng
+    UserCog, // Nhân viên (Quản trị người dùng)
+    PackageOpen, // Kho hàng
+    Megaphone, // Quảng cáo
+    CircleDollarSign, // Doanh thu
 } from 'lucide-react';
 
 export default function Sidebar() {
     const pathname = usePathname();
 
-    // Hàm này sẽ kiểm tra xem đường dẫn hiện tại có khớp với menu không
-    // Nếu khớp -> Trả về style "Active" (sáng màu)
-    // Nếu không -> Trả về style "Inactive" (màu xám)
     const getLinkClass = (path: string) => {
-        // Logic: Active khi pathname trùng khớp hoàn toàn hoặc là trang con (vd: /ban/them-moi)
-        // Lưu ý: Loại trừ trường hợp path là '#' để tránh lỗi highlight nhầm
+        // Logic: Active khi pathname trùng khớp hoàn toàn hoặc là trang con
         const isActive = path !== '#' && (pathname === path || pathname.startsWith(`${path}/`));
 
         const baseStyles = "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200";
@@ -59,7 +57,7 @@ export default function Sidebar() {
                     <span>Bảng điều khiển</span>
                 </Link>
                 <Link href="/doanhthu" className={getLinkClass('/doanhthu')}>
-                    <ShoppingBag size={20} />
+                    <CircleDollarSign size={20} />
                     <span>Doanh thu</span>
                 </Link>
                 <Link href="/tin-nhan" className={getLinkClass('/tinnhan')}>
@@ -82,13 +80,12 @@ export default function Sidebar() {
                 </Link>
 
                 <Link href="/sanpham" className={getLinkClass('/sanpham')}>
-                    <ShoppingCart size={20} />
-                    <span>Sản phẩm</span>
+                    <UtensilsCrossed size={20} />
+                    <span>Sản phẩm (Menu)</span>
                 </Link>
 
-                {/* Link dẫn tới trang Bàn - Sẽ sáng lên khi bạn đang ở trang này */}
                 <Link href="/ban" className={getLinkClass('/ban')}>
-                    <Table2Icon size={20} />
+                    <Armchair size={20} />
                     <span>Quản lý Bàn</span>
                 </Link>
 
@@ -97,9 +94,19 @@ export default function Sidebar() {
                     <span>Khách hàng</span>
                 </Link>
 
+                <Link href="/nhanvien" className={getLinkClass('/nhanvien')}>
+                    <UserCog size={20} />
+                    <span>Nhân viên</span>
+                </Link>
+
                 <Link href="/khohang" className={getLinkClass('/khohang')}>
-                    <Package size={20} />
+                    <PackageOpen size={20} />
                     <span>Kho hàng</span>
+                </Link>
+
+                <Link href="/quangcao" className={getLinkClass('/quangcao')}>
+                    <Megaphone size={20} />
+                    <span>Quảng cáo</span>
                 </Link>
             </nav>
 

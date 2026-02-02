@@ -48,7 +48,12 @@ public class AuthController {
                 .findFirst()
                 .orElse("");
 
+        String clientType = loginRequest.clientType();
+
         if ("KHACH_HANG".equals(role)) {
+            if (!"app".equalsIgnoreCase(clientType)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Khách hàng chỉ được phép đăng nhập vào ứng dụng di động."));
+            }
             KhachHang khachHang = khachHangService.findByEmail(loginRequest.email())
                     .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + loginRequest.email()));
             return ResponseEntity.ok(Map.of(
@@ -60,11 +65,25 @@ public class AuthController {
         } else {
             NhanVien nhanVien = nhanVienService.findByEmail(loginRequest.email())
                     .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy nhân viên với email: " + loginRequest.email()));
+            String nhanVienRole = nhanVien.getVaiTro().getTenVaiTro();
+
+            if ("app".equalsIgnoreCase(clientType)) {
+                if (!"QUAN_LY".equals(nhanVienRole) && !"THU_NGAN".equals(nhanVienRole)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Vai trò của bạn không được phép đăng nhập vào ứng dụng di động."));
+                }
+            } else if ("web".equalsIgnoreCase(clientType)) {
+                if (!"QUAN_LY".equals(nhanVienRole) && !"THU_NGAN".equals(nhanVienRole) && !"BEP".equals(nhanVienRole)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Vai trò của bạn không được phép đăng nhập vào ứng dụng web."));
+                }
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Loại client không hợp lệ."));
+            }
+
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "maNhanVien", nhanVien.getId().getMaNhanVien(),
                     "tenNhanVien", nhanVien.getTenNhanVien(),
-                    "role", nhanVien.getVaiTro().getTenVaiTro()
+                    "role", nhanVienRole
             ));
         }
     }

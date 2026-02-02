@@ -46,6 +46,7 @@ export default function LoginPage() {
       const response = await api.post(ENDPOINTS.AUTH, {
         email: email,       // Gửi email
         password: password, // Gửi password
+        clientType: 'web',  // Gửi clientType
       });
 
       const { token, role, maNhanVien, tenNhanVien } = response.data;
@@ -54,7 +55,7 @@ export default function LoginPage() {
         // 2. Lưu vào localStorage (Không cần await)
         localStorage.setItem('accessToken', token);
 
-        const allowedRoles = ['NHAN_VIEN', 'QUAN_LY'];
+        const allowedRoles = ['THU_NGAN', 'QUAN_LY','BEP'];
         if (allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
           localStorage.setItem('maNhanVien', String(maNhanVien));
           localStorage.setItem('tenNhanVien', tenNhanVien);

@@ -24,4 +24,7 @@ public interface BanRepository extends JpaRepository<Ban, BanId> {
     // Tìm giá trị maBan lớn nhất cho một idRestaurant
     @Query("SELECT MAX(b.id.maBan) FROM Ban b WHERE b.id.idRestaurant = :idRestaurant")
     Integer findMaxMaBanByIdRestaurant(@Param("idRestaurant") Integer idRestaurant);
+
+    // Thêm hàm tìm bàn theo trạng thái
+    List<Ban> findByTrangThai(boolean trangThai);
 }

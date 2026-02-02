@@ -22,12 +22,14 @@ public class KhachHangController {
 
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<KhachHang> getAll() {
         return khachHangService.layTatCaKhachHang();
     }
 
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<KhachHang> getById(@PathVariable Integer id) {
         return khachHangService.layTheoId(id)
                 .map(ResponseEntity::ok)
@@ -38,7 +40,7 @@ public class KhachHangController {
 
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('QUAN_LY')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<KhachHang> update(@PathVariable Integer id, @RequestBody KhachHang details) {
         return khachHangService.layTheoId(id).map(kh -> {
             kh.setHoTen(details.getHoTen());
@@ -63,6 +65,7 @@ public class KhachHangController {
 
 
     @GetMapping("/check-email")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
         boolean exists = khachHangService.kiemTraEmailTonTai(email);
         HashMap<String, Object> response = new HashMap<>();
@@ -73,6 +76,7 @@ public class KhachHangController {
 
 
     @GetMapping("/check-phone")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> checkPhone(@RequestParam("sdt") String phoneNumber) {
         boolean exists = khachHangService.kiemTraSdtTonTai(phoneNumber);
         HashMap<String, Object> response = new HashMap<>();

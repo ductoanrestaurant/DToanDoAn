@@ -19,13 +19,13 @@ public class NguyenLieuController {
     private NguyenLieuService nguyenLieuService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("isAuthenticated()")
     public List<NguyenLieu> getAll() {
         return nguyenLieuService.getAll();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<NguyenLieu> getById(@PathVariable Integer id) {
         return nguyenLieuService.getById(id)
                 .map(ResponseEntity::ok)
@@ -61,13 +61,13 @@ public class NguyenLieuController {
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("isAuthenticated()")
     public List<NguyenLieu> getByRestaurant(@PathVariable Integer idRestaurant) {
         return nguyenLieuService.getByRestaurant(idRestaurant);
     }
 
     @GetMapping("/trang-thai/{trangThai}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'NHA_BEP')")
+    @PreAuthorize("isAuthenticated()")
     public List<NguyenLieu> getByTrangThai(@PathVariable String trangThai) {
         return nguyenLieuService.getByTrangThai(trangThai);
     }
