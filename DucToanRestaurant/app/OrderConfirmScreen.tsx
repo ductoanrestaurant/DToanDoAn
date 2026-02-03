@@ -159,9 +159,9 @@ const OrderConfirmationScreen = () => {
                 return 1;
             case 'chuyển khoản':
                 return 2;
-            case 'vnpay':
-                return 3;
             case 'momo':
+                return 3;
+            case 'vnpay':
                 return 4;
             default:
                 return 1;
@@ -205,10 +205,45 @@ const OrderConfirmationScreen = () => {
         };
 
         try {
-            const response = await api.post(ENDPOINTS.YEU_CAU_DON, payload); // Use api.post
+            const response = await api.post(ENDPOINTS.YEU_CAU_DON, payload);
+            console.log("Response from YEU_CAU_DON:", JSON.stringify(response.data, null, 2));
+
 
             if (response.status === 201) {
-                if (paymentMethod === 'chuyển khoản' && isStaffOrder) {
+                const orderId = response.data.id?.maDonHang; // FIX: Changed maYeuCauDon to maDonHang
+
+                if (!orderId) {
+                    Alert.alert("Lỗi", "Không thể lấy mã đơn hàng sau khi tạo. Vui lòng thử lại.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                if (paymentMethod === 'vnpay' || paymentMethod === 'momo') {
+                    try {
+                        const paymentPayload = {
+                            amount: totalAmount,
+                            orderId: orderId,
+                        };
+                        console.log("Sending to payment endpoint:", JSON.stringify(paymentPayload, null, 2));
+
+                        const paymentResponse = await api.post(ENDPOINTS.CREATE_PAYMENT, paymentPayload);
+
+                        if (paymentResponse.data.checkoutUrl || paymentResponse.data.paymentUrl) {
+                            router.push({
+                                pathname: '/PaymentWebView',
+                                params: {
+                                    url: paymentResponse.data.checkoutUrl || paymentResponse.data.paymentUrl,
+                                    orderId: orderId.toString(),
+                                }
+                            });
+                        } else {
+                            Alert.alert("Lỗi", "Không thể tạo yêu cầu thanh toán. Phản hồi không hợp lệ.");
+                        }
+                    } catch (paymentError: any) {
+                        console.error("Lỗi khi tạo thanh toán:", paymentError.response ? JSON.stringify(paymentError.response.data, null, 2) : paymentError.message);
+                        Alert.alert("Lỗi", "Không thể khởi tạo thanh toán. Vui lòng chọn phương thức khác.");
+                    }
+                } else if (paymentMethod === 'chuyển khoản' && isStaffOrder) {
                     setShowPaymentModal(true);
                 } else {
                     Alert.alert("Thành công", "Đơn hàng đã được tạo thành công!", [
@@ -325,33 +360,37 @@ const OrderConfirmationScreen = () => {
                 </View>
 
                 <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-                {isStaffOrder ? (
-                    <View style={styles.paymentContainer}>
-                        <TouchableOpacity
-                            style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
-                            onPress={() => setPaymentMethod('tiền mặt')}>
-                            <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
-                            <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
-                        </TouchableOpacity>
+                <View style={styles.paymentContainer}>
+                    <TouchableOpacity
+                        style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
+                        onPress={() => setPaymentMethod('tiền mặt')}>
+                        <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
+                        <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
+                    </TouchableOpacity>
+                    {isStaffOrder ? (
                         <TouchableOpacity
                             style={[styles.paymentOption, paymentMethod === 'chuyển khoản' && styles.paymentActive]}
                             onPress={() => setPaymentMethod('chuyển khoản')}>
                             <Ionicons name="qr-code-outline" size={24} color={paymentMethod === 'chuyển khoản' ? "#FFF" : "#FF6600"} />
                             <Text style={[styles.paymentText, paymentMethod === 'chuyển khoản' && styles.paymentTextActive]}>Chuyển khoản</Text>
                         </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.paymentContainer}>
-                        {/* For non-staff orders, default to cash or other online methods */}
-                        <TouchableOpacity
-                            style={[styles.paymentOption, paymentMethod === 'tiền mặt' && styles.paymentActive]}
-                            onPress={() => setPaymentMethod('tiền mặt')}>
-                            <Ionicons name="cash-outline" size={24} color={paymentMethod === 'tiền mặt' ? "#FFF" : "#FF6600"} />
-                            <Text style={[styles.paymentText, paymentMethod === 'tiền mặt' && styles.paymentTextActive]}>Tiền mặt</Text>
-                        </TouchableOpacity>
-                        {/* Add other online payment options if available for customers */}
-                    </View>
-                )}
+                    ) : (
+                        <>
+                            <TouchableOpacity
+                                style={[styles.paymentOption, paymentMethod === 'vnpay' && styles.paymentActive]}
+                                onPress={() => setPaymentMethod('vnpay')}>
+                                <Ionicons name="card-outline" size={24} color={paymentMethod === 'vnpay' ? "#FFF" : "#005A9C"} />
+                                <Text style={[styles.paymentText, paymentMethod === 'vnpay' && styles.paymentTextActive]}>VNPay</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.paymentOption, paymentMethod === 'momo' && styles.paymentActive]}
+                                onPress={() => setPaymentMethod('momo')}>
+                                <Ionicons name="wallet-outline" size={24} color={paymentMethod === 'momo' ? "#FFF" : "#D82D8B"} />
+                                <Text style={[styles.paymentText, paymentMethod === 'momo' && styles.paymentTextActive]}>Momo</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
             </ScrollView>
 
             <View style={styles.footer}>

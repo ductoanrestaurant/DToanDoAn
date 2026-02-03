@@ -83,12 +83,12 @@ const WelcomHome= () =>{
       style={styles.bg}
       blurRadius={2}
       >
-        <View style={{position: "absolute", top: 25, right: 5, flexDirection:"row", backgroundColor: "rgba(21, 140, 225, 0.4)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,}}>
-          <Text style={{color:"#FFFFFF", fontWeight:"bold"}} onPress={handleNvOrder}>NV Order</Text>
-          <Image source={require("@/assets/images/icon-next.png")}
-            style={{ width: 20, height:20, marginLeft: 5,marginRight: -10}}
-          />
-        </View>
+        {/*<View style={{position: "absolute", top: 25, right: 5, flexDirection:"row", backgroundColor: "rgba(21, 140, 225, 0.4)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,}}>*/}
+        {/*  <Text style={{color:"#FFFFFF", fontWeight:"bold"}} onPress={handleNvOrder}>NV Order</Text>*/}
+        {/*  <Image source={require("@/assets/images/icon-next.png")}*/}
+        {/*    style={{ width: 20, height:20, marginLeft: 5,marginRight: -10}}*/}
+        {/*  />*/}
+        {/*</View>*/}
 
         <View style={styles.container}>
           <Text style={{color:"#FFFFFF", fontWeight:'bold', fontSize:30}}>Chào mừng quý khách!</Text>

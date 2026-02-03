@@ -26,6 +26,9 @@ export const ENDPOINTS = {
     CHAT_USERS: `${BASE_URL}/chat/users`,
 
     AI_CHAT: `${BASE_URL}/chat/gemini`,
+
+    // Payment endpoints
+    CREATE_PAYMENT: `${BASE_URL}/payment/create-payment`,
 };
 
 
