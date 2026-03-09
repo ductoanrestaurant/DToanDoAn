@@ -1,14 +1,16 @@
 package com.example.demo.controller;
 
+import com.example.demo.entity.NguyenLieu;
+import com.example.demo.entity.Restaurant;
+import com.example.demo.service.NguyenLieuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.demo.entity.NguyenLieu;
-import com.example.demo.service.NguyenLieuService;
-
+import java.sql.Date;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/nguyen-lieu")
@@ -35,22 +37,37 @@ public class NguyenLieuController {
     @PostMapping
     @PreAuthorize("hasRole('QUAN_LY')")
     public NguyenLieu create(@RequestBody NguyenLieu nguyenLieu) {
+        // Set default values for new nguyenlieu to prevent nulls
+        Restaurant defaultRestaurant = new Restaurant();
+        defaultRestaurant.setIdRestaurant(1); // Assuming default restaurant ID is 1.
+        nguyenLieu.setRestaurant(defaultRestaurant);
+        
+        nguyenLieu.setSoLuong(nguyenLieu.getSoLuong());
+        nguyenLieu.setTrangThai("Còn hàng"); // Default status
+        
         return nguyenLieuService.save(nguyenLieu);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('QUAN_LY')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<NguyenLieu> update(@PathVariable Integer id, @RequestBody NguyenLieu nguyenLieuDetails) {
-        return nguyenLieuService.getById(id).map(nguyenLieu -> {
-            nguyenLieu.setTenNguyenLieu(nguyenLieuDetails.getTenNguyenLieu());
-            nguyenLieu.setDonViTinh(nguyenLieuDetails.getDonViTinh());
-            nguyenLieu.setMoTa(nguyenLieuDetails.getMoTa());
-            nguyenLieu.setXuatXu(nguyenLieuDetails.getXuatXu());
-            nguyenLieu.setGiaMua(nguyenLieuDetails.getGiaMua());
-            nguyenLieu.setTrangThai(nguyenLieuDetails.getTrangThai());
-            nguyenLieu.setRestaurant(nguyenLieuDetails.getRestaurant());
-            return ResponseEntity.ok(nguyenLieuService.save(nguyenLieu));
-        }).orElse(ResponseEntity.notFound().build());
+        // Find the existing entity from the database
+        Optional<NguyenLieu> optionalNguyenLieu = nguyenLieuService.getById(id);
+        if (!optionalNguyenLieu.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        NguyenLieu existingNguyenLieu = optionalNguyenLieu.get();
+
+        // Only update the fields that are sent from the frontend form
+        existingNguyenLieu.setTenNguyenLieu(nguyenLieuDetails.getTenNguyenLieu());
+        existingNguyenLieu.setDonViTinh(nguyenLieuDetails.getDonViTinh());
+        existingNguyenLieu.setMoTa(nguyenLieuDetails.getMoTa());
+        existingNguyenLieu.setXuatXu(nguyenLieuDetails.getXuatXu());
+        existingNguyenLieu.setSoLuong(nguyenLieuDetails.getSoLuong());
+
+        NguyenLieu updatedNguyenLieu = nguyenLieuService.save(existingNguyenLieu);
+        return ResponseEntity.ok(updatedNguyenLieu);
     }
 
     @DeleteMapping("/{id}")
@@ -72,4 +89,3 @@ public class NguyenLieuController {
         return nguyenLieuService.getByTrangThai(trangThai);
     }
 }
-

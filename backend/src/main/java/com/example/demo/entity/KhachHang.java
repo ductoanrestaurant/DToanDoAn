@@ -40,6 +40,9 @@ public class KhachHang {
     @Column(name = "first_log")
     private LocalDateTime firstLog;
 
+    @Column(name = "diemtichluy")
+    private Double diemTichLuy;
+
     public Integer getMaTaiKhoan() {
         return maTaiKhoan;
     }
@@ -118,5 +121,13 @@ public class KhachHang {
 
     public void setFirstLog(LocalDateTime firstLog) {
         this.firstLog = firstLog;
+    }
+
+    public Double getDiemTichLuy() {
+        return diemTichLuy;
+    }
+
+    public void setDiemTichLuy(Double diemTichLuy) {
+        this.diemTichLuy = diemTichLuy;
     }
 }

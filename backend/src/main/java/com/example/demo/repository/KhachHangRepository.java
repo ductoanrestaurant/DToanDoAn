@@ -18,4 +18,6 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
     // 2. Tìm khách hàng theo email (Trả về đối tượng) - Phù hợp cho chức năng Đăng nhập
     Optional<KhachHang> findByEmail(String email);
+
+    Optional<KhachHang> findBySdt(String sdt);
 }

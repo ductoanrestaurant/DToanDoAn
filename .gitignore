@@ -1,0 +1,4 @@
+    # Ignore sensitive backend configuration
+    /backend/application.properties
+    /backend/docker-compose.yml
+    

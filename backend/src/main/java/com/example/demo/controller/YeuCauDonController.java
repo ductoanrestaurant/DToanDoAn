@@ -1,7 +1,9 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.YeuCauDonRequest;
+import com.example.demo.entity.ChiTietYeuCauDon;
 import com.example.demo.entity.YeuCauDon;
+import com.example.demo.service.ChiTietYeuCauDonService;
 import com.example.demo.service.YeuCauDonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,9 @@ public class YeuCauDonController {
 
     @Autowired
     private YeuCauDonService yeuCauDonService;
+
+    @Autowired
+    private ChiTietYeuCauDonService chiTietYeuCauDonService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
@@ -61,14 +67,19 @@ public class YeuCauDonController {
 
 
     @PutMapping("/{maDonHang}/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    @PreAuthorize("hasAnyRole('KHACH_HANG','QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> update(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant,
             @RequestBody YeuCauDon yeuCauDonDetails) {
         return yeuCauDonService.getById(maDonHang, idRestaurant).map(yeuCauDon -> {
             yeuCauDon.setTrangThaiThanhToan(yeuCauDonDetails.getTrangThaiThanhToan());
-            yeuCauDon.setThoiGianThanhToan(yeuCauDonDetails.getThoiGianThanhToan());
+
+            // Nếu trạng thái mới là "đã thanh toán", cập nhật thời gian thanh toán là thời gian hiện tại của server
+            if ("đã thanh toán".equalsIgnoreCase(yeuCauDonDetails.getTrangThaiThanhToan())) {
+                yeuCauDon.setThoiGianThanhToan(LocalDateTime.now());
+            }
+
             yeuCauDon.setGhiChu(yeuCauDonDetails.getGhiChu());
             yeuCauDon.setIdGiamGia(yeuCauDonDetails.getIdGiamGia());
             yeuCauDon.setMaBan(yeuCauDonDetails.getMaBan());
@@ -80,7 +91,7 @@ public class YeuCauDonController {
     }
 
     @DeleteMapping("/{maDonHang}/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    @PreAuthorize("hasAnyRole('KHACH_HANG','QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<Void> delete(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant) {
@@ -94,6 +105,12 @@ public class YeuCauDonController {
         return yeuCauDonService.getByIdRestaurant(idRestaurant);
     }
 
+    @GetMapping("/chi-tiet/restaurant/{idRestaurant}")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN', 'BEP')")
+    public List<ChiTietYeuCauDon> getChiTietByRestaurant(@PathVariable Integer idRestaurant) {
+        return yeuCauDonService.getChiTietByRestaurant(idRestaurant);
+    }
+
 
     @GetMapping("/khach-hang/{maTaiKhoan}")
     @PreAuthorize("hasAnyRole('KHACH_HANG' ,'QUAN_LY', 'THU_NGAN')")
@@ -105,5 +122,23 @@ public class YeuCauDonController {
     @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByTrangThaiThanhToan(@PathVariable String trangThai) {
         return yeuCauDonService.getByTrangThaiThanhToan(trangThai);
+    }
+
+    @PutMapping("/chi-tiet/trang-thai")
+    @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'BEP')")
+    public ResponseEntity<ChiTietYeuCauDon> updateChiTietTrangThai(
+            @RequestParam Integer maDonHang,
+            @RequestParam Integer idRestaurant,
+            @RequestParam Integer maSanPham,
+            @RequestBody Map<String, String> body
+    ) {
+        String newTrangThai = body.get("trangThai");
+        if (newTrangThai == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return chiTietYeuCauDonService.updateTrangThai(maDonHang, idRestaurant, maSanPham, newTrangThai)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

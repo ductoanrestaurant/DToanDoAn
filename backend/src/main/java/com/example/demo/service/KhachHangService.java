@@ -33,6 +33,7 @@ public class KhachHangService {
         newKhachHang.setMatKhau(passwordEncoder.encode(request.password())); // Mã hóa mật khẩu
         newKhachHang.setSdt(request.sdt());
         newKhachHang.setDiachi(request.diachi());
+        newKhachHang.setDiemTichLuy(0.0); // Khởi tạo điểm tích lũy
         // Set default values for other fields if necessary
         // newKhachHang.setIdRestaurant(1); 
 
@@ -42,6 +43,11 @@ public class KhachHangService {
     @Transactional(readOnly = true)
     public Optional<KhachHang> findByEmail(String email) {
         return khachHangRepository.findByEmail(email);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<KhachHang> findBySdt(String sdt) {
+        return khachHangRepository.findBySdt(sdt);
     }
 
     @Transactional(readOnly = true)
@@ -56,6 +62,29 @@ public class KhachHangService {
 
     @Transactional
     public KhachHang luuKhachHang(KhachHang khachHang) {
+        // Áp dụng cho khách hàng mới tạo từ NvOrder
+        if (khachHang.getMaTaiKhoan() == null) {
+            // Nếu email rỗng, tạo email mặc định từ SĐT để tránh lỗi not-null
+            if (khachHang.getEmail() == null || khachHang.getEmail().isEmpty()) {
+                khachHang.setEmail(khachHang.getSdt() + "@default.com");
+            }
+            // Nếu mật khẩu rỗng, đặt mật khẩu mặc định
+            if (khachHang.getMatKhau() == null || khachHang.getMatKhau().isEmpty()) {
+                khachHang.setMatKhau(passwordEncoder.encode("123456"));
+            }
+        } else if (khachHang.getMatKhau() != null && !khachHang.getMatKhau().isEmpty()) {
+             // Logic này dành cho việc cập nhật hoặc đăng ký thông thường, nơi mật khẩu được gửi đến
+             // Cần kiểm tra xem mật khẩu đã được mã hóa chưa trước khi mã hóa lại
+             // (Giả sử mật khẩu thô được gửi từ client)
+             // Để đơn giản, chúng ta có thể mã hóa lại, nhưng cách tốt hơn là có DTO riêng.
+             // Ví dụ này mã hóa lại nếu nó chưa được mã hóa.
+             try {
+                passwordEncoder.upgradeEncoding(khachHang.getMatKhau());
+             } catch (IllegalArgumentException e) {
+                // Mật khẩu chưa được mã hóa, tiến hành mã hóa
+                khachHang.setMatKhau(passwordEncoder.encode(khachHang.getMatKhau()));
+             }
+        }
         return khachHangRepository.save(khachHang);
     }
 
@@ -79,5 +108,40 @@ public class KhachHangService {
         return khachHangRepository.findByEmail(email)
                 .map(KhachHang::getMaTaiKhoan)
                 .orElse(null);
+    }
+
+    // --- Các phương thức cho điểm tích lũy ---
+
+    @Transactional(readOnly = true)
+    public Double getDiemTichLuy(Integer maTaiKhoan) {
+        return khachHangRepository.findById(maTaiKhoan)
+                .map(KhachHang::getDiemTichLuy)
+                .orElse(0.0);
+    }
+
+    @Transactional
+    public KhachHang congDiem(Integer maTaiKhoan, Double soDiem) {
+        KhachHang khachHang = khachHangRepository.findById(maTaiKhoan)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng với mã: " + maTaiKhoan));
+        
+        Double diemHienTai = khachHang.getDiemTichLuy() != null ? khachHang.getDiemTichLuy() : 0.0;
+        khachHang.setDiemTichLuy(diemHienTai + soDiem);
+        
+        return khachHangRepository.save(khachHang);
+    }
+
+    @Transactional
+    public KhachHang truDiem(Integer maTaiKhoan, Double soDiem) {
+        KhachHang khachHang = khachHangRepository.findById(maTaiKhoan)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng với mã: " + maTaiKhoan));
+
+        Double diemHienTai = khachHang.getDiemTichLuy() != null ? khachHang.getDiemTichLuy() : 0.0;
+        if (diemHienTai < soDiem) {
+            throw new IllegalArgumentException("Điểm tích lũy không đủ.");
+        }
+        
+        khachHang.setDiemTichLuy(diemHienTai - soDiem);
+        
+        return khachHangRepository.save(khachHang);
     }
 }

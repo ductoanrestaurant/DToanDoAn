@@ -1,0 +1,62 @@
+services:
+  admin-management-service:
+    build: .
+    image: admin-management-service:latest
+    container_name: admin-management-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Map the local image directory to a directory inside the container
+      - ./image-dir:/app/image-dir
+    environment:
+      # Database Configuration
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/DucToanRestaurant
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=123456
+
+      # JWT Configuration
+      - JWT_SECRET=c2VjcmV0a2V5Zm9yand0c2VjdXJpdHlzcHJpbmdib290YXBwbGljYXRpb24=
+
+      # Custom API Keys
+      - NHANVIEN_API_KEY=nguyenductoan123456
+      - GEMINI_API_KEY=AIzaSyAxWeE8H9bh7Df5H_J8AhYlHk4kJQao5t4
+      - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+
+      # PayOS Configuration
+      - PAYOS_CLIENT-ID=447141b6-244a-4d68-afef-cceb9ff5118e
+      - PAYOS_API-KEY=4d2416d7-6d48-446b-815c-194915d22f34
+      - PAYOS_CHECKSUM-KEY=2cdae33fac382d3119ce5876c17a8163220430df833f2ef2becb303bf82f79d1
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=DucToanRestaurant
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+    ports:
+      - "5432:5432" # Connect to DB from your PC via port 5433
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  postgres_data:
+  pgadmin_data:

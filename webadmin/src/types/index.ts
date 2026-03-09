@@ -15,3 +15,11 @@ export interface Employee {
   vaiTro: VaiTro;
   trangthai: boolean;
 }
+
+export interface KhoHang {
+  id: number;
+  tenNguyenLieu: string;
+  soLuong: number;
+  donVi: string;
+  ngayHetHan?: string;
+}

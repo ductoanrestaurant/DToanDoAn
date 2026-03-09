@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class YeuCauDonService {
@@ -69,6 +70,8 @@ public class YeuCauDonService {
                 chiTiet.getId().getMaSanPham()
             );
             chiTiet.setId(chiTietId);
+            chiTiet.setTrangThai("chờ xác nhận");
+            chiTiet.setUpdateTrangThaiAt(LocalDateTime.now());
         }
         chiTietYeuCauDonService.saveAll(chiTietList);
 
@@ -87,6 +90,13 @@ public class YeuCauDonService {
 
     public List<YeuCauDon> getByIdRestaurant(Integer idRestaurant) {
         return yeuCauDonRepository.findByIdRestaurant(idRestaurant);
+    }
+
+    public List<ChiTietYeuCauDon> getChiTietByRestaurant(Integer idRestaurant) {
+        List<YeuCauDon> yeuCauDons = yeuCauDonRepository.findByIdRestaurant(idRestaurant);
+        return yeuCauDons.stream()
+                .flatMap(yeuCauDon -> yeuCauDon.getChiTietYeuCauDons().stream())
+                .collect(Collectors.toList());
     }
 
     public List<YeuCauDon> getByMaTaiKhoan(Integer maTaiKhoan) {

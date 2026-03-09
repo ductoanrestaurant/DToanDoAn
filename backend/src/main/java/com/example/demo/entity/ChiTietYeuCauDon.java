@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "CHITIETYEUCAU")
 @Getter
@@ -22,10 +24,14 @@ public class ChiTietYeuCauDon {
     private Integer soLuong;
 
     @Column(name = "GIA")
-    private Double gia;
+    private Float gia;
 
     @Column(name = "TRANGTHAI")
     private String trangThai;
+
+    @Column(name = "update_trang_thai_at")
+    private LocalDateTime updateTrangThaiAt;
+
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "MASANPHAM", referencedColumnName = "MASANPHAM", insertable = false, updatable = false)

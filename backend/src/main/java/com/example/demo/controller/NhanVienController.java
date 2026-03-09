@@ -37,8 +37,8 @@ public class NhanVienController {
 
     @PostMapping
     @PreAuthorize("hasRole('QUAN_LY')")
-    public NhanVien create(@RequestBody NhanVien nhanVien) {
-        return nhanVienService.save(nhanVien);
+    public NhanVien create(@RequestBody Map<String, Object> employeeData) {
+        return nhanVienService.createNhanVien(employeeData);
     }
 
     @PutMapping("/{maNhanVien}/{idRestaurant}")
@@ -50,10 +50,11 @@ public class NhanVienController {
         return nhanVienService.getById(maNhanVien, idRestaurant).map(nhanVien -> {
             nhanVien.setTenNhanVien(nhanVienDetails.getTenNhanVien());
             nhanVien.setEmail(nhanVienDetails.getEmail());
-            nhanVien.setPassword(nhanVienDetails.getPassword());
+            // Only update password if it's provided and not empty
+            if (nhanVienDetails.getPassword() != null && !nhanVienDetails.getPassword().isEmpty()) {
+                nhanVien.setPassword(nhanVienDetails.getPassword());
+            }
             nhanVien.setMoTa(nhanVienDetails.getMoTa());
-            nhanVien.setNumberLog(nhanVienDetails.getNumberLog());
-            nhanVien.setFirstLog(nhanVienDetails.getFirstLog());
             nhanVien.setMaVaiTro(nhanVienDetails.getMaVaiTro());
             return ResponseEntity.ok(nhanVienService.save(nhanVien));
         }).orElse(ResponseEntity.notFound().build());

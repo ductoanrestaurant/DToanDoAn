@@ -19,14 +19,11 @@ public class KhachHangController {
     @Autowired
     private KhachHangService khachHangService;
 
-
-
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public List<KhachHang> getAll() {
         return khachHangService.layTatCaKhachHang();
     }
-
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -36,8 +33,23 @@ public class KhachHangController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/sdt/{sdt}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<KhachHang> getBySdt(@PathVariable String sdt) {
+        return khachHangService.findBySdt(sdt)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-
+    @PostMapping
+    public ResponseEntity<KhachHang> create(@RequestBody RegisterRequest request) {
+        try {
+            KhachHang savedKhachHang = khachHangService.register(request);
+            return ResponseEntity.ok(savedKhachHang);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -52,7 +64,6 @@ public class KhachHangController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
@@ -63,9 +74,7 @@ public class KhachHangController {
         return ResponseEntity.notFound().build();
     }
 
-
     @GetMapping("/check-email")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
         boolean exists = khachHangService.kiemTraEmailTonTai(email);
         HashMap<String, Object> response = new HashMap<>();
@@ -74,14 +83,56 @@ public class KhachHangController {
         return ResponseEntity.ok(response);
     }
 
-
     @GetMapping("/check-phone")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> checkPhone(@RequestParam("sdt") String phoneNumber) {
         boolean exists = khachHangService.kiemTraSdtTonTai(phoneNumber);
         HashMap<String, Object> response = new HashMap<>();
         response.put("exists", exists);
         response.put("message", exists ? "Số điện thoại đã tồn tại" : "Số điện thoại hợp lệ");
         return ResponseEntity.ok(response);
+    }
+
+    // --- API cho điểm tích lũy ---
+
+    @GetMapping("/{id}/diem")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Double>> getDiemTichLuy(@PathVariable Integer id) {
+        Double diem = khachHangService.getDiemTichLuy(id);
+        Map<String, Double> response = new HashMap<>();
+        response.put("diemTichLuy", diem);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/cong-diem")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<KhachHang> congDiem(@PathVariable Integer id, @RequestBody Map<String, Double> request) {
+        Double soDiem = request.get("diem");
+        if (soDiem == null || soDiem <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            KhachHang updatedKhachHang = khachHangService.congDiem(id, soDiem);
+            return ResponseEntity.ok(updatedKhachHang);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/tru-diem")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<KhachHang> truDiem(@PathVariable Integer id, @RequestBody Map<String, Double> request) {
+        Double soDiem = request.get("diem");
+        if (soDiem == null || soDiem <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            KhachHang updatedKhachHang = khachHangService.truDiem(id, soDiem);
+            return ResponseEntity.ok(updatedKhachHang);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("không đủ")) {
+                return ResponseEntity.badRequest().body(null);
+            }
+            return ResponseEntity.notFound().build();
+        }
     }
 }

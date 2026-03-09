@@ -4,6 +4,7 @@ import com.example.demo.entity.NhanVien;
 import com.example.demo.entity.NhanVienId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -19,4 +20,7 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, NhanVienId> 
     Optional<NhanVien> findByEmail(String email);
 
     List<NhanVien> findByTrangthai(Boolean trangthai);
+
+    @Query("SELECT MAX(n.id.maNhanVien) FROM NhanVien n WHERE n.id.idRestaurant = :idRestaurant")
+    Optional<Integer> findMaxMaNhanVienByIdRestaurant(@Param("idRestaurant") Integer idRestaurant);
 }

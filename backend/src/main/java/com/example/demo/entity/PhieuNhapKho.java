@@ -2,10 +2,11 @@ package com.example.demo.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime; // Sử dụng để khớp với 'timestamp with time zone'
 
 @Entity
-@Table(name = "PHIEUNHAPKHO")
+@Table(name = "phieunhapkho", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,25 +15,26 @@ public class PhieuNhapKho {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "MAPHIEUNHAP")
+    @Column(name = "mapieunhap") // Postgres thường dùng tên viết thường
     private Integer maPhieuNhap;
 
-    @Column(name = "NHACUNGCAP", length = 100)
+    @Column(name = "nhacungcap", length = 100)
     private String nhaCungCap;
 
-    @Column(name = "MANHANVIEN")
+    @Column(name = "manhanvien")
     private Integer maNhanVien;
 
-    @Column(name = "NGAYNHAP")
-    private LocalDate ngayNhap;
+    // Chuyển từ LocalDate sang OffsetDateTime để nhận đủ cả ngày và giờ
+    // Khớp với kiểu 'timestamp with time zone' trong ảnh image_4c745e.png
+    @Column(name = "ngaynhap")
+    private OffsetDateTime ngayNhap;
 
-    @Column(name = "TONGTIEN")
-    private Double tongTien;
+    @Column(name = "tongtien", precision = 19, scale = 4)
+    private BigDecimal tongTien;
 
-    @Column(name = "GHICHU", columnDefinition = "TEXT")
+    @Column(name = "ghichu", columnDefinition = "TEXT")
     private String ghiChu;
 
-    @Column(name = "ID_RESTAURANT")
+    @Column(name = "id_restaurant")
     private Integer idRestaurant;
 }
-

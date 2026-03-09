@@ -29,8 +29,10 @@ api.interceptors.request.use(
 export const ENDPOINTS = {
   AUTH: '/auth/login',
   KHACH_HANG: '/khach-hang',
-  NHAN_VIEN: '/nhan-vien', // Added NHAN_VIEN endpoint
-  // Thêm các endpoints khác ở đây
+  NHAN_VIEN: '/nhan-vien',
+  NGUYEN_LIEU: '/nguyen-lieu',
+  SAN_PHAM: '/san-pham',
+  CONG_THUC: '/cong-thuc',
 };
 
 export default api;

@@ -2,33 +2,36 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Import Link
+import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
-import { Search, PlusCircle, FileDown } from 'lucide-react';
-import api from '@/constants/api'; // Import the configured axios instance
+import { Search, PlusCircle, FileDown, CheckCircle, Truck, Clock, XCircle, HelpCircle } from 'lucide-react';
+import api from '@/constants/api';
 
-// Define the type for the nested ID
 interface OrderId {
   maDonHang: number;
   idRestaurant: number;
 }
 
-// Define the type for an order, matching the new structure
+interface ChiTietYeuCauDon {
+  trangThai: string;
+}
+
 interface Order {
   id: OrderId;
   khachHang: {
     hoTen: string;
   };
-  ngayTaoDon: string; // Use ngayTaoDon instead of thoiGianThanhToan
+  ngayTaoDon: string;
   tongTien: number | null;
   trangThaiThanhToan: string;
+  thoiGianThanhToan: string | null; // Add payment time
   thanhToan: {
     kieuThanhToan: string;
   };
+  chiTietYeuCauDons: ChiTietYeuCauDon[];
 }
 
-// Function to get status color
-const getStatusColor = (status: string) => {
+const getPaymentStatusColor = (status: string) => {
   switch (status) {
     case 'Thành công':
       return 'bg-green-100 text-green-700';
@@ -39,6 +42,25 @@ const getStatusColor = (status: string) => {
     default:
       return 'bg-gray-100 text-gray-700';
   }
+};
+
+const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
+    if (!items || items.length === 0) {
+        return { text: 'N/A', color: 'bg-gray-100 text-gray-700' };
+    }
+
+    const allStatuses = items.map(item => item.trangThai);
+
+    if (allStatuses.every(s => s === 'hoàn thành')) {
+        return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
+    }
+    if (allStatuses.some(s => s === 'đã hủy')) {
+        return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
+    }
+    if (allStatuses.every(s => s === 'chờ xác nhận')) {
+        return { text: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700' };
+    }
+    return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
 };
 
 export default function DonHangPage() {
@@ -111,9 +133,6 @@ export default function DonHangPage() {
             <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition">
                 <FileDown size={20} /> Xuất File
             </button>
-            <button className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl shadow-sm hover:bg-blue-700 transition">
-              <PlusCircle size={20} /> Thêm Đơn hàng
-            </button>
           </div>
         </header>
 
@@ -125,32 +144,43 @@ export default function DonHangPage() {
                   <th className="p-4 font-medium">Mã Đơn</th>
                   <th className="p-4 font-medium">Khách hàng</th>
                   <th className="p-4 font-medium">Ngày tạo</th>
+                  <th className="p-4 font-medium">Thời gian TT</th>
                   <th className="p-4 font-medium">Tổng tiền</th>
                   <th className="p-4 font-medium">Thanh toán</th>
-                  <th className="p-4 font-medium text-center">Trạng thái</th>
+                  <th className="p-4 font-medium text-center">Trạng thái TT</th>
+                  <th className="p-4 font-medium text-center">Trạng thái đơn</th>
                   <th className="p-4 font-medium text-center">Hành động</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {orders.map((order) => (
-                  <tr key={order.id.maDonHang} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition">
-                    <td className="p-4 font-medium text-blue-600">#{order.id.maDonHang}</td>
-                    <td className="p-4 text-gray-800">{order.khachHang?.hoTen || 'N/A'}</td>
-                    <td className="p-4 text-gray-500">{order.ngayTaoDon ? new Date(order.ngayTaoDon).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
-                    <td className="p-4 font-bold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</td>
-                    <td className="p-4 text-gray-500">{order.thanhToan?.kieuThanhToan || 'N/A'}</td>
-                    <td className="p-4 text-center">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.trangThaiThanhToan)}`}>
-                        {order.trangThaiThanhToan}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <Link href={`/donhang/${order.id.maDonHang}?idRestaurant=${order.id.idRestaurant}`} className="text-blue-600 hover:underline">
-                        Xem chi tiết
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {orders.map((order) => {
+                  const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
+                  return (
+                    <tr key={order.id.maDonHang} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition">
+                      <td className="p-4 font-medium text-blue-600">#{order.id.maDonHang}</td>
+                      <td className="p-4 text-gray-800">{order.khachHang?.hoTen || 'N/A'}</td>
+                      <td className="p-4 text-gray-500">{order.ngayTaoDon ? new Date(order.ngayTaoDon).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
+                      <td className="p-4 text-gray-500">{order.thoiGianThanhToan ? new Date(order.thoiGianThanhToan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
+                      <td className="p-4 font-bold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</td>
+                      <td className="p-4 text-gray-500">{order.thanhToan?.kieuThanhToan || 'N/A'}</td>
+                      <td className="p-4 text-center">
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(order.trangThaiThanhToan)}`}>
+                          {order.trangThaiThanhToan}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${orderStatusInfo.color}`}>
+                          {orderStatusInfo.text}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <Link href={`/donhang/${order.id.maDonHang}?idRestaurant=${order.id.idRestaurant}`} className="text-blue-600 hover:underline">
+                          Xem chi tiết
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

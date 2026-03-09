@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
     MessageSquare,
+    Truck,
     Bell,
     ClipboardList, // Đơn hàng
     UtensilsCrossed, // Sản phẩm (Món ăn)
@@ -13,7 +14,7 @@ import {
     UserCog, // Nhân viên (Quản trị người dùng)
     PackageOpen, // Kho hàng
     Megaphone, // Quảng cáo
-    CircleDollarSign, // Doanh thu
+    CircleDollarSign, Utensils, // Doanh thu
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -60,14 +61,14 @@ export default function Sidebar() {
                     <CircleDollarSign size={20} />
                     <span>Doanh thu</span>
                 </Link>
-                <Link href="/tin-nhan" className={getLinkClass('/tinnhan')}>
+                <Link href="/tin-nhan" className={getLinkClass('/tin-nhan')}>
                     <MessageSquare size={20} />
                     <span>Tin nhắn</span>
                 </Link>
-                <Link href="/thongbao" className={getLinkClass('/thongbao')}>
+                {/* <Link href="/thongbao" className={getLinkClass('/thongbao')}>
                     <Bell size={20} />
                     <span>Thông báo</span>
-                </Link>
+                </Link> */}
 
                 {/* --- Group: Quản lý --- */}
                 <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">
@@ -104,9 +105,24 @@ export default function Sidebar() {
                     <span>Kho hàng</span>
                 </Link>
 
-                <Link href="/quangcao" className={getLinkClass('/quangcao')}>
-                    <Megaphone size={20} />
-                    <span>Quảng cáo</span>
+                {/*<Link href="/quangcao" className={getLinkClass('/quangcao')}>*/}
+                {/*    <Megaphone size={20} />*/}
+                {/*    <span>Quảng cáo</span>*/}
+                {/*</Link>*/}
+
+                <Link href="/congthuc" className={getLinkClass('/congthuc')}>
+                    <Utensils size={20} />
+                    <span>Công thức món</span>
+                </Link>
+
+                <Link href="/nhaphang" className={getLinkClass('/nhaphang')}>
+                    <Truck size={20} />
+                    <span>Nhập hàng</span>
+                </Link>
+
+                <Link href="/bep" className={getLinkClass('/bep')}>
+                    <Truck size={20} />
+                    <span>Bếp</span>
                 </Link>
             </nav>
 

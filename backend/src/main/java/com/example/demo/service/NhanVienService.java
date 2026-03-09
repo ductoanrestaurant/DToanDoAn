@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.example.demo.entity.NhanVien;
@@ -17,7 +18,7 @@ public class NhanVienService {
     private NhanVienRepository nhanVienRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder; // Inject PasswordEncoder
+    private PasswordEncoder passwordEncoder;
 
     public List<NhanVien> getAll() {
         return nhanVienRepository.findAll();
@@ -36,11 +37,39 @@ public class NhanVienService {
         return nhanVienRepository.findByEmail(email);
     }
 
+    public NhanVien createNhanVien(Map<String, Object> employeeData) {
+        NhanVien nhanVien = new NhanVien();
+
+        // Extract data from the map
+        String tenNhanVien = (String) employeeData.get("tenNhanVien");
+        String email = (String) employeeData.get("email");
+        String password = (String) employeeData.get("password");
+        Integer maVaiTro = (Integer) employeeData.get("maVaiTro");
+        Integer idRestaurant = (Integer) employeeData.get("idRestaurant");
+
+        if (idRestaurant == null) {
+            throw new IllegalArgumentException("idRestaurant must not be null for a new employee");
+        }
+
+        // Generate the new composite ID
+        Integer maxMaNhanVien = nhanVienRepository.findMaxMaNhanVienByIdRestaurant(idRestaurant).orElse(0);
+        NhanVienId newId = new NhanVienId(maxMaNhanVien + 1, idRestaurant);
+        
+        nhanVien.setId(newId);
+        nhanVien.setTenNhanVien(tenNhanVien);
+        nhanVien.setEmail(email);
+        nhanVien.setPassword(password); // Password will be encoded in the save method
+        nhanVien.setMaVaiTro(maVaiTro);
+        
+        return this.save(nhanVien);
+    }
 
     public NhanVien save(NhanVien nhanVien) {
+        // Encode password if it's new or has been changed
         if (nhanVien.getPassword() != null && !nhanVien.getPassword().startsWith("$2a$")) {
             nhanVien.setPassword(passwordEncoder.encode(nhanVien.getPassword()));
         }
+        // Set default status for new employees
         if (nhanVien.getTrangthai() == null) {
             nhanVien.setTrangthai(true);
         }
