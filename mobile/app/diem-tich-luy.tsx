@@ -25,7 +25,7 @@ const DiemTichLuyScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
-    const exchangeRate = 1000; // 1 điểm = 1.000 VNĐ
+    const exchangeRate = 1; // 1 điểm = 1.000 VNĐ
 
     const fetchPoints = useCallback(async () => {
         try {

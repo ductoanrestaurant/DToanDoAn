@@ -110,6 +110,40 @@ public class KhachHangService {
                 .orElse(null);
     }
 
+    @Transactional
+    public boolean changePassword(Integer maTaiKhoan, String oldPassword, String newPassword) {
+        KhachHang khachHang = khachHangRepository.findById(maTaiKhoan)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng."));
+
+        if (!passwordEncoder.matches(oldPassword, khachHang.getMatKhau())) {
+            // Mật khẩu cũ không khớp
+            return false;
+        }
+
+        // Mật khẩu cũ khớp, mã hóa và cập nhật mật khẩu mới
+        khachHang.setMatKhau(passwordEncoder.encode(newPassword));
+        khachHangRepository.save(khachHang);
+        return true;
+    }
+
+    @Transactional
+    public KhachHang updateEmail(Integer maTaiKhoan, String newEmail) {
+        // 1. Check if the new email already exists for another user
+        Optional<KhachHang> existingCustomerWithEmail = khachHangRepository.findByEmail(newEmail);
+        if (existingCustomerWithEmail.isPresent() && !existingCustomerWithEmail.get().getMaTaiKhoan().equals(maTaiKhoan)) {
+            throw new IllegalArgumentException("Email đã được sử dụng bởi một tài khoản khác.");
+        }
+
+        // 2. Find the customer to update
+        KhachHang khachHang = khachHangRepository.findById(maTaiKhoan)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng với mã: " + maTaiKhoan));
+
+        // 3. Update the email and save
+        khachHang.setEmail(newEmail);
+        return khachHangRepository.save(khachHang);
+    }
+
+
     // --- Các phương thức cho điểm tích lũy ---
 
     @Transactional(readOnly = true)

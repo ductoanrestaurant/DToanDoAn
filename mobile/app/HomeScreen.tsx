@@ -49,11 +49,11 @@ interface SanPham {
     danhMuc?: { tenDanhMuc: string };
 }
 
-interface KhuyenMai {
-    maKhuyenMai: number;
-    tenKhuyenMai: string;
+interface GiamGia {
+    idGiamGia: number;
+    code: string;
     moTa: string;
-    hinhAnh: string;
+    urlAnh: string;
 }
 
 interface ChiNhanh {
@@ -63,26 +63,11 @@ interface ChiNhanh {
     img: string;
 }
 
-const MOCK_PROMOTIONS: KhuyenMai[] = [
-    {
-        maKhuyenMai: 1,
-        tenKhuyenMai: "Đại Tiệc Mùa Hè - Giảm 50%",
-        moTa: "Giảm giá cực sốc cho hóa đơn từ 500k.",
-        hinhAnh: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80"
-    },
-    {
-        maKhuyenMai: 2,
-        tenKhuyenMai: "Mua 1 Tặng 1 Pizza",
-        moTa: "Áp dụng cho dòng Pizza hải sản.",
-        hinhAnh: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80"
-    }
-];
-
 const HomeScreen = () => {
     const router = useRouter();
 
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
-    const [promotions, setPromotions] = useState<KhuyenMai[]>([]);
+    const [promotions, setPromotions] = useState<GiamGia[]>([]);
     const [mustTryFood, setMustTryFood] = useState<SanPham[]>([]);
     const [branches, setBranches] = useState<ChiNhanh[]>([]);
     const [loading, setLoading] = useState(true);
@@ -118,34 +103,29 @@ const HomeScreen = () => {
                 const parsedCustomerInfo: CustomerInfo = JSON.parse(storedCustomerInfo);
                 setCustomerInfo(parsedCustomerInfo);
 
-                const [foodRes, branchRes, reviewRes] = await Promise.all([
+                const [foodRes, branchRes, reviewRes, discountRes] = await Promise.all([
                     api.get(ENDPOINTS.SAN_PHAM),
                     api.get(ENDPOINTS.RESTAURANT),
-                    api.get(ENDPOINTS.DANH_GIA)
+                    api.get(ENDPOINTS.DANH_GIA),
+                    api.get(ENDPOINTS.GIAM_GIA) // Fetch discounts
                 ]);
 
                 const rawFoodData: SanPham[] = foodRes.data;
                 const branchData: ChiNhanh[] = branchRes.data;
                 const allReviews: DanhGia[] = reviewRes.data;
-
+                const allDiscounts: GiamGia[] = discountRes.data;
 
                 const foodWithRating = rawFoodData.map(sp => {
-
                     const reviewsOfProduct = allReviews.filter(r => r.id.maSanPham === sp.maSanPham);
-
                     const avgRating = getRating(reviewsOfProduct);
-
-                    return {
-                        ...sp,
-                        danhSachDanhGia: reviewsOfProduct,
-                        avgRating: avgRating
-                    };
+                    return { ...sp, danhSachDanhGia: reviewsOfProduct, avgRating: avgRating };
                 });
 
-                setPromotions(MOCK_PROMOTIONS);
+                // Filter discounts that have an image URL
+                const promotionsWithImages = allDiscounts.filter(d => d.urlAnh && d.urlAnh.trim() !== '');
+                setPromotions(promotionsWithImages);
 
                 setMustTryFood(foodWithRating.sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0)).slice(0, 5));
-
                 setBranches(branchData);
 
             } catch (error) {
@@ -231,12 +211,12 @@ const HomeScreen = () => {
             {promotions.length > 0 ? (
                 <FlatList
                     data={promotions} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-                    keyExtractor={item => item.maKhuyenMai.toString()}
+                    keyExtractor={item => item.idGiamGia.toString()}
                     renderItem={({ item }) => (
                         <View style={styles.promotionCard}>
-                            <Image source={{ uri: item.hinhAnh }} style={styles.promotionImage} />
+                            <Image source={{ uri: `${BASE_URL_IMG}/${item.urlAnh}` }} style={styles.promotionImage} />
                             <View style={styles.promotionTextContainer}>
-                                <Text style={styles.promotionTitle}>{item.tenKhuyenMai}</Text>
+                                <Text style={styles.promotionTitle}>{item.code}</Text>
                                 <Text style={styles.promotionSubtitle}>{item.moTa}</Text>
                             </View>
                         </View>

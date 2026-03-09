@@ -15,6 +15,8 @@ import {
     PackageOpen, // Kho hàng
     Megaphone, // Quảng cáo
     CircleDollarSign, Utensils, // Doanh thu
+    ChefHat,
+    TicketPercent,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -121,8 +123,13 @@ export default function Sidebar() {
                 </Link>
 
                 <Link href="/bep" className={getLinkClass('/bep')}>
-                    <Truck size={20} />
+                    <ChefHat size={20} />
                     <span>Bếp</span>
+                </Link>
+
+                <Link href="/giamgia" className={getLinkClass('/giamgia')}>
+                    <TicketPercent size={20} />
+                    <span>Mã Giảm Giá</span>
                 </Link>
             </nav>
 

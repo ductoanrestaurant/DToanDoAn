@@ -55,10 +55,12 @@ const OrderConfirmationScreen = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<'tiền mặt' | 'chuyển khoản'>('tiền mặt');
+    const [paymentMethod, setPaymentMethod] = useState<'tiền mặt' | 'chuyển khoản' | 'ví'>('tiền mặt');
+    const [userPoints, setUserPoints] = useState(0);
 
     const isStaffOrder = params.verifyUser === 'nhanvien';
     const totalAmount = parseInt(params.totalPrice || '0');
+    const pointsNeeded = totalAmount; // Giả sử 1 điểm = 1 VNĐ
 
     // --- DATA FETCHING ---
     const fetchData = useCallback(async () => {
@@ -81,6 +83,12 @@ const OrderConfirmationScreen = () => {
                 if (!customerInfoStr) throw new Error("Khách hàng chưa đăng nhập.");
                 const parsedInfo = JSON.parse(customerInfoStr);
                 khId = parsedInfo.maKhachHang;
+
+                // Fetch user points if it's a customer order
+                if (khId) {
+                    const pointsRes = await api.get(`${ENDPOINTS.KHACH_HANG}/${khId}/diem`);
+                    setUserPoints(pointsRes.data.diemTichLuy || 0);
+                }
             }
 
             const customerRes = await api.get(`${ENDPOINTS.KHACH_HANG}/${khId}`);
@@ -144,6 +152,7 @@ const OrderConfirmationScreen = () => {
         switch (method) {
             case 'tiền mặt': return 1;
             case 'chuyển khoản': return 2;
+            case 'ví': return 3; // Assuming 3 is for wallet payment
             default: return 1;
         }
     };
@@ -155,16 +164,21 @@ const OrderConfirmationScreen = () => {
         }
         setIsSubmitting(true);
 
+        const isWalletPayment = paymentMethod === 'ví';
+
+        if (isWalletPayment && userPoints < pointsNeeded) {
+            Alert.alert("Lỗi", "Điểm trong ví không đủ để thực hiện thanh toán.");
+            setIsSubmitting(false);
+            return;
+        }
 
         const bookingDate = new Date(params.bookingTime || new Date());
-
         const localBookingDate = new Date(bookingDate.getTime() - (bookingDate.getTimezoneOffset() * 60000));
-
         const localBookingTimestamp = localBookingDate.toISOString().slice(0, -1);
 
         const yeuCauDon = {
             id: { idRestaurant: currentRestaurant.idRestaurant },
-            trangThaiThanhToan: 'chưa thanh toán',
+            trangThaiThanhToan: isWalletPayment ? 'đã thanh toán' : 'chưa thanh toán',
             tongTien: totalAmount,
             idThanhToan: getPaymentMethodId(paymentMethod),
             maTaiKhoan: Number(customerInfo.maTaiKhoan),
@@ -173,7 +187,6 @@ const OrderConfirmationScreen = () => {
             gioSuDung: localBookingTimestamp,
         };
 
-
         const chiTietYeuCauDon = cartItems.map(item => ({
             id: { maSanPham: item.maSanPham },
             soLuong: item.soluong,
@@ -181,16 +194,23 @@ const OrderConfirmationScreen = () => {
         }));
 
         try {
+            // Step 1: Create the order
             const response = await api.post(ENDPOINTS.YEU_CAU_DON, { yeuCauDon, chiTietYeuCauDon });
             const orderId = response.data.id?.maDonHang;
-
             if (response.status !== 201 || !orderId) throw new Error("Không thể tạo đơn hàng.");
 
-            if (paymentMethod === 'chuyển khoản') {
+            // Step 2: Handle payment based on method
+            if (isWalletPayment) {
+                // Deduct points
+                await api.post(`${ENDPOINTS.KHACH_HANG}/${customerInfo.maTaiKhoan}/tru-diem`, { diem: pointsNeeded });
+                Alert.alert("Thành công", "Đơn hàng đã được thanh toán bằng điểm thành công!", [
+                    { text: "OK", onPress: () => router.push('/HomeScreen') }
+                ]);
+            } else if (paymentMethod === 'chuyển khoản') {
                 const paymentResponse = await api.post(ENDPOINTS.CREATE_PAYOS_PAYMENT, {
                     amount: totalAmount,
                     orderId,
-                    paymentMethod: 'payos', // Gửi thông tin phương thức thanh toán
+                    paymentMethod: 'payos',
                     returnUrl: `${BASE_URL}/payment/success`,
                     cancelUrl: `${BASE_URL}/payment/cancel`,
                 });
@@ -207,7 +227,7 @@ const OrderConfirmationScreen = () => {
                 } else {
                     throw new Error("Không thể tạo yêu cầu thanh toán.");
                 }
-            } else {
+            } else { // Cash payment
                 Alert.alert("Thành công", "Đơn hàng đã được tạo thành công!", [
                     { text: "OK", onPress: () => router.push(isStaffOrder ? '/NvOrder' : '/HomeScreen') }
                 ]);
@@ -270,6 +290,16 @@ const OrderConfirmationScreen = () => {
                 <View style={styles.paymentContainer}>
                     <PaymentOption method="tiền mặt" icon="cash-outline" current={paymentMethod} onPress={setPaymentMethod} />
                     <PaymentOption method="chuyển khoản" icon="qr-code-outline" current={paymentMethod} onPress={setPaymentMethod} />
+                    {!isStaffOrder && (
+                         <PaymentOption
+                            method="ví"
+                            icon="wallet-outline"
+                            current={paymentMethod}
+                            onPress={setPaymentMethod}
+                            points={userPoints}
+                            disabled={userPoints < pointsNeeded}
+                        />
+                    )}
                 </View>
             </ScrollView>
 
@@ -303,8 +333,30 @@ const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: stri
 const ItemRow = ({ item }: { item: any }) => (
     <View style={styles.itemRow}><Image source={{ uri: `${BASE_URL_IMG}/${item.danhSachAnh?.[0]?.urlAnh}` }} style={styles.itemImage} /><View style={styles.itemInfo}><Text style={styles.itemName}>{item.tenSanPham}</Text><Text style={styles.itemDetail}>SL: {item.soluong} x {(item.gia || 0).toLocaleString('vi-VN')}đ</Text></View><Text style={styles.itemSubtotal}>{((item.gia || 0) * item.soluong).toLocaleString('vi-VN')}đ</Text></View>
 );
-const PaymentOption = ({ method, icon, current, onPress }: { method: any, icon: any, current: any, onPress: (m: any) => void }) => (
-    <TouchableOpacity style={[styles.paymentOption, current === method && styles.paymentActive]} onPress={() => onPress(method)}><Ionicons name={icon} size={24} color={current === method ? "#FFF" : "#FF6600"} /><Text style={[styles.paymentText, current === method && styles.paymentTextActive]}>{method.charAt(0).toUpperCase() + method.slice(1)}</Text></TouchableOpacity>
+const PaymentOption = ({ method, icon, current, onPress, points, disabled }: { method: any, icon: any, current: any, onPress: (m: any) => void, points?: number, disabled?: boolean }) => (
+    <TouchableOpacity
+        style={[
+            styles.paymentOption,
+            current === method && styles.paymentActive,
+            disabled && styles.disabledPaymentOption
+        ]}
+        onPress={() => !disabled && onPress(method)}
+        disabled={disabled}
+    >
+        <Ionicons name={icon} size={24} color={disabled ? '#AAA' : (current === method ? "#FFF" : "#FF6600")} />
+        <Text style={[
+            styles.paymentText,
+            current === method && styles.paymentTextActive,
+            disabled && styles.disabledPaymentText
+        ]}>
+            {method.charAt(0).toUpperCase() + method.slice(1)}
+        </Text>
+        {method === 'ví' && points !== undefined && (
+            <Text style={[styles.pointsText, disabled && styles.disabledPaymentText]}>
+                ({Math.floor(points).toLocaleString('vi-VN')}đ)
+            </Text>
+        )}
+    </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
@@ -345,7 +397,19 @@ const styles = StyleSheet.create({
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
     qrImage: { width: 250, height: 250 },
     doneButton: { backgroundColor: '#FF6600', width: '100%', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 20 },
-    doneButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
+    doneButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+    disabledPaymentOption: {
+        backgroundColor: '#F0F0F0',
+        borderColor: '#E0E0E0',
+    },
+    disabledPaymentText: {
+        color: '#AAA',
+    },
+    pointsText: {
+        fontSize: 10,
+        color: '#888',
+        marginTop: 2,
+    },
 });
 
 export default OrderConfirmationScreen;

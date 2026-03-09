@@ -107,7 +107,7 @@ const InfoScreen = () => {
                     <ProfileOption
                         icon="mail-outline"
                         text="Cập nhật Email"
-                        onPress={() => {  }}
+                        onPress={() => router.push('/doi-email')}
                     />
                 </View>
 

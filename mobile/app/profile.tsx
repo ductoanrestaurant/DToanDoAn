@@ -107,7 +107,7 @@ const ProfileScreen = () => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Tài khoản</Text>
                         <MenuItem icon="person-outline" label="Thông tin cá nhân" onPress={() => router.push('/info')} />
-                        <MenuItem icon="lock-closed-outline" label="Đổi mật khẩu" />
+                        <MenuItem icon="lock-closed-outline" label="Đổi mật khẩu" onPress={() => router.push('/doi-mat-khau')}/>
                         <MenuItem icon="star-outline" label="Điểm tích lũy" onPress={() => router.push('/diem-tich-luy')}/>
                     </View>
 

@@ -21,6 +21,7 @@ export const ENDPOINTS = {
     RESTAURANT: `${BASE_URL}/restaurant`,
     YEU_CAU_DON: `${BASE_URL}/yeu-cau-don`,
     KHUYEN_MAI: `${BASE_URL}/khuyen-mai`,
+    GIAM_GIA: `${BASE_URL}/giam-gia`,
     // Chat endpoints
     CHAT_MESSAGES: `${BASE_URL}/chat`,
     CHAT_USERS: `${BASE_URL}/chat/users`,

@@ -11,6 +11,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// DTO for Change Password Request
+class ChangePasswordRequest {
+    private Integer maTaiKhoan;
+    private String oldPassword;
+    private String newPassword;
+
+    // Getters and Setters
+    public Integer getMaTaiKhoan() { return maTaiKhoan; }
+    public void setMaTaiKhoan(Integer maTaiKhoan) { this.maTaiKhoan = maTaiKhoan; }
+    public String getOldPassword() { return oldPassword; }
+    public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
+    public String getNewPassword() { return newPassword; }
+    public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+}
+
+
 @RestController
 @RequestMapping("/api/khach-hang")
 @CrossOrigin(origins = "*")
@@ -91,6 +107,47 @@ public class KhachHangController {
         response.put("message", exists ? "Số điện thoại đã tồn tại" : "Số điện thoại hợp lệ");
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+        try {
+            boolean success = khachHangService.changePassword(
+                request.getMaTaiKhoan(),
+                request.getOldPassword(),
+                request.getNewPassword()
+            );
+
+            if (success) {
+                return ResponseEntity.ok().body(Map.of("message", "Đổi mật khẩu thành công."));
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Mật khẩu hiện tại không đúng."));
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/{id}/email")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> updateEmail(@PathVariable Integer id, @RequestBody Map<String, String> request) {
+        String newEmail = request.get("email");
+        if (newEmail == null || newEmail.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email không được để trống."));
+        }
+
+        try {
+            KhachHang updatedKhachHang = khachHangService.updateEmail(id, newEmail);
+            return ResponseEntity.ok(updatedKhachHang);
+        } catch (IllegalArgumentException e) {
+            // Check for specific error messages from the service
+            if (e.getMessage().contains("Email đã được sử dụng")) {
+                return ResponseEntity.status(409).body(Map.of("error", e.getMessage())); // 409 Conflict
+            }
+            return ResponseEntity.notFound().build(); // Or another appropriate error
+        }
+    }
+
 
     // --- API cho điểm tích lũy ---
 

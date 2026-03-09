@@ -52,6 +52,7 @@ interface YeuCauDon {
     maBan?: number;
     gioSuDung?: string;
     ghiChu?: string;
+    maTaiKhoan: number; // Added for point refund logic
     thanhToan?: {
         kieuThanhToan: string;
     };
@@ -185,6 +186,7 @@ const ChiTietDonHangScreen = () => {
                         if (!order || !maDonHang || !idRestaurant) return;
                         setIsCancelling(true);
                         try {
+                            // Step 1: Cancel all items in the order
                             const cancelPromises = order.chiTietYeuCauDons.map(item =>
                                 api.put(
                                     `${ENDPOINTS.YEU_CAU_DON}/chi-tiet/trang-thai`,
@@ -198,11 +200,31 @@ const ChiTietDonHangScreen = () => {
                                     }
                                 )
                             );
-
                             await Promise.all(cancelPromises);
 
-                            Alert.alert("Thành công", "Đơn hàng đã được hủy.");
+                            let successMessage = "Đơn hàng đã được hủy.";
+
+                            // Step 2: If order was paid, refund points
+                            if (
+                                order.trangThaiThanhToan.toLowerCase() === 'đã thanh toán' &&
+                                order.maTaiKhoan &&
+                                order.tongTien &&
+                                order.tongTien > 0
+                            ) {
+                                try {
+                                    await api.post(`${ENDPOINTS.KHACH_HANG}/${order.maTaiKhoan}/cong-diem`, {
+                                        diem: order.tongTien,
+                                    });
+                                    successMessage += `\n\nĐã hoàn lại ${order.tongTien.toLocaleString('vi-VN')} điểm vào ví của bạn.`;
+                                } catch (refundError) {
+                                    console.error("Point refund failed:", refundError);
+                                    successMessage += "\n\nTuy nhiên, đã có lỗi xảy ra khi hoàn điểm.";
+                                }
+                            }
+
+                            Alert.alert("Thành công", successMessage);
                             fetchOrderDetails(); // Refresh to show updated status
+
                         } catch (err) {
                             console.error("Order cancellation failed:", err);
                             Alert.alert("Lỗi", "Không thể hủy đơn hàng. Vui lòng thử lại.");
