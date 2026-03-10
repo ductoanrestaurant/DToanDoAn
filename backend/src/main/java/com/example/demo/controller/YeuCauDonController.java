@@ -54,39 +54,65 @@ public class YeuCauDonController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'THU_NGAN')")
-    public ResponseEntity<YeuCauDon> create(@RequestBody YeuCauDonRequest yeuCauDonRequest) {
+    public ResponseEntity<?> create(@RequestBody YeuCauDonRequest yeuCauDonRequest) {
         try {
             YeuCauDon newYeuCauDon = yeuCauDonService.createYeuCauDon(yeuCauDonRequest);
             return new ResponseEntity<>(newYeuCauDon, HttpStatus.CREATED);
+        } catch (IllegalStateException e) {
+            // Lỗi do trùng lịch hoặc bàn không khả dụng
+            System.err.println("Table conflict: " + e.getMessage());
+            return new ResponseEntity<>(
+                Map.of("error", e.getMessage()), 
+                HttpStatus.CONFLICT
+            );
         } catch (Exception e) {
             System.err.println("Error creating order: " + e.getMessage());
             e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(
+                Map.of("error", "Có lỗi xảy ra khi tạo đơn hàng: " + e.getMessage()), 
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
 
     @PutMapping("/{maDonHang}/{idRestaurant}")
     @PreAuthorize("hasAnyRole('KHACH_HANG','QUAN_LY', 'THU_NGAN')")
-    public ResponseEntity<YeuCauDon> update(
+    public ResponseEntity<?> update(
             @PathVariable Integer maDonHang,
             @PathVariable Integer idRestaurant,
             @RequestBody YeuCauDon yeuCauDonDetails) {
         return yeuCauDonService.getById(maDonHang, idRestaurant).map(yeuCauDon -> {
-            yeuCauDon.setTrangThaiThanhToan(yeuCauDonDetails.getTrangThaiThanhToan());
+            try {
+                yeuCauDon.setTrangThaiThanhToan(yeuCauDonDetails.getTrangThaiThanhToan());
 
-            // Nếu trạng thái mới là "đã thanh toán", cập nhật thời gian thanh toán là thời gian hiện tại của server
-            if ("đã thanh toán".equalsIgnoreCase(yeuCauDonDetails.getTrangThaiThanhToan())) {
-                yeuCauDon.setThoiGianThanhToan(LocalDateTime.now());
+                // Nếu trạng thái mới là "đã thanh toán", cập nhật thời gian thanh toán là thời gian hiện tại của server
+                if ("đã thanh toán".equalsIgnoreCase(yeuCauDonDetails.getTrangThaiThanhToan())) {
+                    yeuCauDon.setThoiGianThanhToan(LocalDateTime.now());
+                }
+
+                yeuCauDon.setGhiChu(yeuCauDonDetails.getGhiChu());
+                yeuCauDon.setIdGiamGia(yeuCauDonDetails.getIdGiamGia());
+                yeuCauDon.setMaBan(yeuCauDonDetails.getMaBan());
+                yeuCauDon.setMaNhanVien(yeuCauDonDetails.getMaNhanVien());
+                yeuCauDon.setGioSuDung(yeuCauDonDetails.getGioSuDung());
+                yeuCauDon.setIdThanhToan(yeuCauDonDetails.getIdThanhToan());
+                return ResponseEntity.ok(yeuCauDonService.save(yeuCauDon));
+            } catch (IllegalStateException e) {
+                // Lỗi do trùng lịch hoặc bàn không khả dụng
+                System.err.println("Table conflict on update: " + e.getMessage());
+                return new ResponseEntity<>(
+                    Map.of("error", e.getMessage()), 
+                    HttpStatus.CONFLICT
+                );
+            } catch (Exception e) {
+                System.err.println("Error updating order: " + e.getMessage());
+                e.printStackTrace();
+                return new ResponseEntity<>(
+                    Map.of("error", "Có lỗi xảy ra khi cập nhật đơn hàng: " + e.getMessage()), 
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
             }
-
-            yeuCauDon.setGhiChu(yeuCauDonDetails.getGhiChu());
-            yeuCauDon.setIdGiamGia(yeuCauDonDetails.getIdGiamGia());
-            yeuCauDon.setMaBan(yeuCauDonDetails.getMaBan());
-            yeuCauDon.setMaNhanVien(yeuCauDonDetails.getMaNhanVien());
-            yeuCauDon.setGioSuDung(yeuCauDonDetails.getGioSuDung());
-            yeuCauDon.setIdThanhToan(yeuCauDonDetails.getIdThanhToan());
-            return ResponseEntity.ok(yeuCauDonService.save(yeuCauDon));
         }).orElse(ResponseEntity.notFound().build());
     }
 

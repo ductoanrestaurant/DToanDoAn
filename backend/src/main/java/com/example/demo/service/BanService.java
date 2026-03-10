@@ -48,17 +48,36 @@ public class BanService {
                  .filter(ban -> Boolean.FALSE.equals(ban.getTrangThai()))
                  .toList();
 
-         // Xác định khoảng thời gian "nhạy cảm" quanh gioSuDung (2 giờ trước và 2 giờ sau)
-         LocalDateTime start = gioSuDung.minusHours(2);
-         LocalDateTime end = gioSuDung.plusHours(2);
+         // Tính thời gian kết thúc của đơn mới (2 giờ sau thời gian bắt đầu)
+         LocalDateTime gioKetThuc = gioSuDung.plusHours(2);
+         
+         // Tìm các đơn có thể trùng lịch: các đơn có gioSuDung trong khoảng [gioSuDung - 2h, gioSuDung + 2h]
+         // Vì mỗi đơn dùng 2h, nên nếu đơn cũ bắt đầu trong khoảng này có thể trùng
+         LocalDateTime startCheck = gioSuDung.minusHours(2);
+         LocalDateTime endCheck = gioSuDung.plusHours(2);
 
-         // Giữ lại những bàn không có bất kỳ đơn hàng nào trong khoảng thời gian trên
+         // Lọc những bàn không có đơn trùng lịch
          return allActiveTables.stream()
                  .filter(ban -> {
                      Integer maBan = ban.getId().getMaBan();
-                     return yeuCauDonRepository
-                             .findByBanAndGioSuDungBetween(idRestaurant, maBan, start, end)
-                             .isEmpty();
+                     
+                     // Tìm các đơn có thể trùng lịch
+                     List<com.example.demo.entity.YeuCauDon> potentialOverlappingOrders = 
+                             yeuCauDonRepository.findByBanAndGioSuDungBetween(idRestaurant, maBan, startCheck, endCheck);
+                     
+                     // Kiểm tra từng đơn xem có thực sự trùng không
+                     for (com.example.demo.entity.YeuCauDon don : potentialOverlappingOrders) {
+                         LocalDateTime donStart = don.getGioSuDung();
+                         LocalDateTime donEnd = donStart.plusHours(2);
+                         
+                         // Hai khoảng thời gian trùng nhau nếu:
+                         // donStart < gioKetThuc AND donEnd > gioSuDung
+                         if (donStart.isBefore(gioKetThuc) && donEnd.isAfter(gioSuDung)) {
+                             return false; // Bàn không khả dụng - đã có đơn trùng lịch
+                         }
+                     }
+                     
+                     return true; // Bàn khả dụng
                  })
                  .toList();
     }

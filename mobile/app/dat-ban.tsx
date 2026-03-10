@@ -124,7 +124,7 @@ const BookingScreen = () => {
         }
     }
     const fetchAvailableTables = useCallback(async () => {
-        if (!idRestaurant) {
+        if (!idRestaurant || !timeSelected) {
             return;
         }
         try {
@@ -136,20 +136,36 @@ const BookingScreen = () => {
                     gioSuDung: bookingISO,
                 },
             });
-            setTables(response.data || []);
-            if ((response.data || []).length === 0) {
+            const availableTables = response.data || [];
+            setTables(availableTables);
+            
+            if (availableTables.length === 0) {
                 setErrorMessage('Không có bàn trống trong khoảng thời gian này, vui lòng chọn thời gian khác.');
             } else {
                 setErrorMessage('');
             }
         } catch (error) {
             console.error("Lỗi gọi API:", error);
-            Alert.alert("Lỗi", "Không thể lấy danh sách bàn hợp lệ");
+            setErrorMessage('Không thể lấy danh sách bàn hợp lệ. Vui lòng thử lại.');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [idRestaurant, date, refreshing]);
+    }, [idRestaurant, date, refreshing, timeSelected]);
+    
+    // Effect để kiểm tra bàn đã chọn có còn hợp lệ không khi danh sách bàn thay đổi
+    useEffect(() => {
+        if (selectedTable && tables.length > 0) {
+            const isStillAvailable = tables.some(
+                (table: IBan) => table.id.maBan === selectedTable.id.maBan
+            );
+            if (!isStillAvailable) {
+                setSelectedTable(null);
+                setErrorMessage('Bàn đã chọn không còn khả dụng trong thời gian này. Vui lòng chọn bàn khác.');
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tables]);
 
     const onRefresh = useCallback(() => {
         if (!timeSelected || !idRestaurant) {
@@ -161,16 +177,18 @@ const BookingScreen = () => {
     }, [fetchAvailableTables, timeSelected, idRestaurant]);
 
     const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-
         setShowPicker(Platform.OS === 'ios');
         if (selectedDate) {
             setDate(selectedDate);
             setTimeSelected(true);
-            setSelectedTable(null);
+            setSelectedTable(null); // Xóa bàn đã chọn khi thay đổi thời gian
             setErrorMessage('');
             // Sau khi chọn thời gian đầy đủ (giờ), nếu đã có idRestaurant thì load bàn hợp lệ
             if (idRestaurant) {
-                fetchAvailableTables();
+                // Delay nhỏ để đảm bảo state đã được cập nhật
+                setTimeout(() => {
+                    fetchAvailableTables();
+                }, 100);
             }
         }
     };
@@ -183,11 +201,14 @@ const BookingScreen = () => {
         setShowDatePicker(false);
         if (selectedDate){
             setDate(selectedDate);
-            setSelectedTable(null);
+            setSelectedTable(null); // Xóa bàn đã chọn khi thay đổi ngày
             setErrorMessage('');
             // Chỉ khi đã có giờ được chọn trước đó thì mới tự động gọi API
             if (timeSelected && idRestaurant) {
-                fetchAvailableTables();
+                // Delay nhỏ để đảm bảo state đã được cập nhật
+                setTimeout(() => {
+                    fetchAvailableTables();
+                }, 100);
             }
         }
     };
@@ -244,25 +265,51 @@ const BookingScreen = () => {
 
             <Text style={[styles.header, { marginTop: 10 }]}>Sơ Đồ Bàn Trống</Text>
 
-            <View style={styles.grid}>
-                {tables.map((table) => (
-                    <TouchableOpacity
-
-                        key={table.id.maBan ? `${table.id.idRestaurant}-${table.id.maBan}` : Math.random().toString()}
-                        disabled={!timeSelected}
-                        onPress={() => setSelectedTable(table)}
-                        style={[
-                            styles.tableCard,
-                            selectedTable?.id.maBan === table.id.maBan && styles.tableSelected
-                        ]}
-                    >
-                        <Text style={styles.tableName}>
-                            {table.tenBan}
-                        </Text>
-                        <Text style={styles.tableInfo}>Sức chứa: {table.sucChua} người</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+            {loading && !refreshing && (
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#2196F3" />
+                    <Text style={{ marginTop: 10, color: '#666' }}>Đang tải danh sách bàn...</Text>
+                </View>
+            )}
+            
+            {!loading && timeSelected && (
+                <View style={styles.grid}>
+                    {tables.length === 0 ? (
+                        <View style={styles.centered}>
+                            <Text style={styles.errorText}>
+                                Không có bàn trống trong khoảng thời gian này
+                            </Text>
+                        </View>
+                    ) : (
+                        tables.map((table) => (
+                            <TouchableOpacity
+                                key={table.id.maBan ? `${table.id.idRestaurant}-${table.id.maBan}` : Math.random().toString()}
+                                onPress={() => {
+                                    setSelectedTable(table);
+                                    setErrorMessage(''); // Xóa thông báo lỗi khi chọn bàn
+                                }}
+                                style={[
+                                    styles.tableCard,
+                                    selectedTable?.id.maBan === table.id.maBan && styles.tableSelected
+                                ]}
+                            >
+                                <Text style={styles.tableName}>
+                                    {table.tenBan}
+                                </Text>
+                                <Text style={styles.tableInfo}>Sức chứa: {table.sucChua} người</Text>
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </View>
+            )}
+            
+            {!timeSelected && (
+                <View style={styles.centered}>
+                    <Text style={{ color: '#888', fontSize: 16, marginTop: 20 }}>
+                        Vui lòng chọn thời gian để xem danh sách bàn trống
+                    </Text>
+                </View>
+            )}
 
             {selectedTable && (
                 <View style={styles.form}>
