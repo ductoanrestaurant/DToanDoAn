@@ -3,10 +3,12 @@ package com.example.demo.controller;
 import com.example.demo.entity.Ban;
 import com.example.demo.service.BanService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -22,6 +24,17 @@ public class BanController {
     @PreAuthorize("isAuthenticated()")
     public List<Ban> getAll() {
         return banService.layTatCaBan();
+    }
+
+    // Lấy danh sách bàn hợp lệ theo thời gian sử dụng (slot 2 giờ từ gioSuDung)
+    @GetMapping("/available")
+    @PreAuthorize("isAuthenticated()")
+    public List<Ban> getAvailableTables(
+            @RequestParam("idRestaurant") Integer idRestaurant,
+            @RequestParam("gioSuDung")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime gioSuDung
+    ) {
+        return banService.layBanHopLeTheoThoiGian(idRestaurant, gioSuDung);
     }
 
     // getall danh sach ban by restaurant - login

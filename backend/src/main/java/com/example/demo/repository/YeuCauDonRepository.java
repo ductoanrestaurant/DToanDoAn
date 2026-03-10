@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,4 +32,16 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
            "GROUP BY month(y.ngayTaoDon) " +
            "ORDER BY month(y.ngayTaoDon)")
     List<Map<String, Object>> countOrdersByMonth(@Param("year") int year);
+
+    // Tìm các đơn hàng của một bàn trong khoảng thời gian nhất định (dùng để kiểm tra trùng lịch sử dụng bàn)
+    @Query("SELECT y FROM YeuCauDon y " +
+           "WHERE y.id.idRestaurant = :idRestaurant " +
+           "AND y.maBan = :maBan " +
+           "AND y.gioSuDung BETWEEN :start AND :end")
+    List<YeuCauDon> findByBanAndGioSuDungBetween(
+            @Param("idRestaurant") Integer idRestaurant,
+            @Param("maBan") Integer maBan,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }

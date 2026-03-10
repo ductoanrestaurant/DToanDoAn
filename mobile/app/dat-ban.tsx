@@ -35,7 +35,7 @@ interface CustomerInfo {
 const BookingScreen = () => {
     const [tables, setTables] = useState<IBan[]>([]);
     const [selectedTable, setSelectedTable] = useState<IBan | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [date, setDate] = useState(new Date());
     const [showPicker, setShowPicker] = useState(false);
@@ -45,13 +45,25 @@ const BookingScreen = () => {
     const router = useRouter();
 
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+    const [idRestaurant, setIdRestaurant] = useState<number | null>(null);
     const [soLuongNguoi, setSoLuongNguoi] = useState<string>('');
 
     useEffect(() => {
         const checkUser = async () => {
             const storedCustomerInfo = await AsyncStorage.getItem('customerInfo');
             if (storedCustomerInfo) {
-                setCustomerInfo(JSON.parse(storedCustomerInfo));
+                const parsed = JSON.parse(storedCustomerInfo);
+                setCustomerInfo(parsed);
+
+                // Lấy thêm thông tin nhà hàng của khách hàng từ backend
+                try {
+                    const res = await api.get(`${ENDPOINTS.KHACH_HANG}/${parsed.maKhachHang}`);
+                    if (res.data && typeof res.data.idRestaurant === 'number') {
+                        setIdRestaurant(res.data.idRestaurant);
+                    }
+                } catch (e) {
+                    console.error('Không thể lấy thông tin nhà hàng của khách hàng:', e);
+                }
             } else {
                 Alert.alert("Yêu cầu đăng nhập", "Bạn cần đăng nhập để thực hiện chức năng này.");
                 router.replace('/login');
@@ -75,6 +87,11 @@ const BookingScreen = () => {
 
         if (!timeSelected) {
             setErrorMessage("Vui lòng chọn giờ đến nhà hàng!");
+            return;
+        }
+
+        if (!idRestaurant) {
+            setErrorMessage("Không tìm thấy thông tin nhà hàng. Vui lòng thử lại sau.");
             return;
         }
 
@@ -106,39 +123,42 @@ const BookingScreen = () => {
             setErrorMessage("Có lỗi xảy ra, vui lòng thử lại.");
         }
     }
-
-
-    const fetchTables = useCallback(async () => {
+    const fetchAvailableTables = useCallback(async () => {
+        if (!idRestaurant) {
+            return;
+        }
         try {
             if (!refreshing) setLoading(true);
-            const response = await api.get(ENDPOINTS.BAN);
+            const bookingISO = date.toISOString();
+            const response = await api.get(`${ENDPOINTS.BAN}/available`, {
+                params: {
+                    idRestaurant,
+                    gioSuDung: bookingISO,
+                },
+            });
             setTables(response.data || []);
+            if ((response.data || []).length === 0) {
+                setErrorMessage('Không có bàn trống trong khoảng thời gian này, vui lòng chọn thời gian khác.');
+            } else {
+                setErrorMessage('');
+            }
         } catch (error) {
             console.error("Lỗi gọi API:", error);
-            Alert.alert("Lỗi", "Không thể lấy danh sách bàn");
+            Alert.alert("Lỗi", "Không thể lấy danh sách bàn hợp lệ");
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [refreshing]);
-
+    }, [idRestaurant, date, refreshing]);
 
     const onRefresh = useCallback(() => {
+        if (!timeSelected || !idRestaurant) {
+            setRefreshing(false);
+            return;
+        }
         setRefreshing(true);
-        fetchTables();
-    }, [fetchTables]);
-
-    useEffect(() => {
-        fetchTables();
-    }, [fetchTables]);
-
-    if (loading && !refreshing) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#2196F3" />
-            </View>
-        );
-    }
+        fetchAvailableTables();
+    }, [fetchAvailableTables, timeSelected, idRestaurant]);
 
     const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
 
@@ -146,7 +166,12 @@ const BookingScreen = () => {
         if (selectedDate) {
             setDate(selectedDate);
             setTimeSelected(true);
+            setSelectedTable(null);
             setErrorMessage('');
+            // Sau khi chọn thời gian đầy đủ (giờ), nếu đã có idRestaurant thì load bàn hợp lệ
+            if (idRestaurant) {
+                fetchAvailableTables();
+            }
         }
     };
     const formatTime = (date: Date) => {
@@ -158,7 +183,12 @@ const BookingScreen = () => {
         setShowDatePicker(false);
         if (selectedDate){
             setDate(selectedDate);
+            setSelectedTable(null);
             setErrorMessage('');
+            // Chỉ khi đã có giờ được chọn trước đó thì mới tự động gọi API
+            if (timeSelected && idRestaurant) {
+                fetchAvailableTables();
+            }
         }
     };
 
@@ -170,22 +200,63 @@ const BookingScreen = () => {
             }
         >
 
-            <Text style={styles.header}>Sơ Đồ Đặt Bàn</Text>
+            <Text style={styles.header}>Đặt bàn</Text>
+
+            <View style={styles.form}>
+                <Text style={styles.formTitle}>Chọn thời gian sử dụng</Text>
+
+                <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+                    <Text style={{ color: '#000' }}>
+                        📅 Ngày dùng: {date.toLocaleDateString('vi-VN')}
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
+                    <Text style={{ color: timeSelected ? '#000' : '#888' }}>
+                        {timeSelected ? `⏰ Giờ đến: ${formatTime(date)}` : 'Chọn giờ đến'}
+                    </Text>
+                </TouchableOpacity>
+
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={date}
+                        mode="date"
+                        display="default"
+                        onChange={onChangeDate}
+                        minimumDate={new Date()}
+                    />
+                )}
+
+                {showPicker && (
+                    <DateTimePicker
+                        value={date}
+                        mode="time"
+                        is24Hour={true}
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={onTimeChange}
+                    />
+                )}
+
+                {errorMessage !== '' && (
+                    <Text style={styles.errorText}>{errorMessage}</Text>
+                )}
+            </View>
+
+            <Text style={[styles.header, { marginTop: 10 }]}>Sơ Đồ Bàn Trống</Text>
 
             <View style={styles.grid}>
                 {tables.map((table) => (
                     <TouchableOpacity
 
                         key={table.id.maBan ? `${table.id.idRestaurant}-${table.id.maBan}` : Math.random().toString()}
-                        disabled={table.trangThai}
+                        disabled={!timeSelected}
                         onPress={() => setSelectedTable(table)}
                         style={[
                             styles.tableCard,
-                            table.trangThai && styles.tableFull,
                             selectedTable?.id.maBan === table.id.maBan && styles.tableSelected
                         ]}
                     >
-                        <Text style={[styles.tableName, table.trangThai && {color: '#ff4444'}]}>
+                        <Text style={styles.tableName}>
                             {table.tenBan}
                         </Text>
                         <Text style={styles.tableInfo}>Sức chứa: {table.sucChua} người</Text>
@@ -196,36 +267,6 @@ const BookingScreen = () => {
             {selectedTable && (
                 <View style={styles.form}>
                     <Text style={styles.formTitle}>Đặt bàn: {selectedTable.tenBan}</Text>
-                    <TouchableOpacity
-                        style={styles.input}
-                        onPress={() => setShowPicker(true)}
-                    >
-                        <Text style={{ color: timeSelected ? '#000' : '#888' }}>
-                            {timeSelected ? `Giờ đến: ${formatTime(date)}` : "Chọn giờ đến"}
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
-                        <Text style={styles.pickerText}>📅 Ngày đặt: {date.toLocaleDateString('vi-VN')}</Text>
-                    </TouchableOpacity>
-
-                    {showDatePicker && (
-                        <DateTimePicker value={date} mode="date" display="default" onChange={onChangeDate} minimumDate={new Date()} />
-                    )}
-
-                    {showPicker && (
-                        <DateTimePicker
-                            value={date}
-                            mode="time"
-                            is24Hour={true}
-                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                            onChange={onTimeChange}
-                        />
-                    )}
-
-
-                    { errorMessage !== '' && (<Text style={styles.errorText}>{errorMessage}</Text>)}
-
 
                     <TouchableOpacity style={styles.btnConfirm} onPress={handlePickTable}>
                         <Text style={styles.btnText}>XÁC NHẬN ĐẶT BÀN</Text>
