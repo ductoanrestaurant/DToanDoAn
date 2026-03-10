@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import api from '@/constants/api';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import api, { BASE_URL_IMG } from '@/constants/api';
 import Sidebar from '@/components/Sidebar';
 import { ArrowLeft } from 'lucide-react';
 
-const AddGiamGiaPage = () => {
+const EditGiamGiaPage = () => {
     const [code, setCode] = useState('');
     const [moTa, setMoTa] = useState('');
     const [giaTri, setGiaTri] = useState(0);
@@ -15,6 +15,28 @@ const AddGiamGiaPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const { id } = useParams();
+
+    useEffect(() => {
+        if (id) {
+            const fetchGiamGia = async () => {
+                try {
+                    const response = await api.get(`/giam-gia/${id}`);
+                    const data = response.data;
+                    setCode(data.code);
+                    setMoTa(data.moTa);
+                    setGiaTri(data.giaTri);
+                    if (data.urlAnh) {
+                        setPreview(`${BASE_URL_IMG}/${data.urlAnh}`);
+                    }
+                } catch (err) {
+                    setError('Không thể tải dữ liệu mã giảm giá.');
+                    console.error(err);
+                }
+            };
+            fetchGiamGia();
+        }
+    }, [id]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -35,25 +57,22 @@ const AddGiamGiaPage = () => {
 
         try {
             const discountData = { code, moTa, giaTri };
-            const response = await api.post('/giam-gia', discountData, {
-                headers: { 'Content-Type': 'application/json' },
-            });
+            await api.put(`/giam-gia/${id}`, discountData);
 
-            const newDiscount = response.data;
-            const discountId = newDiscount.idGiamGia;
-
-            if (file && discountId) {
-                const imageFormData = new FormData();
-                imageFormData.append('file', file);
-                await api.post(`/giam-gia/${discountId}/upload-image`, imageFormData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                await api.post(`/giam-gia/${id}/upload-image`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
                 });
             }
 
-            alert('Thêm mã giảm giá thành công!');
+            alert('Cập nhật mã giảm giá thành công!');
             router.push('/giamgia');
         } catch (err) {
-            setError('Không thể thêm mã giảm giá. Vui lòng thử lại.');
+            setError('Không thể cập nhật mã giảm giá. Vui lòng thử lại.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -68,7 +87,7 @@ const AddGiamGiaPage = () => {
                     <button onClick={() => router.back()} className="p-2 rounded-full hover:bg-gray-200 transition">
                         <ArrowLeft size={24} />
                     </button>
-                    <h1 className="text-3xl font-bold text-gray-800 ml-4">Thêm Mã Giảm Giá Mới</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 ml-4">Chỉnh Sửa Mã Giảm Giá</h1>
                 </div>
 
                 <div className="bg-white p-8 rounded-2xl shadow-sm">
@@ -137,7 +156,7 @@ const AddGiamGiaPage = () => {
                                 Hủy
                             </button>
                             <button type="submit" disabled={loading} className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:bg-blue-300">
-                                {loading ? 'Đang lưu...' : 'Lưu'}
+                                {loading ? 'Đang cập nhật...' : 'Lưu thay đổi'}
                             </button>
                         </div>
                     </form>
@@ -147,4 +166,4 @@ const AddGiamGiaPage = () => {
     );
 };
 
-export default AddGiamGiaPage;
+export default EditGiamGiaPage;

@@ -6,7 +6,6 @@ import api, { BASE_URL_IMG } from '@/constants/api';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { Search, PlusCircle, Edit, Trash2, ImageIcon } from 'lucide-react';
-// import Image from 'next/image'; // Tạm thời không dùng next/image
 
 interface GiamGia {
     idGiamGia: number;
@@ -119,12 +118,12 @@ const GiamGiaPage = () => {
                                         </td>
                                         <td className="p-4 font-mono text-blue-600 font-semibold">{gg.code}</td>
                                         <td className="p-4 text-gray-800">{gg.moTa}</td>
-                                        <td className="p-4 font-bold text-green-600">{gg.giaTri.toLocaleString('vi-VN')}%</td>
+                                        <td className="p-4 font-bold text-green-600">{gg.giaTri.toLocaleString('vi-VN')} VNĐ</td>
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center items-center gap-4">
-                                                <button onClick={() => router.push(`/giamgia/edit/${gg.idGiamGia}`)} className="text-blue-600 hover:text-blue-800 transition">
+                                                <Link href={`/giamgia/edit/${gg.idGiamGia}`} className="text-blue-600 hover:text-blue-800 transition">
                                                     <Edit size={18} />
-                                                </button>
+                                                </Link>
                                                 <button onClick={() => handleDelete(gg.idGiamGia)} className="text-red-600 hover:text-red-800 transition">
                                                     <Trash2 size={18} />
                                                 </button>
