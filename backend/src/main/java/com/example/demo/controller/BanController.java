@@ -34,7 +34,7 @@ public class BanController {
             @RequestParam("gioSuDung")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime gioSuDung
     ) {
-        return banService.layBanHopLeTheoThoiGian(idRestaurant, gioSuDung);
+        return banService.getAvailableTablesByTime(idRestaurant, gioSuDung);
     }
 
     @GetMapping("/available-by-time")
@@ -47,14 +47,6 @@ public class BanController {
         return banService.getAvailableTablesByTime(idRestaurant, gioSuDung);
     }
 
-    @GetMapping("/ban-theo-thoi-gian")
-    public List<Ban> getBanTheoThoiGian(
-            @RequestParam("thoiGian")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime thoiGian,
-            @RequestParam("idRestaurant") Integer idRestaurant
-    ) {
-        return banService.layBanTheoThoiGian(thoiGian, idRestaurant);
-    }
 
     // getall danh sach ban by restaurant - login
     @GetMapping("/restaurant/{idRestaurant}")
