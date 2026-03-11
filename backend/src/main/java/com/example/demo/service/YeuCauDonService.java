@@ -39,6 +39,24 @@ public class YeuCauDonService {
     }
 
     public YeuCauDon save(YeuCauDon yeuCauDon) {
+        // Kiểm tra trùng lịch khi lưu (cho trường hợp update)
+        if (yeuCauDon.getMaBan() != null && yeuCauDon.getGioSuDung() != null && yeuCauDon.getId() != null) {
+            Integer idRestaurant = yeuCauDon.getId().getIdRestaurant();
+            boolean isAvailable = isTableAvailableAtTimeExcludingOrder(
+                idRestaurant,
+                yeuCauDon.getMaBan(),
+                yeuCauDon.getGioSuDung(),
+                yeuCauDon.getId()
+            );
+            
+            if (!isAvailable) {
+                throw new IllegalStateException(
+                    "Bàn số " + yeuCauDon.getMaBan() + 
+                    " đã được đặt vào thời gian " + yeuCauDon.getGioSuDung() + 
+                    ". Vui lòng chọn bàn khác hoặc thời gian khác."
+                );
+            }
+        }
         return yeuCauDonRepository.save(yeuCauDon);
     }
 
@@ -50,7 +68,24 @@ public class YeuCauDonService {
         // 1. Lấy idRestaurant từ yêu cầu
         Integer idRestaurant = yeuCauDon.getId().getIdRestaurant();
 
-        // 2. Tạo mã đơn hàng mới
+        // 2. KIỂM TRA TRÙNG LỊCH NẾU CÓ MÃ BÀN VÀ THỜI GIAN SỬ DỤNG
+        if (yeuCauDon.getMaBan() != null && yeuCauDon.getGioSuDung() != null) {
+            boolean isAvailable = isTableAvailableAtTime(
+                idRestaurant, 
+                yeuCauDon.getMaBan(), 
+                yeuCauDon.getGioSuDung()
+            );
+            
+            if (!isAvailable) {
+                throw new IllegalStateException(
+                    "Bàn số " + yeuCauDon.getMaBan() + 
+                    " đã được đặt vào thời gian " + yeuCauDon.getGioSuDung() + 
+                    ". Vui lòng chọn bàn khác hoặc thời gian khác."
+                );
+            }
+        }
+
+        // 3. Tạo mã đơn hàng mới
         Integer maxMaDonHang = yeuCauDonRepository.findMaxMaDonHangByIdRestaurant(idRestaurant).orElse(0);
         Integer newMaDonHang = maxMaDonHang + 1;
 
@@ -109,5 +144,86 @@ public class YeuCauDonService {
 
     public List<Map<String, Object>> getMonthlyOrderCounts(int year) {
         return yeuCauDonRepository.countOrdersByMonth(year);
+    }
+
+    /**
+     * Kiểm tra xem bàn có khả dụng tại thời điểm yêu cầu không
+     * Mỗi đơn sử dụng bàn trong 2 giờ (từ gioSuDung đến gioSuDung + 2h)
+     * 
+     * @param idRestaurant ID nhà hàng
+     * @param maBan Mã bàn
+     * @param gioSuDung Thời gian bắt đầu sử dụng bàn
+     * @return true nếu bàn khả dụng, false nếu đã có đơn trùng lịch
+     */
+    public boolean isTableAvailableAtTime(Integer idRestaurant, Integer maBan, LocalDateTime gioSuDung) {
+        // Tính thời gian kết thúc (2 giờ sau thời gian bắt đầu)
+        LocalDateTime gioKetThuc = gioSuDung.plusHours(2);
+        
+        // Tìm các đơn có thể trùng lịch: các đơn có gioSuDung trong khoảng [gioSuDung - 2h, gioSuDung + 2h]
+        // Vì mỗi đơn dùng 2h, nên nếu đơn cũ bắt đầu trong khoảng này có thể trùng
+        LocalDateTime startCheck = gioSuDung.minusHours(2);
+        LocalDateTime endCheck = gioSuDung.plusHours(2);
+        
+        List<YeuCauDon> potentialOverlappingOrders = yeuCauDonRepository
+                .findByBanAndGioSuDungBetween(idRestaurant, maBan, startCheck, endCheck);
+        
+        // Kiểm tra từng đơn xem có thực sự trùng không
+        for (YeuCauDon don : potentialOverlappingOrders) {
+            LocalDateTime donStart = don.getGioSuDung();
+            LocalDateTime donEnd = donStart.plusHours(2);
+            
+            // Hai khoảng thời gian trùng nhau nếu:
+            // donStart < gioKetThuc AND donEnd > gioSuDung
+            if (donStart.isBefore(gioKetThuc) && donEnd.isAfter(gioSuDung)) {
+                return false; // Bàn không khả dụng - đã có đơn trùng lịch
+            }
+        }
+        
+        return true; // Bàn khả dụng
+    }
+
+    /**
+     * Kiểm tra xem bàn có khả dụng tại thời điểm yêu cầu không (loại trừ một đơn hàng cụ thể)
+     * Dùng cho trường hợp update đơn hàng - cần loại trừ chính đơn hàng đó ra khỏi danh sách kiểm tra
+     * 
+     * @param idRestaurant ID nhà hàng
+     * @param maBan Mã bàn
+     * @param gioSuDung Thời gian bắt đầu sử dụng bàn
+     * @param excludeOrderId ID đơn hàng cần loại trừ (đơn hàng đang được update)
+     * @return true nếu bàn khả dụng, false nếu đã có đơn trùng lịch
+     */
+    public boolean isTableAvailableAtTimeExcludingOrder(
+            Integer idRestaurant, 
+            Integer maBan, 
+            LocalDateTime gioSuDung,
+            YeuCauDonId excludeOrderId) {
+        // Tính thời gian kết thúc (2 giờ sau thời gian bắt đầu)
+        LocalDateTime gioKetThuc = gioSuDung.plusHours(2);
+        
+        // Tìm các đơn có thể trùng lịch
+        LocalDateTime startCheck = gioSuDung.minusHours(2);
+        LocalDateTime endCheck = gioSuDung.plusHours(2);
+        
+        List<YeuCauDon> potentialOverlappingOrders = yeuCauDonRepository
+                .findByBanAndGioSuDungBetween(idRestaurant, maBan, startCheck, endCheck);
+        
+        // Kiểm tra từng đơn xem có thực sự trùng không (loại trừ đơn đang được update)
+        for (YeuCauDon don : potentialOverlappingOrders) {
+            // Bỏ qua đơn hàng đang được update
+            if (don.getId().equals(excludeOrderId)) {
+                continue;
+            }
+            
+            LocalDateTime donStart = don.getGioSuDung();
+            LocalDateTime donEnd = donStart.plusHours(2);
+            
+            // Hai khoảng thời gian trùng nhau nếu:
+            // donStart < gioKetThuc AND donEnd > gioSuDung
+            if (donStart.isBefore(gioKetThuc) && donEnd.isAfter(gioSuDung)) {
+                return false; // Bàn không khả dụng - đã có đơn trùng lịch
+            }
+        }
+        
+        return true; // Bàn khả dụng
     }
 }

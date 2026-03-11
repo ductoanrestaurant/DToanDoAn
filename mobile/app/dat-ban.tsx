@@ -122,6 +122,7 @@ const BookingScreen = () => {
             setErrorMessage("Có lỗi xảy ra, vui lòng thử lại.");
         }
     }
+    
     // Chuyển Date sang chuỗi ISO theo giờ địa phương (không phải UTC)
     const toLocalISOString = (d: Date) => {
         const pad = (n: number) => String(n).padStart(2, '0');
@@ -129,7 +130,7 @@ const BookingScreen = () => {
     };
 
     const fetchAvailableTables = useCallback(async (isRefreshing = false) => {
-        if (!idRestaurant) {
+        if (!idRestaurant || !timeSelected) {
             return;
         }
         try {
@@ -141,20 +142,36 @@ const BookingScreen = () => {
                     gioSuDung: bookingISO,
                 },
             });
-            setTables(response.data || []);
-            if ((response.data || []).length === 0) {
+            const availableTables = response.data || [];
+            setTables(availableTables);
+            
+            if (availableTables.length === 0) {
                 setErrorMessage('Không có bàn trống trong khoảng thời gian này, vui lòng chọn thời gian khác.');
             } else {
                 setErrorMessage('');
             }
         } catch (error) {
             console.error("Lỗi gọi API:", error);
-            Alert.alert("Lỗi", "Không thể lấy danh sách bàn hợp lệ");
+            setErrorMessage('Không thể lấy danh sách bàn hợp lệ. Vui lòng thử lại.');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [idRestaurant, date]); // ← bỏ `refreshing` ra khỏi deps
+    }, [idRestaurant, date, timeSelected]);
+    
+    // Effect để kiểm tra bàn đã chọn có còn hợp lệ không khi danh sách bàn thay đổi
+    useEffect(() => {
+        if (selectedTable && tables.length > 0) {
+            const isStillAvailable = tables.some(
+                (table: IBan) => table.id.maBan === selectedTable.id.maBan
+            );
+            if (!isStillAvailable) {
+                setSelectedTable(null);
+                setErrorMessage('Bàn đã chọn không còn khả dụng trong thời gian này. Vui lòng chọn bàn khác.');
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tables]);
 
     const onRefresh = useCallback(() => {
         if (!timeSelected || !idRestaurant) {
@@ -166,16 +183,18 @@ const BookingScreen = () => {
     }, [fetchAvailableTables, timeSelected, idRestaurant]);
 
     const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-
         setShowPicker(Platform.OS === 'ios');
         if (selectedDate) {
             setDate(selectedDate);
             setTimeSelected(true);
-            setSelectedTable(null);
+            setSelectedTable(null); // Xóa bàn đã chọn khi thay đổi thời gian
             setErrorMessage('');
             // Sau khi chọn thời gian đầy đủ (giờ), nếu đã có idRestaurant thì load bàn hợp lệ
             if (idRestaurant) {
-                fetchAvailableTables();
+                // Delay nhỏ để đảm bảo state đã được cập nhật
+                setTimeout(() => {
+                    fetchAvailableTables();
+                }, 100);
             }
         }
     };
@@ -188,11 +207,14 @@ const BookingScreen = () => {
         setShowDatePicker(false);
         if (selectedDate) {
             setDate(selectedDate);
-            setSelectedTable(null);
+            setSelectedTable(null); // Xóa bàn đã chọn khi thay đổi ngày
             setErrorMessage('');
             // Chỉ khi đã có giờ được chọn trước đó thì mới tự động gọi API
             if (timeSelected && idRestaurant) {
-                fetchAvailableTables();
+                // Delay nhỏ để đảm bảo state đã được cập nhật
+                setTimeout(() => {
+                    fetchAvailableTables();
+                }, 100);
             }
         }
     };
@@ -304,7 +326,10 @@ const BookingScreen = () => {
                                 return (
                                     <TouchableOpacity
                                         key={`${table.id.idRestaurant}-${table.id.maBan}`}
-                                        onPress={() => setSelectedTable(isSelected ? null : table)}
+                                        onPress={() => {
+                                            setSelectedTable(isSelected ? null : table);
+                                            setErrorMessage('');
+                                        }}
                                         style={[styles.tableCard, isSelected && styles.tableCardSelected]}
                                         activeOpacity={0.8}
                                     >
