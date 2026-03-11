@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.entity.Ban;
 import com.example.demo.entity.BanId;
 import com.example.demo.repository.BanRepository;
+
 import com.example.demo.repository.YeuCauDonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class BanService {
@@ -19,6 +21,8 @@ public class BanService {
 
     @Autowired
     private YeuCauDonRepository yeuCauDonRepository;
+
+
 
     public List<Ban> layTatCaBan() {
         return banRepository.findAllOrderByMaBanAsc();
@@ -37,30 +41,75 @@ public class BanService {
         return banRepository.findById_IdRestaurantOrderByMaBanAsc(idRestaurant);
     }
 
+    public List<Ban> getAvailableTablesByTime(Integer idRestaurant, LocalDateTime gioSuDung) {
+        LocalDateTime startTime = gioSuDung.minusHours(2);
+        LocalDateTime endTime = gioSuDung.plusHours(2);
+
+        // Mảng a: Chứa mã bàn đã được đặt trong khoảng thời gian
+        List<Integer> a = yeuCauDonRepository.findMaBanByRestaurantAndGioSuDungBetween(idRestaurant, startTime, endTime);
+
+        // Mảng b: Chứa tất cả mã bàn của nhà hàng
+        List<Ban> allTables = banRepository.findById_IdRestaurantOrderByMaBanAsc(idRestaurant);
+        List<Integer> b = allTables.stream().map(ban -> ban.getId().getMaBan()).collect(Collectors.toList());
+
+        // Mảng c: Chứa mã bàn còn trống
+        List<Integer> c = b.stream().filter(maBan -> !a.contains(maBan)).collect(Collectors.toList());
+
+        // Trả về danh sách các đối tượng Ban tương ứng với mã bàn trong mảng c
+        return allTables.stream()
+                .filter(ban -> c.contains(ban.getId().getMaBan()))
+                .collect(Collectors.toList());
+    }
+
     /**
-     * Lấy danh sách bàn đang hoạt động (không ngưng sử dụng) và không bị trùng lịch
-     * với slot thời gian 2 giờ tính từ gioSuDung mong muốn.
+     * Lấy danh sách các bàn có thể đặt tại một thời điểm cụ thể.
+     * Một bàn được coi là "có sẵn" nếu nó đang hoạt động (trangThai=false) và
+     * không có đơn đặt nào có giờ sử dụng nằm trong khoảng (+/- 2 giờ) so với thời gian yêu cầu.
+     * @param idRestaurant ID của nhà hàng
+     * @param gioDatBan Thời gian khách muốn đặt bàn
+     * @return Danh sách các bàn hợp lệ
      */
-    public List<Ban> layBanHopLeTheoThoiGian(Integer idRestaurant, LocalDateTime gioSuDung) {
-         // Lấy tất cả bàn của nhà hàng, chỉ giữ bàn không bị khóa/ngưng hoạt động (trangThai = false)
-         List<Ban> allActiveTables = banRepository.findById_IdRestaurantOrderByMaBanAsc(idRestaurant)
-                 .stream()
-                 .filter(ban -> Boolean.FALSE.equals(ban.getTrangThai()))
-                 .toList();
+    public List<Ban> layBanHopLeTheoThoiGian(Integer idRestaurant, LocalDateTime gioDatBan) {
+        // 1. Xác định "khung thời gian xung đột"
+        LocalDateTime startTime = gioDatBan.minusHours(2);
+        LocalDateTime endTime = gioDatBan.plusHours(2);
 
-         // Xác định khoảng thời gian "nhạy cảm" quanh gioSuDung (2 giờ trước và 2 giờ sau)
-         LocalDateTime start = gioSuDung.minusHours(2);
-         LocalDateTime end = gioSuDung.plusHours(2);
+        // 2. Lấy danh sách ID của các bàn đã bận trong khung thời gian đó
+        // (Giả sử đơn hàng đã hủy không chiếm chỗ)
+        List<Integer> maBanDaBan = yeuCauDonRepository.findMaBanByRestaurantAndGioSuDungBetween(idRestaurant, startTime, endTime);
 
-         // Giữ lại những bàn không có bất kỳ đơn hàng nào trong khoảng thời gian trên
-         return allActiveTables.stream()
-                 .filter(ban -> {
-                     Integer maBan = ban.getId().getMaBan();
-                     return yeuCauDonRepository
-                             .findByBanAndGioSuDungBetween(idRestaurant, maBan, start, end)
-                             .isEmpty();
-                 })
-                 .toList();
+        // 3. Lấy tất cả các bàn đang hoạt động của nhà hàng
+        List<Ban> tatCaBanHoatDong = banRepository.findById_IdRestaurantOrderByMaBanAsc(idRestaurant)
+                .stream()
+                .filter(ban -> Boolean.FALSE.equals(ban.getTrangThai())) // Chỉ lấy bàn có trạng thái false (đang hoạt động)
+                .toList();
+
+        // 4. Lọc và trả về những bàn không nằm trong danh sách đã bận
+        return tatCaBanHoatDong.stream()
+                .filter(ban -> !maBanDaBan.contains(ban.getId().getMaBan()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Ban> layBanTheoThoiGian(LocalDateTime thoiGian, Integer idRestaurant) {
+        // 1. Xác định khung thời gian xung đột (±2 giờ)
+        LocalDateTime startTime = thoiGian.minusHours(2);
+        LocalDateTime endTime = thoiGian.plusHours(2);
+
+        // 2. Lấy danh sách maBan đã bị đặt trong khung thời gian đó
+        //    (chỉ đếm những đơn chưa hủy/hoàn thành, nhờ query trong repository)
+        List<Integer> maBanDaBan = yeuCauDonRepository.findMaBanByRestaurantAndGioSuDungBetween(
+                idRestaurant, startTime, endTime);
+
+        // 3. Lấy tất cả bàn đang hoạt động của nhà hàng (trangThai = false)
+        List<Ban> tatCaBanHoatDong = banRepository.findById_IdRestaurantOrderByMaBanAsc(idRestaurant)
+                .stream()
+                .filter(ban -> Boolean.FALSE.equals(ban.getTrangThai()))
+                .toList();
+
+        // 4. Trả về những bàn không nằm trong danh sách đã bận
+        return tatCaBanHoatDong.stream()
+                .filter(ban -> !maBanDaBan.contains(ban.getId().getMaBan()))
+                .collect(Collectors.toList());
     }
 
     public Ban luuBan(Ban ban) {

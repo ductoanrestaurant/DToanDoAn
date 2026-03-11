@@ -28,7 +28,7 @@ const LoginScreen = () => {
             });
 
             // Backend returns token, role, and user-specific data
-            const { token, role, maTaiKhoan, tenKhachHang, maNhanVien, tenNhanVien } = response.data;
+            const { token, role, maTaiKhoan, tenKhachHang, maNhanVien, tenNhanVien, idRestaurant } = response.data;
 
             if (token) {
                 await AsyncStorage.setItem('accessToken', token);
@@ -37,7 +37,7 @@ const LoginScreen = () => {
                 const allowedRoles = ['QUAN_LY', 'THU_NGAN'];
                 if (allowedRoles.includes(role) && maNhanVien && tenNhanVien) {
                     // Employee login
-                    const employeeData = { maNhanVien: String(maNhanVien), tenNhanVien: tenNhanVien };
+                    const employeeData = { maNhanVien: String(maNhanVien), tenNhanVien: tenNhanVien, idRestaurant: idRestaurant };
                     await AsyncStorage.setItem('employeeInfo', JSON.stringify(employeeData));
                     // Also save individual keys for compatibility if needed elsewhere
                     await AsyncStorage.setItem('maNhanVien', String(maNhanVien));

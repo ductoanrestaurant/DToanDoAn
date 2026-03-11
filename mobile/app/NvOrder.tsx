@@ -60,6 +60,12 @@ const NvOrderScreen = () => {
 
     const debouncedSdt = useDebounce(formData.sdtKhachHang, 500); // 500ms delay
 
+    // Chuyển Date sang chuỗi ISO theo giờ địa phương (không phải UTC)
+    const toLocalISOString = (d: Date) => {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    };
+
     const fetchInitialData = useCallback(async () => {
         try {
             setLoading(true);
@@ -69,9 +75,19 @@ const NvOrderScreen = () => {
                 router.replace('/login');
                 return;
             }
-            setEmployeeInfo(JSON.parse(storedEmployeeInfo));
+            const employee = JSON.parse(storedEmployeeInfo);
+            setEmployeeInfo(employee);
 
-            const resBan = await api.get(ENDPOINTS.BAN);
+            // Lấy idRestaurant từ thông tin nhân viên
+            const idRestaurant = employee?.idRestaurant;
+            const nowISO = toLocalISOString(new Date());
+
+            const resBan = await api.get(`${ENDPOINTS.BAN}/available`, {
+                params: {
+                    idRestaurant,
+                    gioSuDung: nowISO,
+                },
+            });
             setAllTables(resBan.data || []);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu ban đầu:", error);
@@ -88,8 +104,9 @@ const NvOrderScreen = () => {
     useEffect(() => {
         const soLuong = parseInt(formData.soLuongNguoi, 10);
         if (!isNaN(soLuong) && soLuong > 0 && allTables.length > 0) {
+            // Backend đã lọc bàn trống theo thời gian, chỉ cần lọc thêm theo sức chứa
             const validTables = allTables
-                .filter(table => table.sucChua >= soLuong && !table.trangThai)
+                .filter(table => table.sucChua >= soLuong)
                 .sort((a, b) => a.sucChua - b.sucChua);
             setFilteredTables(validTables);
         } else {

@@ -83,6 +83,7 @@ public class AuthController {
                     "token", token,
                     "maNhanVien", nhanVien.getId().getMaNhanVien(),
                     "tenNhanVien", nhanVien.getTenNhanVien(),
+                    "idRestaurant", nhanVien.getId().getIdRestaurant(),
                     "role", nhanVienRole
             ));
         }

@@ -27,21 +27,37 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
     Optional<Integer> findMaxMaDonHangByIdRestaurant(@Param("idRestaurant") Integer idRestaurant);
 
     @Query("SELECT new map(month(y.ngayTaoDon) as month, count(y.id.maDonHang) as orderCount) " +
-           "FROM YeuCauDon y " +
-           "WHERE year(y.ngayTaoDon) = :year " +
-           "GROUP BY month(y.ngayTaoDon) " +
-           "ORDER BY month(y.ngayTaoDon)")
+            "FROM YeuCauDon y " +
+            "WHERE year(y.ngayTaoDon) = :year " +
+            "GROUP BY month(y.ngayTaoDon) " +
+            "ORDER BY month(y.ngayTaoDon)")
     List<Map<String, Object>> countOrdersByMonth(@Param("year") int year);
 
-    // Tìm các đơn hàng của một bàn trong khoảng thời gian nhất định (dùng để kiểm tra trùng lịch sử dụng bàn)
+    // Tìm các đơn hàng của một bàn trong khoảng thời gian nhất định (dùng để kiểm
+    // tra trùng lịch sử dụng bàn)
     @Query("SELECT y FROM YeuCauDon y " +
-           "WHERE y.id.idRestaurant = :idRestaurant " +
-           "AND y.maBan = :maBan " +
-           "AND y.gioSuDung BETWEEN :start AND :end")
+            "WHERE y.id.idRestaurant = :idRestaurant " +
+            "AND y.maBan = :maBan " +
+            "AND y.gioSuDung BETWEEN :start AND :end")
     List<YeuCauDon> findByBanAndGioSuDungBetween(
             @Param("idRestaurant") Integer idRestaurant,
             @Param("maBan") Integer maBan,
             @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
+            @Param("end") LocalDateTime end);
+
+    @Query("SELECT DISTINCT y.maBan FROM YeuCauDon y " +
+            "WHERE y.id.idRestaurant = :idRestaurant " +
+            "AND y.gioSuDung BETWEEN :start AND :end " +
+            "AND y.id.maDonHang IN (" +
+            "    SELECT DISTINCT c.id.maDonHang FROM ChiTietYeuCauDon c " +
+            "    WHERE c.id.idRestaurant = :idRestaurant " +
+            "    AND c.trangThai NOT IN ('Đã hủy', 'hoàn thành')" +
+            ")")
+    List<Integer> findMaBanByRestaurantAndGioSuDungBetween(
+            @Param("idRestaurant") Integer idRestaurant,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    @Query("SELECT y.id.maDonHang FROM YeuCauDon y")
+    List<Integer> findAllMaDonHang();
 }

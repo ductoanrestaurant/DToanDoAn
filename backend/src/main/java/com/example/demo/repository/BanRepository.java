@@ -27,4 +27,7 @@ public interface BanRepository extends JpaRepository<Ban, BanId> {
 
     // Thêm hàm tìm bàn theo trạng thái
     List<Ban> findByTrangThai(boolean trangThai);
+
+    @Query("SELECT b FROM Ban b WHERE b.id.idRestaurant = :idRestaurant AND b.id.maBan IN :maBanList ORDER BY b.id.maBan ASC")
+    List<Ban> findByIdRestaurantAndMaBanIn(@Param("idRestaurant") Integer idRestaurant, @Param("maBanList") List<Integer> maBanList);
 }
