@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.entity.ChiTietYeuCauDon;
 import com.example.demo.entity.DanhGia;
 import com.example.demo.service.DanhGiaService;
 import com.example.demo.service.KhachHangService;
@@ -25,7 +26,7 @@ public class DanhGiaController {
         this.khachHangService = khachHangService;
     }
 
-
+    // ── Public ────────────────────────────────────────────────────────────
 
     @GetMapping
     @PreAuthorize("permitAll()")
@@ -49,39 +50,94 @@ public class DanhGiaController {
         return danhGiaService.getByMaSanPham(maSanPham);
     }
 
+    // ── Khách hàng (USER) ─────────────────────────────────────────────────
 
+    /** Lấy tất cả đánh giá của tôi */
     @GetMapping("/my-reviews")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('KHACH_HANG')")
     public ResponseEntity<List<DanhGia>> getMyReviews(@AuthenticationPrincipal Jwt jwt) {
-        String userEmail = jwt.getSubject();
-        Integer maTaiKhoan = khachHangService.findMaTaiKhoanByEmail(userEmail);
-        if (maTaiKhoan == null) {
+        Integer maTaiKhoan = resolveMaTaiKhoan(jwt);
+        if (maTaiKhoan == null)
             return ResponseEntity.notFound().build();
-        }
         return ResponseEntity.ok(danhGiaService.getByMaTaiKhoan(maTaiKhoan));
     }
 
+    /**
+     * Lấy danh sách sản phẩm mà tôi đã dùng (trangThai='hoàn thành')
+     * nhưng chưa đánh giá — dùng để hiện nút "Đánh giá" trên app.
+     */
+    @GetMapping("/can-danh-gia")
+    @PreAuthorize("hasRole('KHACH_HANG')")
+    public ResponseEntity<List<ChiTietYeuCauDon>> getSanPhamCanDanhGia(
+            @AuthenticationPrincipal Jwt jwt) {
+        Integer maTaiKhoan = resolveMaTaiKhoan(jwt);
+        if (maTaiKhoan == null)
+            return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(danhGiaService.getSanPhamChuaDanhGia(maTaiKhoan));
+    }
+
+    /**
+     * Lấy sản phẩm cần đánh giá trong một đơn hàng cụ thể.
+     * Dùng khi khách bấm nút "Đánh giá" từ một đơn hàng cụ thể.
+     *
+     * GET /api/danh-gia/can-danh-gia/{maDonHang}/{idRestaurant}
+     */
+    @GetMapping("/can-danh-gia/{maDonHang}/{idRestaurant}")
+    @PreAuthorize("hasRole('KHACH_HANG')")
+    public ResponseEntity<List<ChiTietYeuCauDon>> getSanPhamCanDanhGiaByDon(
+            @PathVariable Integer maDonHang,
+            @PathVariable Integer idRestaurant,
+            @AuthenticationPrincipal Jwt jwt) {
+        Integer maTaiKhoan = resolveMaTaiKhoan(jwt);
+        if (maTaiKhoan == null)
+            return ResponseEntity.notFound().build();
+        List<ChiTietYeuCauDon> result = danhGiaService.getSanPhamChuaDanhGiaByDon(maDonHang, idRestaurant, maTaiKhoan);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Lấy TẤT CẢ sản phẩm hoàn thành trong đơn (kể cả đã đánh giá rồi).
+     * Mobile dùng endpoint này để hiện danh sách đầy đủ,
+     * đồng thời fetch /my-reviews để biết món nào đã được đánh giá → hiện disabled.
+     *
+     * GET /api/danh-gia/san-pham-hoan-thanh/{maDonHang}/{idRestaurant}
+     */
+    @GetMapping("/san-pham-hoan-thanh/{maDonHang}/{idRestaurant}")
+    @PreAuthorize("hasRole('KHACH_HANG')")
+    public ResponseEntity<List<ChiTietYeuCauDon>> getAllHoanThanhByDon(
+            @PathVariable Integer maDonHang,
+            @PathVariable Integer idRestaurant) {
+        List<ChiTietYeuCauDon> result = danhGiaService.getAllHoanThanhByDon(maDonHang, idRestaurant);
+        return ResponseEntity.ok(result);
+    }
+
+
+    /** Gửi đánh giá mới */
     @PostMapping
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> create(@RequestBody DanhGia danhGia, @AuthenticationPrincipal Jwt jwt) {
+    @PreAuthorize("hasRole('KHACH_HANG')")
+    public ResponseEntity<?> create(
+            @RequestBody DanhGia danhGia,
+            @AuthenticationPrincipal Jwt jwt) {
 
-        String userEmail = jwt.getSubject();
-        Integer loggedInUserMaTaiKhoan = khachHangService.findMaTaiKhoanByEmail(userEmail);
-
-        if (loggedInUserMaTaiKhoan == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token không hợp lệ hoặc người dùng không tồn tại.");
+        Integer loggedInMaTaiKhoan = resolveMaTaiKhoan(jwt);
+        if (loggedInMaTaiKhoan == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Token không hợp lệ hoặc người dùng không tồn tại.");
         }
 
-
-        Integer maTaiKhoanFromRequest = danhGia.getId().getMaTaiKhoan();
-
-
-        if (!loggedInUserMaTaiKhoan.equals(maTaiKhoanFromRequest)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền tạo đánh giá cho người dùng khác.");
+        if (!loggedInMaTaiKhoan.equals(danhGia.getId().getMaTaiKhoan())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Bạn không có quyền tạo đánh giá cho người dùng khác.");
         }
 
+        DanhGia saved = danhGiaService.save(danhGia);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
 
-        DanhGia savedDanhGia = danhGiaService.save(danhGia);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedDanhGia);
+    // ── Helper ────────────────────────────────────────────────────────────
+
+    private Integer resolveMaTaiKhoan(Jwt jwt) {
+        String email = jwt.getSubject();
+        return khachHangService.findMaTaiKhoanByEmail(email);
     }
 }

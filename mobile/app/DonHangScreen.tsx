@@ -116,9 +116,11 @@ const StatusBadge: React.FC<{ text: string }> = ({ text }) => {
 const RequestCard: React.FC<RequestCardProps> = ({ request }) => {
     const formattedDate = new Date(request.ngayTaoDon).toLocaleDateString('vi-VN');
     const orderStatus = getOrderStatus(request.chiTietYeuCauDons);
+    const isCompleted = orderStatus === 'Đã hoàn thành';
     const total = request.tongTien ?? request.chiTietYeuCauDons.reduce((sum, item) => sum + item.gia * item.soLuong, 0);
 
     const router = useRouter();
+
     const handleNavigate = () => {
         router.push({
             pathname: '/chitiet-donhang',
@@ -129,10 +131,26 @@ const RequestCard: React.FC<RequestCardProps> = ({ request }) => {
         });
     };
 
+    const handleDanhGia = () => {
+        router.push({
+            pathname: '/DanhGia-Sc',
+            params: {
+                maDonHang: request.id.maDonHang.toString(),
+                idRestaurant: request.id.idRestaurant.toString(),
+            },
+        });
+    };
+
     return (
-        <TouchableOpacity style={styles.card} onPress={handleNavigate}>
+        <TouchableOpacity style={styles.card} onPress={handleNavigate} activeOpacity={0.85}>
             <View style={styles.cardHeader}>
                 <Text style={styles.orderId}>Yêu cầu #{request.id.maDonHang}</Text>
+                {isCompleted && (
+                    <View style={styles.completedBadge}>
+                        <Ionicons name="checkmark-circle" size={14} color={COLORS.green} />
+                        <Text style={styles.completedBadgeText}>Hoàn thành</Text>
+                    </View>
+                )}
             </View>
             <View style={styles.cardBody}>
                 <View style={styles.statusRow}>
@@ -148,11 +166,23 @@ const RequestCard: React.FC<RequestCardProps> = ({ request }) => {
                     <Text style={styles.itemText}>Ngày tạo: {formattedDate}</Text>
                 </View>
             </View>
-            <View style={styles.cardFooter} >
+            <View style={styles.cardFooter}>
                 <Text style={styles.totalAmount}>Tổng tiền: {total.toLocaleString('vi-VN')}đ</Text>
-                <View style={styles.reorderButton}>
-                    <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.reorderText}>Xem chi tiết</Text>
+                <View style={styles.cardActions}>
+                    {isCompleted && (
+                        <TouchableOpacity
+                            style={styles.reviewButton}
+                            onPress={(e) => { e.stopPropagation(); handleDanhGia(); }}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="star" size={14} color={COLORS.white} />
+                            <Text style={styles.reviewButtonText}>Đánh giá</Text>
+                        </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={styles.reorderButton} onPress={handleNavigate}>
+                        <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
+                        <Text style={styles.reorderText}>Xem chi tiết</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </TouchableOpacity>
@@ -365,9 +395,15 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     totalAmount: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: 'bold',
         color: COLORS.textMain,
+        flex: 1,
+    },
+    cardActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     reorderButton: {
         flexDirection: 'row',
@@ -381,6 +417,30 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         fontWeight: 'bold',
         marginLeft: 5,
+    },
+    reviewButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    reviewButtonText: {
+        color: COLORS.white,
+        fontWeight: 'bold',
+        marginLeft: 5,
+        fontSize: 13,
+    },
+    completedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    completedBadgeText: {
+        fontSize: 12,
+        color: COLORS.green,
+        fontWeight: '600',
     },
     emptyContainer: {
         flex: 1,
