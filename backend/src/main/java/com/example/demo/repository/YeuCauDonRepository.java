@@ -33,17 +33,24 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
             "ORDER BY month(y.ngayTaoDon)")
     List<Map<String, Object>> countOrdersByMonth(@Param("year") int year);
 
-    // Tìm các đơn hàng của một bàn trong khoảng thời gian nhất định (dùng để kiểm
-    // tra trùng lịch sử dụng bàn)
+    // Tìm các đơn hàng của một bàn trong khoảng thời gian nhất định,
+    // CHỈ lấy đơn có ít nhất 1 chiTiet KHÔNG phải Đã hủy / hoàn thành
+    // (đơn bị hủy không được chiếm bàn)
     @Query("SELECT y FROM YeuCauDon y " +
             "WHERE y.id.idRestaurant = :idRestaurant " +
             "AND y.maBan = :maBan " +
-            "AND y.gioSuDung BETWEEN :start AND :end")
+            "AND y.gioSuDung BETWEEN :start AND :end " +
+            "AND y.id.maDonHang IN (" +
+            "    SELECT DISTINCT c.id.maDonHang FROM ChiTietYeuCauDon c " +
+            "    WHERE c.id.idRestaurant = :idRestaurant " +
+            "    AND c.trangThai NOT IN ('\u0110\u00e3 h\u1ee7y', 'ho\u00e0n th\u00e0nh')" +
+            ")")
     List<YeuCauDon> findByBanAndGioSuDungBetween(
             @Param("idRestaurant") Integer idRestaurant,
             @Param("maBan") Integer maBan,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
 
     @Query("SELECT DISTINCT y.maBan FROM YeuCauDon y " +
             "WHERE y.id.idRestaurant = :idRestaurant " +
