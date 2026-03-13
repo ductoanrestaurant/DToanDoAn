@@ -10,6 +10,7 @@ export const WEBSOCKET_URL = `ws://${IP_ADDRESS}:${PORT}/ws`;
 
 export const ENDPOINTS = {
     AUTH: `${BASE_URL}/auth/login`,
+    REGISTER: `${BASE_URL}/auth/register`,
     KHACH_HANG: `${BASE_URL}/khach-hang`,
     BAN: `${BASE_URL}/ban`,
     CHECK_EMAIL: `${BASE_URL}/khach-hang/check-email`,

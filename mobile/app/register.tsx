@@ -146,8 +146,14 @@ const RegisterScreen = () => {
 
 
         try {
-            const newUser = { email, hoTen: fullname, sdt: phonenumber, matKhau: password };
-            const response = await axios.post(ENDPOINTS.KHACH_HANG, newUser);
+            const newUser = {
+                hoTen: fullname,
+                email,
+                password,
+                sdt: phonenumber,
+                diachi: '',
+            };
+            const response = await axios.post(ENDPOINTS.REGISTER, newUser);
 
             if (response.status === 200 || response.status === 201) {
                 Alert.alert("Thành công", "Đăng ký tài khoản thành công!", [
@@ -156,7 +162,10 @@ const RegisterScreen = () => {
             }
         } catch (error: any) {
             console.error("Lỗi đăng ký:", error);
-            const serverMessage = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+            const serverMessage =
+                error.response?.data?.message ||
+                error.response?.data?.error ||
+                "Đăng ký thất bại. Vui lòng thử lại.";
             Alert.alert("Lỗi", serverMessage);
         } finally {
             setLoading(false);

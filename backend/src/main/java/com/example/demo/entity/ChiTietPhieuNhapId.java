@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
@@ -7,7 +8,10 @@ import java.util.Objects;
 @Embeddable
 public class ChiTietPhieuNhapId implements Serializable {
 
+    @Column(name = "maphieunhap")
     private Integer maPhieuNhap;
+
+    @Column(name = "manguyenlieu")
     private Integer maNguyenLieu;
 
     public ChiTietPhieuNhapId() {}
@@ -17,7 +21,12 @@ public class ChiTietPhieuNhapId implements Serializable {
         this.maNguyenLieu = maNguyenLieu;
     }
 
-    // Getters, Setters, equals, and hashCode
+    public Integer getMaPhieuNhap() { return maPhieuNhap; }
+    public void setMaPhieuNhap(Integer maPhieuNhap) { this.maPhieuNhap = maPhieuNhap; }
+    public Integer getMaNguyenLieu() { return maNguyenLieu; }
+    public void setMaNguyenLieu(Integer maNguyenLieu) { this.maNguyenLieu = maNguyenLieu; }
+
+    // equals and hashCode
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

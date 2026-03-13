@@ -2,6 +2,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import Sidebar from '@/components/Sidebar';
 import api, { ENDPOINTS } from "@/constants/api";
+import { Package, Truck } from 'lucide-react';
 
 interface NguyenLieu {
     maNguyenLieu: number;
@@ -21,7 +22,17 @@ const KhoHangPage = () => {
 
     const [isOpen, setIsOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isNhapHangOpen, setIsNhapHangOpen] = useState(false);
     const [selectedNguyenLieu, setSelectedNguyenLieu] = useState<NguyenLieu | null>(null);
+
+    const [nhapHangMaNguyenLieu, setNhapHangMaNguyenLieu] = useState<number | ''>('');
+    const [nhapHangSoLuong, setNhapHangSoLuong] = useState('');
+    const [nhapHangGiaNhap, setNhapHangGiaNhap] = useState('');
+    const [nhapHangNhaCungCap, setNhapHangNhaCungCap] = useState('');
+    const [nhapHangGhiChu, setNhapHangGhiChu] = useState('');
+    const [nhapHangNgayHetHan, setNhapHangNgayHetHan] = useState('');
+    const [nhapHangLoading, setNhapHangLoading] = useState(false);
+    const [nhapHangError, setNhapHangError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         tenNguyenLieu: "",
@@ -115,6 +126,59 @@ const KhoHangPage = () => {
         }
     };
 
+    const openNhapHang = (item?: NguyenLieu) => {
+        setNhapHangError(null);
+        setNhapHangMaNguyenLieu(item ? item.maNguyenLieu : '');
+        setNhapHangSoLuong('');
+        setNhapHangGiaNhap('');
+        setNhapHangNhaCungCap('');
+        setNhapHangGhiChu('');
+        setNhapHangNgayHetHan('');
+        setIsNhapHangOpen(true);
+    };
+
+    const handleNhapHangSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setNhapHangError(null);
+        if (!nhapHangMaNguyenLieu || !nhapHangSoLuong || !nhapHangGiaNhap) {
+            setNhapHangError('Vui lòng điền đầy đủ: Nguyên liệu, Số lượng nhập, Giá nhập.');
+            return;
+        }
+        const soLuong = parseFloat(nhapHangSoLuong);
+        const gia = parseFloat(nhapHangGiaNhap);
+        if (isNaN(soLuong) || soLuong <= 0 || isNaN(gia) || gia < 0) {
+            setNhapHangError('Số lượng và giá nhập phải là số hợp lệ.');
+            return;
+        }
+        setNhapHangLoading(true);
+        try {
+            const body: Record<string, unknown> = {
+                maNguyenLieu: Number(nhapHangMaNguyenLieu),
+                soLuongNhap: soLuong,
+                giaNhap: gia,
+                nhaCungCap: nhapHangNhaCungCap || undefined,
+                ghiChu: nhapHangGhiChu || undefined,
+            };
+            if (nhapHangNgayHetHan) {
+                body.ngayHetHan = new Date(nhapHangNgayHetHan).toISOString();
+            }
+            await api.post(ENDPOINTS.NHAP_HANG, body);
+            setIsNhapHangOpen(false);
+            await fetchNguyenLieu();
+            alert('Nhập hàng thành công!');
+        } catch (err: unknown) {
+            let msg = 'Không thể kết nối server.';
+            if (err && typeof err === 'object' && 'response' in err) {
+                const res = (err as { response?: { data?: string | { message?: string } } }).response;
+                const data = res?.data;
+                msg = typeof data === 'string' ? data : (data?.message || 'Lỗi khi nhập hàng.');
+            }
+            setNhapHangError(msg);
+        } finally {
+            setNhapHangLoading(false);
+        }
+    };
+
     const processedNguyenLieu = useMemo(() => {
         return nguyenlieus;
     }, [nguyenlieus]);
@@ -124,12 +188,26 @@ const KhoHangPage = () => {
             <Sidebar />
             <main className="flex-1 ml-64 p-4 md:p-8">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex justify-between mb-8 items-center">
+                    <div className="flex flex-wrap justify-between mb-8 items-center gap-4">
                         <h1 className="text-3xl font-bold text-gray-900">Quản lý Kho Nguyên Liệu</h1>
-                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                                onClick={() => setIsOpen(true)}>
-                            Thêm nguyên liệu
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => openNhapHang()}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition-colors font-medium"
+                            >
+                                <Truck size={18} />
+                                Nhập hàng
+                            </button>
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                onClick={() => setIsOpen(true)}
+                            >
+                                <Package size={18} />
+                                Thêm nguyên liệu
+                            </button>
+                        </div>
                     </div>
 
                     {loading ? (
@@ -161,12 +239,21 @@ const KhoHangPage = () => {
                                         <td className="p-4 font-medium text-gray-700">{item.moTa}</td>
                                         <td className="p-4">
                                             <button
+                                                type="button"
+                                                onClick={() => openNhapHang(item)}
+                                                className="bg-emerald-600 text-white px-3 py-1 rounded-lg hover:bg-emerald-700 transition-colors mr-2"
+                                            >
+                                                Nhập
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={() => handleEdit(item)}
                                                 className="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 transition-colors mr-2"
                                             >
                                                 Sửa
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => handleDelete(item.maNguyenLieu)}
                                                 className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition-colors"
                                             >
@@ -364,6 +451,129 @@ const KhoHangPage = () => {
                                 Lưu thay đổi
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Nhập hàng */}
+            {isNhapHangOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 bg-emerald-50/50 flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-100">
+                                <Truck size={22} className="text-emerald-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-800">Phiếu nhập kho</h2>
+                                <p className="text-sm text-gray-500">Thêm nguyên liệu vào tồn kho</p>
+                            </div>
+                        </div>
+                        <form onSubmit={handleNhapHangSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nguyên liệu <span className="text-red-500">*</span></label>
+                                <select
+                                    value={nhapHangMaNguyenLieu}
+                                    onChange={(e) => setNhapHangMaNguyenLieu(e.target.value ? Number(e.target.value) : '')}
+                                    required
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-base"
+                                >
+                                    <option value="">-- Chọn nguyên liệu --</option>
+                                    {nguyenlieus.map((nl) => (
+                                        <option key={nl.maNguyenLieu} value={nl.maNguyenLieu}>
+                                            {nl.tenNguyenLieu} ({nl.donViTinh}) — Tồn: {nl.soLuong}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng nhập <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        placeholder="0"
+                                        value={nhapHangSoLuong}
+                                        onChange={(e) => setNhapHangSoLuong(e.target.value)}
+                                        required
+                                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-base"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Giá nhập (VNĐ) <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0"
+                                        value={nhapHangGiaNhap}
+                                        onChange={(e) => setNhapHangGiaNhap(e.target.value)}
+                                        required
+                                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-base"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nhà cung cấp</label>
+                                <input
+                                    type="text"
+                                    placeholder="VD: Công ty ABC..."
+                                    value={nhapHangNhaCungCap}
+                                    onChange={(e) => setNhapHangNhaCungCap(e.target.value)}
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-base"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày hết hạn</label>
+                                <input
+                                    type="date"
+                                    value={nhapHangNgayHetHan}
+                                    onChange={(e) => setNhapHangNgayHetHan(e.target.value)}
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-base"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
+                                <textarea
+                                    rows={2}
+                                    placeholder="Ghi chú thêm..."
+                                    value={nhapHangGhiChu}
+                                    onChange={(e) => setNhapHangGhiChu(e.target.value)}
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none text-base"
+                                />
+                            </div>
+                            {nhapHangError && (
+                                <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-100 text-red-700 text-sm">
+                                    {nhapHangError}
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-3 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNhapHangOpen(false)}
+                                    className="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={nhapHangLoading}
+                                    className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {nhapHangLoading ? (
+                                        <>
+                                            <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Đang xử lý...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Package size={16} />
+                                            Xác nhận nhập hàng
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

@@ -157,7 +157,7 @@ export default function DonHangPage() {
                   <th className="p-4 font-medium">Mã Đơn</th>
                   <th className="p-4 font-medium">Khách hàng</th>
                   <th className="p-4 font-medium">Ngày tạo</th>
-                  <th className="p-4 font-medium">Thời gian TT</th>
+                  {/*<th className="p-4 font-medium">Thời gian TT</th>*/}
                   <th className="p-4 font-medium">Tổng tiền</th>
                   <th className="p-4 font-medium">Thanh toán</th>
                   <th className="p-4 font-medium text-center">Trạng thái TT</th>
@@ -173,7 +173,7 @@ export default function DonHangPage() {
                       <td className="p-4 font-medium text-blue-600">#{order.id.maDonHang}</td>
                       <td className="p-4 text-gray-800">{order.khachHang?.hoTen || 'N/A'}</td>
                       <td className="p-4 text-gray-500">{order.ngayTaoDon ? new Date(order.ngayTaoDon).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
-                      <td className="p-4 text-gray-500">{order.thoiGianThanhToan ? new Date(order.thoiGianThanhToan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
+                      {/*<td className="p-4 text-gray-500">{order.thoiGianThanhToan ? new Date(order.thoiGianThanhToan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>*/}
                       <td className="p-4 font-bold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</td>
                       <td className="p-4 text-gray-500">{order.thanhToan?.kieuThanhToan || 'N/A'}</td>
                       <td className="p-4 text-center">

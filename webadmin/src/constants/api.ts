@@ -33,6 +33,7 @@ export const ENDPOINTS = {
   NGUYEN_LIEU: '/nguyen-lieu',
   SAN_PHAM: '/san-pham',
   CONG_THUC: '/cong-thuc',
+  NHAP_HANG: '/nhap-hang',
 };
 
 export default api;
