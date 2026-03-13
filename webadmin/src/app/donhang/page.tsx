@@ -50,16 +50,29 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
   }
 
   const allStatuses = items.map(item => item.trangThai);
+  const isFinished = (s: string) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
 
-  if (allStatuses.every(s => s === 'hoàn thành')) {
-    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-  }
-  if (allStatuses.some(s => s === 'đã hủy')) {
+  if (allStatuses.every(s => s === 'đã hủy')) {
     return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
   }
+  
+  if (allStatuses.every(s => s === 'hoàn thành' || s === 'đã hủy') && allStatuses.some(s => s === 'hoàn thành')) {
+    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
+  }
+
+  // If all items are finished (completed/eating/cancelled) and not all cancelled
+  if (allStatuses.every(isFinished)) {
+      return { text: 'Đang dùng bữa', color: 'bg-purple-100 text-purple-700' };
+  }
+
+  if (allStatuses.some(s => s === 'đang chuẩn bị') || (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận'))) {
+      return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
+  }
+
   if (allStatuses.every(s => s === 'chờ xác nhận')) {
     return { text: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700' };
   }
+
   return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
 };
 

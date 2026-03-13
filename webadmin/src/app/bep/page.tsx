@@ -32,26 +32,29 @@ interface GroupedOrder {
     items: ChiTietYeuCauDon[];
 }
 
-type KitchenStatus = 'chờ xác nhận' | 'đang chuẩn bị' | 'hoàn thành' | 'đã hủy';
+type KitchenStatus = 'chờ xác nhận' | 'đang chuẩn bị' | 'hoàn thành' | 'đã hủy' | 'đang dùng bữa';
 
 const KITCHEN_STATES: Record<KitchenStatus, { label: string; color: string; bg: string; accent: string }> = {
     'chờ xác nhận': { label: "Chờ xử lý", color: "#f59e0b", bg: "#fef3c7", accent: "#d97706" },
     'đang chuẩn bị': { label: "Đang nấu", color: "#3b82f6", bg: "#dbeafe", accent: "#2563eb" },
     'hoàn thành': { label: "Hoàn thành", color: "#10b981", bg: "#d1fae5", accent: "#059669" },
+    'đang dùng bữa': { label: "Đang dùng bữa", color: "#8b5cf6", bg: "#f3e8ff", accent: "#7c3aed" },
     'đã hủy': { label: "Đã hủy", color: "#ef4444", bg: "#fee2e2", accent: "#dc2626" },
 };
 
 const NEXT_STATE: Record<KitchenStatus, KitchenStatus | null> = {
     'chờ xác nhận': "đang chuẩn bị",
-    'đang chuẩn bị': "hoàn thành",
-    'hoàn thành': null,
+    'đang chuẩn bị': "đang dùng bữa",
+    'hoàn thành': "đang dùng bữa",
+    'đang dùng bữa': null,
     'đã hủy': null,
 };
 
 const NEXT_LABEL: Record<KitchenStatus, string | null> = {
     'chờ xác nhận': "▶ Bắt đầu nấu",
-    'đang chuẩn bị': "✓ Hoàn thành tất cả",
-    'hoàn thành': null,
+    'đang chuẩn bị': "✓ Phục vụ",
+    'hoàn thành': "✓ Phục vụ",
+    'đang dùng bữa': null,
     'đã hủy': null,
 };
 
@@ -71,7 +74,7 @@ function useElapsedTime(isoString: string) {
 
 function ElapsedBadge({ isoString, state }: { isoString: string, state: KitchenStatus }) {
     const { formatted: time, minutes } = useElapsedTime(isoString);
-    const urgent = minutes >= 15 && state !== "hoàn thành";
+    const urgent = minutes >= 15 && state !== "hoàn thành" && state !== "đang dùng bữa";
     return (
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700, color: urgent ? "#ef4444" : "#94a3b8", animation: urgent ? "pulse 1s infinite" : "none" }}>
             ⏱ {time}
@@ -92,7 +95,7 @@ function OrderCard({
     const stateInfo = KITCHEN_STATES[state] || KITCHEN_STATES['đã hủy'];
     const nextState = NEXT_STATE[state];
     const nextLabel = NEXT_LABEL[state];
-    const isComplete = state === "hoàn thành";
+    const isComplete = state === "hoàn thành" || state === "đang dùng bữa";
     const isCancelled = state === "đã hủy";
 
     return (
@@ -105,7 +108,7 @@ function OrderCard({
             {/* THAY ĐỔI: Hiển thị danh sách món và nút check cho từng món */}
             <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
                 {orderGroup.items.map((item) => {
-                    const isItemDone = item.trangThai === 'hoàn thành';
+                    const isItemDone = item.trangThai === 'hoàn thành' || item.trangThai === 'đang dùng bữa';
                     return (
                         <div key={item.id.maSanPham} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, opacity: isItemDone ? 0.5 : 1 }}>
@@ -118,7 +121,7 @@ function OrderCard({
                             {/* Nút hoàn thành từng món nhỏ (chỉ hiện ở cột Đang nấu) */}
                             {state === 'đang chuẩn bị' && !isItemDone && item.trangThai !== 'đã hủy' && (
                                 <button
-                                    onClick={() => onUpdateItemState(orderGroup.maDonHang, item.id.maSanPham, orderGroup.idRestaurant, 'hoàn thành')}
+                                    onClick={() => onUpdateItemState(orderGroup.maDonHang, item.id.maSanPham, orderGroup.idRestaurant, 'đang dùng bữa')}
                                     style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}
                                 >
                                     ✓ Xong
@@ -143,7 +146,7 @@ function OrderCard({
                         {nextLabel}
                     </button>
                 )}
-                {isComplete && <span style={{ color: "#10b981", fontWeight: 700 }}>✓ Hoàn tất</span>}
+                {isComplete && <span style={{ color: "#8b5cf6", fontWeight: 700 }}>✓ Đang dùng bữa</span>}
                 {isCancelled && <span style={{ color: "#ef4444", fontWeight: 700 }}>✗ Đã hủy</span>}
             </div>
         </div>
@@ -221,7 +224,7 @@ export default function KitchenPage() {
     const updateOrderStatusOptimistic = (maDonHang: number, idRestaurant: number, maSanPham: number | null, newState: KitchenStatus) => {
         setOrders(prev => prev.map(o => {
             const isMatch = o.id.maDonHang === maDonHang && o.id.idRestaurant === idRestaurant && (maSanPham === null || o.id.maSanPham === maSanPham);
-            if (isMatch && o.trangThai !== 'hoàn thành' && o.trangThai !== 'đã hủy') {
+            if (isMatch && o.trangThai !== 'hoàn thành' && o.trangThai !== 'đã hủy' && o.trangThai !== 'đang dùng bữa') {
                 return { ...o, trangThai: newState };
             }
             return o;
@@ -232,7 +235,7 @@ export default function KitchenPage() {
         const orderToUpdate = orders.find(o => o.id.maDonHang === maDonHang && o.id.idRestaurant === idRestaurant);
         if (!orderToUpdate) return;
 
-        const itemsToUpdate = orders.filter(o => o.id.maDonHang === maDonHang && o.id.idRestaurant === idRestaurant && o.trangThai !== 'hoàn thành' && o.trangThai !== 'đã hủy');
+        const itemsToUpdate = orders.filter(o => o.id.maDonHang === maDonHang && o.id.idRestaurant === idRestaurant && o.trangThai !== 'hoàn thành' && o.trangThai !== 'đã hủy' && o.trangThai !== 'đang dùng bữa');
 
         // Optimistic UI update
         itemsToUpdate.forEach(item => {
@@ -288,13 +291,16 @@ export default function KitchenPage() {
         return Object.values(grouped).map(group => {
             const hasPending = group.items.some(i => i.trangThai === 'chờ xác nhận');
             const hasCooking = group.items.some(i => i.trangThai === 'đang chuẩn bị');
-            const allCompleted = group.items.length > 0 && group.items.every(i => i.trangThai === 'hoàn thành' || i.trangThai === 'đã hủy');
+            
+            const isFinished = (s: KitchenStatus) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
+            const allCompleted = group.items.length > 0 && group.items.every(i => isFinished(i.trangThai));
             const hasCancelled = group.items.some(i => i.trangThai === 'đã hủy');
+            const allCancelled = group.items.length > 0 && group.items.every(i => i.trangThai === 'đã hủy');
 
             let overallState: KitchenStatus = 'chờ xác nhận';
             if (allCompleted) {
-                overallState = hasCancelled ? 'đã hủy' : 'hoàn thành';
-            } else if (hasCooking || (group.items.some(i => i.trangThai === 'hoàn thành') && hasPending)) {
+                overallState = allCancelled ? 'đã hủy' : 'đang dùng bữa';
+            } else if (hasCooking || (group.items.some(i => ['hoàn thành', 'đang dùng bữa'].includes(i.trangThai)) && hasPending)) {
                 overallState = 'đang chuẩn bị';
             } else if (hasPending) {
                 overallState = 'chờ xác nhận';
@@ -309,7 +315,7 @@ export default function KitchenPage() {
     const allGroupedOrders = groupOrders(orders);
     const pending = allGroupedOrders.filter(g => g.trangThai === "chờ xác nhận");
     const cooking = allGroupedOrders.filter(g => g.trangThai === "đang chuẩn bị");
-    const completed = allGroupedOrders.filter(g => g.trangThai === "hoàn thành");
+    const completed = allGroupedOrders.filter(g => g.trangThai === "đang dùng bữa");
     const cancelled = allGroupedOrders.filter(g => g.trangThai === "đã hủy");
 
     return (
@@ -339,7 +345,7 @@ export default function KitchenPage() {
                     <div style={{ padding: "32px", display: "flex", gap: 24, alignItems: "flex-start" }}>
                         <Column title="Đang chờ" orderGroups={pending} color="#f59e0b" bg="#fef3c7" icon="🕐" onUpdateState={handleUpdateState} onUpdateItemState={handleUpdateItemState} />
                         <Column title="Đang nấu" orderGroups={cooking} color="#3b82f6" bg="#dbeafe" icon="🔥" onUpdateState={handleUpdateState} onUpdateItemState={handleUpdateItemState} />
-                        <Column title="Hoàn thành" orderGroups={completed} color="#10b981" bg="#d1fae5" icon="✅" onUpdateState={handleUpdateState} onUpdateItemState={handleUpdateItemState} />
+                        <Column title="Đang dùng bữa" orderGroups={completed} color="#8b5cf6" bg="#f3e8ff" icon="🍽️" onUpdateState={handleUpdateState} onUpdateItemState={handleUpdateItemState} />
                         <Column title="Đã hủy" orderGroups={cancelled} color="#ef4444" bg="#fee2e2" icon="❌" onUpdateState={handleUpdateState} onUpdateItemState={handleUpdateItemState} />
                     </div>
                 )}

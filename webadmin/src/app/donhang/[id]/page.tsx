@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { ChevronLeft, Printer, CheckCircle, Truck, XCircle, Clock, HelpCircle } from 'lucide-react';
-import api from '@/constants/api';
+import { ChevronLeft, Printer, CheckCircle, Truck, XCircle, Clock, HelpCircle, Image as ImageIcon } from 'lucide-react';
+import api, { BASE_URL_IMG } from '@/constants/api';
 import Link from 'next/link';
 
 // Define interfaces for the detailed order structure
@@ -14,10 +14,15 @@ interface SanPham {
 }
 
 interface ChiTietYeuCauDon {
+  id: {
+    maDonHang: number;
+    maSanPham: number;
+    idRestaurant: number;
+  };
   soLuong: number;
   gia: number;
   sanPham: SanPham;
-  trangThai: string; // Add status for each item
+  trangThai: string;
 }
 
 interface OrderDetail {
@@ -32,7 +37,7 @@ interface OrderDetail {
   ngayTaoDon: string;
   tongTien: number | null;
   trangThaiThanhToan: string;
-  thoiGianThanhToan: string | null; // Add payment time
+  thoiGianThanhToan: string | null;
   thanhToan: {
     kieuThanhToan: string;
   };
@@ -58,22 +63,36 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
   }
 
   const allStatuses = items.map(item => item.trangThai);
+  const isFinished = (s: string) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
 
-  if (allStatuses.every(s => s === 'hoàn thành')) {
-    return { text: 'Hoàn thành', color: 'text-green-600', icon: <CheckCircle /> };
-  }
-  if (allStatuses.some(s => s === 'đã hủy')) {
+  if (allStatuses.every(s => s === 'đã hủy')) {
     return { text: 'Đã hủy', color: 'text-red-600', icon: <XCircle /> };
   }
+
+  // Nếu tất cả đều hoàn thành (hoặc đã hủy), thì là Hoàn thành
+  if (allStatuses.every(s => s === 'hoàn thành' || s === 'đã hủy') && allStatuses.some(s => s === 'hoàn thành')) {
+    return { text: 'Hoàn thành', color: 'text-green-600', icon: <CheckCircle /> };
+  }
+
+  if (allStatuses.every(isFinished)) {
+      return { text: 'Đang dùng bữa', color: 'text-purple-600', icon: <CheckCircle /> };
+  }
+
+  if (allStatuses.some(s => s === 'đang chuẩn bị') || (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận'))) {
+      return { text: 'Đang xử lý', color: 'text-blue-600', icon: <Truck /> };
+  }
+
   if (allStatuses.every(s => s === 'chờ xác nhận')) {
     return { text: 'Chờ xác nhận', color: 'text-yellow-600', icon: <Clock /> };
   }
+
   return { text: 'Đang xử lý', color: 'text-blue-600', icon: <Truck /> };
 };
 
 const getItemStatusColor = (status: string) => {
   switch (status) {
     case 'hoàn thành': return 'text-green-600';
+    case 'đang dùng bữa': return 'text-purple-600';
     case 'chờ xác nhận': return 'text-yellow-600';
     case 'đang chuẩn bị': return 'text-blue-600';
     case 'đã hủy': return 'text-red-600';
@@ -93,6 +112,21 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchOrderDetail = useCallback(async () => {
+    if (!id || !idRestaurant) return;
+    try {
+      const response = await api.get(`/yeu-cau-don/${id}/${idRestaurant}`);
+      if (response.status !== 200) {
+        throw new Error('Failed to fetch order details');
+      }
+      setOrder(response.data);
+    } catch (err) {
+      setError('Không tìm thấy đơn hàng hoặc có lỗi xảy ra.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, idRestaurant]);
+
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -101,25 +135,50 @@ export default function OrderDetailPage() {
     }
 
     if (id && idRestaurant) {
-      const fetchOrderDetail = async () => {
-        try {
-          const response = await api.get(`/yeu-cau-don/${id}/${idRestaurant}`);
-          if (response.status !== 200) {
-            throw new Error('Failed to fetch order details');
-          }
-          setOrder(response.data);
-        } catch (err) {
-          setError('Không tìm thấy đơn hàng hoặc có lỗi xảy ra.');
-        } finally {
-          setLoading(false);
-        }
-      };
       fetchOrderDetail();
     } else {
       setLoading(false);
       setError('Thiếu thông tin mã đơn hàng hoặc mã nhà hàng.');
     }
-  }, [id, idRestaurant, router]);
+  }, [id, idRestaurant, router, fetchOrderDetail]);
+
+  const handleUpdateStatus = async () => {
+    if (!order || !idRestaurant) return;
+
+    if (!window.confirm('Xác nhận khách hàng đã dùng bữa xong và hoàn thành đơn hàng?')) {
+        return;
+    }
+
+    try {
+        const updatePromises = order.chiTietYeuCauDons.map(item => {
+            // Check if item needs update (e.g. not cancelled)
+            if (item.id && item.id.maSanPham && item.trangThai !== 'đã hủy' && item.trangThai !== 'hoàn thành') {
+                return api.put(
+                    `/yeu-cau-don/chi-tiet/trang-thai?maDonHang=${order.id.maDonHang}&idRestaurant=${idRestaurant}&maSanPham=${item.id.maSanPham}`,
+                    { trangThai: 'hoàn thành' }
+                );
+            }
+            return Promise.resolve();
+        });
+
+        await Promise.all(updatePromises);
+        alert('Cập nhật trạng thái thành công!');
+        fetchOrderDetail();
+    } catch (err) {
+        console.error(err);
+        alert('Có lỗi xảy ra khi cập nhật trạng thái.');
+    }
+  };
+
+  const getFullImageUrl = (imagePath: string) => {
+    if (!imagePath) return '';
+    // Nếu imagePath đã bắt đầu bằng http hoặc https, trả về nguyên bản
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath;
+    }
+    // Nếu không, nối với BASE_URL_IMG
+    return `${BASE_URL_IMG}/${imagePath}`;
+  };
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><p>Đang tải chi tiết đơn hàng...</p></div>;
@@ -131,6 +190,7 @@ export default function OrderDetailPage() {
 
   const paymentStatusInfo = getPaymentStatusInfo(order.trangThaiThanhToan);
   const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
+  const isCompleted = order.chiTietYeuCauDons.every(item => item.trangThai === 'hoàn thành' || item.trangThai === 'đã hủy');
 
   return (
     <div className="flex bg-[#f1f5f9] min-h-screen font-sans">
@@ -167,20 +227,40 @@ export default function OrderDetailPage() {
             <div className="bg-white p-6 rounded-2xl shadow-sm">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Các sản phẩm</h2>
               <div className="space-y-4">
-                {order.chiTietYeuCauDons.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="font-semibold text-gray-800">{item.sanPham.tenSanPham}</p>
-                        <p className="text-sm text-gray-500">Số lượng: {item.soLuong}</p>
+                {order.chiTietYeuCauDons.map((item, index) => {
+                  const imageUrl = item.sanPham.hinhAnh ? getFullImageUrl(item.sanPham.hinhAnh) : '';
+
+                  return (
+                    <div key={index} className="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0">
+                      <div className="flex items-center gap-4">
+                        {/*<div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0 bg-gray-50 flex items-center justify-center relative">*/}
+                        {/*  {imageUrl ? (*/}
+                        {/*    <img*/}
+                        {/*      src={imageUrl}*/}
+                        {/*      alt={item.sanPham.tenSanPham}*/}
+                        {/*      className="w-full h-full object-cover"*/}
+                        {/*      onError={(e) => {*/}
+                        {/*        e.currentTarget.style.display = 'none';*/}
+                        {/*        e.currentTarget.nextElementSibling?.classList.remove('hidden');*/}
+                        {/*      }}*/}
+                        {/*    />*/}
+                        {/*  ) : null}*/}
+                        {/*  <div className={`absolute inset-0 flex items-center justify-center text-gray-400 ${imageUrl ? 'hidden' : ''}`}>*/}
+                        {/*     <ImageIcon size={24} />*/}
+                        {/*  </div>*/}
+                        {/*</div>*/}
+                        <div>
+                          <p className="font-semibold text-gray-800">{item.sanPham.tenSanPham}</p>
+                          <p className="text-sm text-gray-500">Số lượng: {item.soLuong}</p>
+                        </div>
+                      </div>
+                      <div className='text-right'>
+                        <p className="font-semibold text-gray-800">{(item.gia * item.soLuong).toLocaleString('vi-VN')}đ</p>
+                        <p className={`text-sm font-bold capitalize ${getItemStatusColor(item.trangThai)}`}>{item.trangThai}</p>
                       </div>
                     </div>
-                    <div className='text-right'>
-                      <p className="font-semibold text-gray-800">{(item.gia * item.soLuong).toLocaleString('vi-VN')}đ</p>
-                      <p className={`text-sm font-bold capitalize ${getItemStatusColor(item.trangThai)}`}>{item.trangThai}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="border-t my-4"></div>
               <div className="space-y-2 text-right">
@@ -218,8 +298,12 @@ export default function OrderDetailPage() {
                 <button className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">
                   <Printer size={20} /> In hóa đơn
                 </button>
-                <button className="w-full flex items-center justify-center gap-2 py-3 bg-gray-200 text-gray-800 font-bold rounded-xl hover:bg-gray-300 transition">
-                  Cập nhật trạng thái
+                <button
+                    onClick={handleUpdateStatus}
+                    disabled={isCompleted}
+                    className={`w-full flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition ${isCompleted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                >
+                  {isCompleted ? 'Đã hoàn thành' : 'Cập nhật trạng thái'}
                 </button>
               </div>
             </div>
