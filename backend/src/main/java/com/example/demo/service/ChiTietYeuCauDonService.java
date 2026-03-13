@@ -26,8 +26,7 @@ public class ChiTietYeuCauDonService {
             Integer maDonHang,
             Integer idRestaurant,
             Integer maSanPham,
-            String newTrangThai
-    ) {
+            String newTrangThai) {
         ChiTietYeuCauDonId id = new ChiTietYeuCauDonId(maDonHang, idRestaurant, maSanPham);
         Optional<ChiTietYeuCauDon> optionalChiTiet = chiTietYeuCauDonRepository.findById(id);
 

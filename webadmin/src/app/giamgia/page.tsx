@@ -118,7 +118,11 @@ const GiamGiaPage = () => {
                                         </td>
                                         <td className="p-4 font-mono text-blue-600 font-semibold">{gg.code}</td>
                                         <td className="p-4 text-gray-800">{gg.moTa}</td>
-                                        <td className="p-4 font-bold text-green-600">{gg.giaTri.toLocaleString('vi-VN')} VNĐ</td>
+                                        <td className="p-4">
+                                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-sm">
+                                                {gg.giaTri}%
+                                            </span>
+                                        </td>
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center items-center gap-4">
                                                 <Link href={`/giamgia/edit/${gg.idGiamGia}`} className="text-blue-600 hover:text-blue-800 transition">

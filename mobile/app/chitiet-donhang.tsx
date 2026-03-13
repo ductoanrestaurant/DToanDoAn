@@ -70,20 +70,26 @@ type SearchParams = {
 
 const getOverallOrderStatus = (chiTiet: ChiTietYeuCauDon[]): string => {
     if (!chiTiet || chiTiet.length === 0) {
-        return 'Đang cập nhật';
+        return 'Chờ xác nhận';
     }
     const itemStatuses = chiTiet.map(item => (item.trangThai || '').trim().toLowerCase());
 
     if (itemStatuses.some(s => s === 'đã hủy' || s === 'từ chối')) {
         return 'Đã hủy';
     }
-    if (itemStatuses.every(s => s === 'hoàn thành')) {
-        return 'Hoàn thành';
+    if (itemStatuses.length > 0 && itemStatuses.every(s => s === 'hoàn thành')) {
+        return 'Đã hoàn thành';
     }
-    if (itemStatuses.some(s => s === 'chờ xác nhận')) {
-        return 'Chờ xác nhận';
+    if (itemStatuses.some(s => s === 'đang dùng bữa' || s === 'đang sử dụng')) {
+        return 'Đang dùng bữa';
     }
-    return 'Đang xử lý'; // Default ongoing status
+    if (itemStatuses.some(s => s === 'đang chế biến' || s === 'đang chuẩn bị')) {
+        return 'Đang chế biến';
+    }
+    if (itemStatuses.some(s => s === 'đã xác nhận' || s === 'đã checkin')) {
+        return 'Đã xác nhận';
+    }
+    return 'Chờ xác nhận';
 };
 
 

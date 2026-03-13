@@ -80,10 +80,10 @@ function ElapsedBadge({ isoString, state }: { isoString: string, state: KitchenS
 }
 
 function OrderCard({
-                       orderGroup,
-                       onUpdateState,
-                       onUpdateItemState
-                   }: {
+    orderGroup,
+    onUpdateState,
+    onUpdateItemState
+}: {
     orderGroup: GroupedOrder,
     onUpdateState: (maDonHang: number, idRestaurant: number, newState: KitchenStatus) => void,
     onUpdateItemState: (maDonHang: number, maSanPham: number, idRestaurant: number, newState: KitchenStatus) => void
@@ -151,14 +151,14 @@ function OrderCard({
 }
 
 function Column({
-                    title,
-                    orderGroups,
-                    color,
-                    bg,
-                    icon,
-                    onUpdateState,
-                    onUpdateItemState
-                }: {
+    title,
+    orderGroups,
+    color,
+    bg,
+    icon,
+    onUpdateState,
+    onUpdateItemState
+}: {
     title: string,
     orderGroups: GroupedOrder[],
     color: string,

@@ -62,19 +62,16 @@ public class YeuCauDonController {
             // Lỗi do trùng lịch hoặc bàn không khả dụng
             System.err.println("Table conflict: " + e.getMessage());
             return new ResponseEntity<>(
-                Map.of("error", e.getMessage()), 
-                HttpStatus.CONFLICT
-            );
+                    Map.of("error", e.getMessage()),
+                    HttpStatus.CONFLICT);
         } catch (Exception e) {
             System.err.println("Error creating order: " + e.getMessage());
             e.printStackTrace();
             return new ResponseEntity<>(
-                Map.of("error", "Có lỗi xảy ra khi tạo đơn hàng: " + e.getMessage()), 
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
+                    Map.of("error", "Có lỗi xảy ra khi tạo đơn hàng: " + e.getMessage()),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @PutMapping("/{maDonHang}/{idRestaurant}")
     @PreAuthorize("hasAnyRole('KHACH_HANG','QUAN_LY', 'THU_NGAN')")
@@ -86,7 +83,8 @@ public class YeuCauDonController {
             try {
                 yeuCauDon.setTrangThaiThanhToan(yeuCauDonDetails.getTrangThaiThanhToan());
 
-                // Nếu trạng thái mới là "đã thanh toán", cập nhật thời gian thanh toán là thời gian hiện tại của server
+                // Nếu trạng thái mới là "đã thanh toán", cập nhật thời gian thanh toán là thời
+                // gian hiện tại của server
                 if ("đã thanh toán".equalsIgnoreCase(yeuCauDonDetails.getTrangThaiThanhToan())) {
                     yeuCauDon.setThoiGianThanhToan(LocalDateTime.now());
                 }
@@ -102,16 +100,14 @@ public class YeuCauDonController {
                 // Lỗi do trùng lịch hoặc bàn không khả dụng
                 System.err.println("Table conflict on update: " + e.getMessage());
                 return new ResponseEntity<>(
-                    Map.of("error", e.getMessage()), 
-                    HttpStatus.CONFLICT
-                );
+                        Map.of("error", e.getMessage()),
+                        HttpStatus.CONFLICT);
             } catch (Exception e) {
                 System.err.println("Error updating order: " + e.getMessage());
                 e.printStackTrace();
                 return new ResponseEntity<>(
-                    Map.of("error", "Có lỗi xảy ra khi cập nhật đơn hàng: " + e.getMessage()), 
-                    HttpStatus.INTERNAL_SERVER_ERROR
-                );
+                        Map.of("error", "Có lỗi xảy ra khi cập nhật đơn hàng: " + e.getMessage()),
+                        HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -137,7 +133,6 @@ public class YeuCauDonController {
         return yeuCauDonService.getChiTietByRestaurant(idRestaurant);
     }
 
-
     @GetMapping("/khach-hang/{maTaiKhoan}")
     @PreAuthorize("hasAnyRole('KHACH_HANG' ,'QUAN_LY', 'THU_NGAN')")
     public List<YeuCauDon> getByMaTaiKhoan(@PathVariable Integer maTaiKhoan) {
@@ -156,8 +151,7 @@ public class YeuCauDonController {
             @RequestParam Integer maDonHang,
             @RequestParam Integer idRestaurant,
             @RequestParam Integer maSanPham,
-            @RequestBody Map<String, String> body
-    ) {
+            @RequestBody Map<String, String> body) {
         String newTrangThai = body.get("trangThai");
         if (newTrangThai == null) {
             return ResponseEntity.badRequest().build();

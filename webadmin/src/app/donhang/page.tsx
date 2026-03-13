@@ -45,22 +45,22 @@ const getPaymentStatusColor = (status: string) => {
 };
 
 const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
-    if (!items || items.length === 0) {
-        return { text: 'N/A', color: 'bg-gray-100 text-gray-700' };
-    }
+  if (!items || items.length === 0) {
+    return { text: 'N/A', color: 'bg-gray-100 text-gray-700' };
+  }
 
-    const allStatuses = items.map(item => item.trangThai);
+  const allStatuses = items.map(item => item.trangThai);
 
-    if (allStatuses.every(s => s === 'hoàn thành')) {
-        return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
-    }
-    if (allStatuses.some(s => s === 'đã hủy')) {
-        return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
-    }
-    if (allStatuses.every(s => s === 'chờ xác nhận')) {
-        return { text: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700' };
-    }
-    return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
+  if (allStatuses.every(s => s === 'hoàn thành')) {
+    return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
+  }
+  if (allStatuses.some(s => s === 'đã hủy')) {
+    return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
+  }
+  if (allStatuses.every(s => s === 'chờ xác nhận')) {
+    return { text: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700' };
+  }
+  return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
 };
 
 export default function DonHangPage() {
@@ -79,7 +79,7 @@ export default function DonHangPage() {
     const fetchOrders = async () => {
       try {
         const response = await api.get('/yeu-cau-don');
-        
+
         if (response.status !== 200) {
           throw new Error('Failed to fetch orders');
         }
@@ -131,7 +131,7 @@ export default function DonHangPage() {
               />
             </div>
             <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition">
-                <FileDown size={20} /> Xuất File
+              <FileDown size={20} /> Xuất File
             </button>
           </div>
         </header>
@@ -184,15 +184,15 @@ export default function DonHangPage() {
               </tbody>
             </table>
           </div>
-           <div className="flex justify-between items-center mt-6">
-                <p className="text-sm text-gray-500">Hiển thị 1 đến {orders.length} của {orders.length} kết quả</p>
-                <div className="flex items-center gap-2">
-                    <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Trước</button>
-                    <button className="px-3 py-1 border rounded-lg bg-blue-600 text-white text-sm">1</button>
-                    <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">2</button>
-                    <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Sau</button>
-                </div>
+          <div className="flex justify-between items-center mt-6">
+            <p className="text-sm text-gray-500">Hiển thị 1 đến {orders.length} của {orders.length} kết quả</p>
+            <div className="flex items-center gap-2">
+              <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Trước</button>
+              <button className="px-3 py-1 border rounded-lg bg-blue-600 text-white text-sm">1</button>
+              <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">2</button>
+              <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Sau</button>
             </div>
+          </div>
         </div>
       </main>
     </div>

@@ -96,13 +96,15 @@ const AddGiamGiaPage = () => {
                             />
                         </div>
                         <div>
-                            <label htmlFor="giaTri" className="block text-sm font-medium text-gray-700 mb-2">Giá trị (VNĐ)</label>
+                            <label htmlFor="giaTri" className="block text-sm font-medium text-gray-700 mb-2">Giá trị (%)</label>
                             <input
                                 type="number"
                                 id="giaTri"
                                 value={giaTri}
                                 onChange={(e) => setGiaTri(Number(e.target.value))}
                                 required
+                                min={0}
+                                max={100}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                             />
                         </div>
