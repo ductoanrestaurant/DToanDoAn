@@ -137,7 +137,7 @@ export default function EditBanPage() {
                                         <div className="w-12 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
                                     </div>
                                     <span className="ml-4 text-slate-700 font-bold">
-                                        Trạng thái: {trangThai ? <span className="text-amber-600">Đang phục vụ</span> : <span className="text-emerald-600">Trống</span>}
+                                        Dừng hoạt động: {trangThai ? <span className="text-amber-600">Dừng hoạt động</span> : <span className="text-emerald-600">Đang hoạt động</span>}
                                     </span>
                                 </label>
                             </div>

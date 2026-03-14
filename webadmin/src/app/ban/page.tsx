@@ -46,8 +46,8 @@ interface StatusConfigItem {
 
 // --- Configuration ---
 const STATUS_CONFIG: Record<string, StatusConfigItem> = {
-  'false': { label: 'Bàn Trống', color: 'text-emerald-700', badgeBg: 'bg-emerald-100', badgeBorder: 'border-emerald-200', icon: CheckCircle2, cardBorder: 'border-emerald-200', cardBg: 'bg-emerald-50/60', stripColor: 'bg-emerald-500', hoverShadow: 'hover:shadow-emerald-500/20' },
-  'true': { label: 'Đang Phục Vụ', color: 'text-orange-700', badgeBg: 'bg-orange-100', badgeBorder: 'border-orange-200', icon: Clock, cardBorder: 'border-orange-200', cardBg: 'bg-orange-50/60', stripColor: 'bg-orange-500', hoverShadow: 'hover:shadow-orange-500/20' },
+  'false': { label: 'Đang hoạt động', color: 'text-emerald-700', badgeBg: 'bg-emerald-100', badgeBorder: 'border-emerald-200', icon: CheckCircle2, cardBorder: 'border-emerald-200', cardBg: 'bg-emerald-50/60', stripColor: 'bg-emerald-500', hoverShadow: 'hover:shadow-emerald-500/20' },
+  'true': { label: 'Dừng hoạt động', color: 'text-orange-700', badgeBg: 'bg-orange-100', badgeBorder: 'border-orange-200', icon: Clock, cardBorder: 'border-orange-200', cardBg: 'bg-orange-50/60', stripColor: 'bg-orange-500', hoverShadow: 'hover:shadow-orange-500/20' },
   'default': { label: 'Chưa xác định', color: 'text-slate-700', badgeBg: 'bg-slate-100', badgeBorder: 'border-slate-300', icon: HelpCircle, cardBorder: 'border-slate-300', cardBg: 'bg-white', stripColor: 'bg-slate-500', hoverShadow: 'hover:shadow-slate-400/20' }
 };
 
@@ -178,7 +178,7 @@ export default function BanPage() {
 
         {/* Stats Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {[{ label: 'Tổng số bàn', val: stats.total, color: 'text-slate-900', bg: 'bg-white', border: 'border-slate-200' }, { label: 'Bàn Trống', val: stats.available, color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' }, { label: 'Đang phục vụ', val: stats.serving, color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' }].map((item, idx) => (
+          {[{ label: 'Tổng số bàn', val: stats.total, color: 'text-slate-900', bg: 'bg-white', border: 'border-slate-200' }, { label: 'Bàn đang hoạt động', val: stats.available, color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' }, { label: 'Bàn đang dừng hoạt động', val: stats.serving, color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' }].map((item, idx) => (
             <div key={idx} className={`p-5 rounded-2xl border shadow-sm ${item.bg} ${item.border}`}>
               <p className="text-sm text-slate-600 font-semibold mb-1">{item.label}</p>
               <p className={`text-3xl font-bold ${item.color}`}>{item.val}</p>
@@ -189,7 +189,7 @@ export default function BanPage() {
         {/* Toolbar & Filter */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-8 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-10">
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto w-full md:w-auto border border-slate-200">
-            {[{ id: 'All', label: 'Tất cả' }, { id: 'false', label: 'Trống' }, { id: 'true', label: 'Đang phục vụ' }].map((tab) => (
+            {[{ id: 'All', label: 'Tất cả' }, { id: 'false', label: 'Đang hoạt động' }, { id: 'true', label: 'Dừng hoạt động' }].map((tab) => (
               <button key={tab.id} onClick={() => setFilterStatus(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${filterStatus === tab.id ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}>
                 {tab.label}
               </button>

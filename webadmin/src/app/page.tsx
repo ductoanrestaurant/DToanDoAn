@@ -11,8 +11,8 @@ export default function HomePage() {
     const token = localStorage.getItem('accessToken');
 
     if (token) {
-      // Nếu có token, chuyển hướng đến trang tổng quan
-      router.push('/dashboard');
+      // Nếu có token, chuyển hướng đến trang doanh thu
+      router.push('/doanhthu');
     } else {
       // Nếu không có token, chuyển hướng đến trang đăng nhập
       router.push('/login');

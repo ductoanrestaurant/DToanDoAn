@@ -51,22 +51,22 @@ export default function Sidebar() {
             {/* Navigation Menu */}
             <nav className="flex-1 px-4 space-y-1.5 mt-4">
                 {/* --- Group: Menu --- */}
-                <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">
-                    Tổng quan
-                </p>
+                {/*<p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">*/}
+                {/*    Tổng quan*/}
+                {/*</p>*/}
 
-                <Link href="/dashboard" className={getLinkClass('/dashboard')}>
-                    <LayoutDashboard size={20} />
-                    <span>Bảng điều khiển</span>
-                </Link>
-                <Link href="/doanhthu" className={getLinkClass('/doanhthu')}>
-                    <CircleDollarSign size={20} />
-                    <span>Doanh thu</span>
-                </Link>
-                <Link href="/tin-nhan" className={getLinkClass('/tin-nhan')}>
-                    <MessageSquare size={20} />
-                    <span>Tin nhắn</span>
-                </Link>
+                {/*<Link href="/dashboard" className={getLinkClass('/dashboard')}>*/}
+                {/*    <LayoutDashboard size={20} />*/}
+                {/*    <span>Bảng điều khiển</span>*/}
+                {/*</Link>*/}
+                {/*<Link href="/doanhthu" className={getLinkClass('/doanhthu')}>*/}
+                {/*    <CircleDollarSign size={20} />*/}
+                {/*    <span>Doanh thu</span>*/}
+                {/*</Link>*/}
+                {/*<Link href="/tin-nhan" className={getLinkClass('/tin-nhan')}>*/}
+                {/*    <MessageSquare size={20} />*/}
+                {/*    <span>Tin nhắn</span>*/}
+                {/*</Link>*/}
                 {/* <Link href="/thongbao" className={getLinkClass('/thongbao')}>
                     <Bell size={20} />
                     <span>Thông báo</span>
@@ -76,6 +76,15 @@ export default function Sidebar() {
                 <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">
                     Quản lý cửa hàng
                 </p>
+
+                <Link href="/doanhthu" className={getLinkClass('/doanhthu')}>
+                    <CircleDollarSign size={20} />
+                    <span>Doanh thu</span>
+                </Link>
+                <Link href="/tin-nhan" className={getLinkClass('/tin-nhan')}>
+                    <MessageSquare size={20} />
+                    <span>Tin nhắn</span>
+                </Link>
 
                 <Link href="/donhang" className={getLinkClass('/donhang')}>
                     <ClipboardList size={20} />
