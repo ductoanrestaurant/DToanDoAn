@@ -231,7 +231,7 @@ const NhapHangPage = () => {
                                             <select
                                                 value={maNguyenLieu}
                                                 onChange={(e) => setMaNguyenLieu(e.target.value ? Number(e.target.value) : '')}
-                                                required
+                                required
                                                 className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             >
                                                 <option value="">-- Chọn nguyên liệu --</option>
@@ -249,10 +249,10 @@ const NhapHangPage = () => {
                                                 </label>
                                                 <div className="flex items-center gap-2">
                                                     <input
-                                                        type="number"
+                                type="number"
                                                         step="0.01"
                                                         min="0.01"
-                                                        placeholder="0"
+                                placeholder="0"
                                                         value={soLuongNhap}
                                                         onChange={(e) => setSoLuongNhap(e.target.value)}
                                                         required
@@ -268,12 +268,12 @@ const NhapHangPage = () => {
                                                     Giá nhập (VNĐ) <span className="text-red-500">*</span>
                                                 </label>
                                                 <input
-                                                    type="number"
+                                type="number"
                                                     step="0.01"
                                                     min="0"
-                                                    placeholder="0"
-                                                    value={giaNhap}
-                                                    onChange={(e) => setGiaNhap(e.target.value)}
+                                placeholder="0"
+                                value={giaNhap}
+                                onChange={(e) => setGiaNhap(e.target.value)}
                                                     required
                                                     className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                                                 />
@@ -323,7 +323,7 @@ const NhapHangPage = () => {
                                             </button>
                                             <button
                                                 type="submit"
-                                                disabled={loading}
+                                    disabled={loading}
                                                 className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
                                             >
                                                 {loading ? (

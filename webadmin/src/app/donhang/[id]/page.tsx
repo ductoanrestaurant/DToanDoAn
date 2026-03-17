@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { ChevronLeft, Printer, CheckCircle, Truck, XCircle, Clock, HelpCircle, Image as ImageIcon } from 'lucide-react';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import { ChevronLeft, Printer, CheckCircle, Truck, XCircle, Clock, HelpCircle } from 'lucide-react';
+import api, { BASE_URL_IMG, ENDPOINTS } from '@/constants/api';
 import Link from 'next/link';
 
 // Define interfaces for the detailed order structure
@@ -45,13 +45,23 @@ interface OrderDetail {
   chiTietYeuCauDons: ChiTietYeuCauDon[];
 }
 
+interface Restaurant {
+  idRestaurant: number;
+  bankId: string;
+  accountNo: string;
+  template: string;
+  accountName: string;
+  content: string;
+}
+
 const getPaymentStatusInfo = (status: string) => {
-  switch (status) {
-    case 'Thành công':
+  switch (status?.toLowerCase()) {
+    case 'thành công':
+    case 'đã thanh toán':
       return { text: 'Đã thanh toán', color: 'text-green-600', icon: <CheckCircle /> };
     case 'chưa thanh toán':
-      return { text: 'Chờ thanh toán', color: 'text-yellow-600', icon: <Clock /> };
-    case 'Đã hủy':
+      return { text: 'Chưa thanh toán', color: 'text-yellow-600', icon: <Clock /> };
+    case 'đã hủy':
       return { text: 'Thanh toán bị hủy', color: 'text-red-600', icon: <XCircle /> };
     default:
       return { text: status, color: 'text-gray-600', icon: <HelpCircle /> };
@@ -63,14 +73,13 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
     return { text: 'Không có sản phẩm', color: 'text-gray-600', icon: <HelpCircle /> };
   }
 
-  const allStatuses = items.map(item => item.trangThai);
+  const allStatuses = items.map(item => item.trangThai.toLowerCase());
   const isFinished = (s: string) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
 
   if (allStatuses.every(s => s === 'đã hủy')) {
     return { text: 'Đã hủy', color: 'text-red-600', icon: <XCircle /> };
   }
 
-  // Nếu tất cả đều hoàn thành (hoặc đã hủy), thì là Hoàn thành
   if (allStatuses.every(s => s === 'hoàn thành' || s === 'đã hủy') && allStatuses.some(s => s === 'hoàn thành')) {
     return { text: 'Hoàn thành', color: 'text-green-600', icon: <CheckCircle /> };
   }
@@ -79,7 +88,11 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
       return { text: 'Đang dùng bữa', color: 'text-purple-600', icon: <CheckCircle /> };
   }
 
-  if (allStatuses.some(s => s === 'đang chuẩn bị') || (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận'))) {
+  if (allStatuses.some(s => s === 'đang chuẩn bị')) {
+      return { text: 'Đang chuẩn bị', color: 'text-blue-600', icon: <Truck /> };
+  }
+
+  if (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận')) {
       return { text: 'Đang xử lý', color: 'text-blue-600', icon: <Truck /> };
   }
 
@@ -91,7 +104,7 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
 };
 
 const getItemStatusColor = (status: string) => {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case 'hoàn thành': return 'text-green-600';
     case 'đang dùng bữa': return 'text-purple-600';
     case 'chờ xác nhận': return 'text-yellow-600';
@@ -110,6 +123,7 @@ export default function OrderDetailPage() {
   const idRestaurant = searchParams.get('idRestaurant');
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStatusOptions, setShowStatusOptions] = useState(false);
@@ -122,6 +136,15 @@ export default function OrderDetailPage() {
         throw new Error('Failed to fetch order details');
       }
       setOrder(response.data);
+
+      try {
+        const resRes = await api.get(`/restaurant/${idRestaurant}`);
+        if (resRes.status === 200) {
+          setRestaurant(resRes.data);
+        }
+      } catch (e) {
+        console.error('Không thể tải thông tin nhà hàng', e);
+      }
     } catch (err) {
       setError('Không tìm thấy đơn hàng hoặc có lỗi xảy ra.');
     } finally {
@@ -160,8 +183,8 @@ export default function OrderDetailPage() {
         if (
           item.id &&
           item.id.maSanPham &&
-          item.trangThai !== 'đã hủy' &&
-          item.trangThai !== newStatus
+          item.trangThai.toLowerCase() !== 'đã hủy' &&
+          item.trangThai.toLowerCase() !== newStatus
         ) {
           return api.put(
             `/yeu-cau-don/chi-tiet/trang-thai?maDonHang=${order.id.maDonHang}&idRestaurant=${idRestaurant}&maSanPham=${item.id.maSanPham}`,
@@ -196,11 +219,9 @@ export default function OrderDetailPage() {
 
   const getFullImageUrl = (imagePath: string) => {
     if (!imagePath) return '';
-    // Nếu imagePath đã bắt đầu bằng http hoặc https, trả về nguyên bản
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
         return imagePath;
     }
-    // Nếu không, nối với BASE_URL_IMG
     return `${BASE_URL_IMG}/${imagePath}`;
   };
 
@@ -214,10 +235,10 @@ export default function OrderDetailPage() {
 
   const paymentStatusInfo = getPaymentStatusInfo(order.trangThaiThanhToan);
   const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
-  const isCompleted = order.chiTietYeuCauDons.every(item => item.trangThai === 'hoàn thành' || item.trangThai === 'đã hủy');
+  const isCompleted = order.chiTietYeuCauDons.every(item => item.trangThai.toLowerCase() === 'hoàn thành' || item.trangThai.toLowerCase() === 'đã hủy');
 
   return (
-    <div className="flex bg-[#f1f5f9] min-h-screen font-sans">
+    <div className="flex bg-[#f1f5f9] min-h-screen font-sans relative">
       <Sidebar />
       <main className="flex-1 ml-64 p-8">
         <div className="flex items-center gap-4 mb-8">
@@ -257,22 +278,6 @@ export default function OrderDetailPage() {
                   return (
                     <div key={index} className="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0">
                       <div className="flex items-center gap-4">
-                        {/*<div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0 bg-gray-50 flex items-center justify-center relative">*/}
-                        {/*  {imageUrl ? (*/}
-                        {/*    <img*/}
-                        {/*      src={imageUrl}*/}
-                        {/*      alt={item.sanPham.tenSanPham}*/}
-                        {/*      className="w-full h-full object-cover"*/}
-                        {/*      onError={(e) => {*/}
-                        {/*        e.currentTarget.style.display = 'none';*/}
-                        {/*        e.currentTarget.nextElementSibling?.classList.remove('hidden');*/}
-                        {/*      }}*/}
-                        {/*    />*/}
-                        {/*  ) : null}*/}
-                        {/*  <div className={`absolute inset-0 flex items-center justify-center text-gray-400 ${imageUrl ? 'hidden' : ''}`}>*/}
-                        {/*     <ImageIcon size={24} />*/}
-                        {/*  </div>*/}
-                        {/*</div>*/}
                         <div>
                           <p className="font-semibold text-gray-800">{item.sanPham.tenSanPham}</p>
                           <p className="text-sm text-gray-500">Số lượng: {item.soLuong}</p>

@@ -38,8 +38,12 @@ public class ThanhToanController {
                     .orderCode(System.currentTimeMillis() / 1000)
                     .amount(amount)
                     .description("Thanh toan don hang " + request.getOrderId())
-                    .cancelUrl("https://your-domain.com/cancel")
-                    .returnUrl("https://your-domain.com/success")
+                    .cancelUrl(request.getCancelUrl() != null && !request.getCancelUrl().isBlank()
+                            ? request.getCancelUrl()
+                            : "https://your-domain.com/cancel")
+                    .returnUrl(request.getReturnUrl() != null && !request.getReturnUrl().isBlank()
+                            ? request.getReturnUrl()
+                            : "https://your-domain.com/success")
                     .build();
 
             var paymentLink = payOS.paymentRequests().create(paymentRequest);

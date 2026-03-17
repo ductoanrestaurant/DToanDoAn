@@ -34,12 +34,13 @@ interface Order {
 }
 
 const getPaymentStatusColor = (status: string) => {
-  switch (status) {
-    case 'Thành công':
+  switch (status?.toLowerCase()) {
+    case 'thành công':
+    case 'đã thanh toán':
       return 'bg-green-100 text-green-700';
     case 'chưa thanh toán':
       return 'bg-yellow-100 text-yellow-700';
-    case 'Đã hủy':
+    case 'đã hủy':
       return 'bg-red-100 text-red-700';
     default:
       return 'bg-gray-100 text-gray-700';
@@ -51,7 +52,7 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
     return { text: 'N/A', color: 'bg-gray-100 text-gray-700' };
   }
 
-  const allStatuses = items.map(item => item.trangThai);
+  const allStatuses = items.map(item => item.trangThai.toLowerCase());
   const isFinished = (s: string) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
 
   if (allStatuses.every(s => s === 'đã hủy')) {
@@ -67,7 +68,11 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
       return { text: 'Đang dùng bữa', color: 'bg-purple-100 text-purple-700' };
   }
 
-  if (allStatuses.some(s => s === 'đang chuẩn bị') || (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận'))) {
+  if (allStatuses.some(s => s === 'đang chuẩn bị')) {
+      return { text: 'Đang chuẩn bị', color: 'bg-blue-100 text-blue-700' };
+  }
+
+  if (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận')) {
       return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
   }
 
@@ -251,12 +256,12 @@ export default function DonHangPage() {
                         <td className="p-4 font-bold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</td>
                         <td className="p-4 text-gray-500">{order.thanhToan?.kieuThanhToan || 'N/A'}</td>
                         <td className="p-4 text-center">
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(order.trangThaiThanhToan)}`}>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${getPaymentStatusColor(order.trangThaiThanhToan)}`}>
                             {order.trangThaiThanhToan}
                           </span>
                         </td>
                         <td className="p-4 text-center">
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${orderStatusInfo.color}`}>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${orderStatusInfo.color}`}>
                             {orderStatusInfo.text}
                           </span>
                         </td>
