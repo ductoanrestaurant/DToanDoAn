@@ -329,8 +329,18 @@ export default function KitchenPage() {
     const pending = allGroupedOrders.filter(g => g.trangThai === "chờ xác nhận");
     const cooking = allGroupedOrders.filter(g => g.trangThai === "đang chuẩn bị");
     // Ở bếp, đơn đã nấu xong là khi trạng thái tổng thể = 'hoàn thành'
-    const finished = allGroupedOrders.filter(g => g.trangThai === "hoàn thành");
-    const cancelled = allGroupedOrders.filter(g => g.trangThai === "đã hủy");
+    const finishedAll = allGroupedOrders.filter(g => g.trangThai === "hoàn thành");
+    const cancelledAll = allGroupedOrders.filter(g => g.trangThai === "đã hủy");
+
+    const sortByNewest = (arr: GroupedOrder[]) =>
+        [...arr].sort((a, b) => {
+            const ta = a.ngayTaoDon ? new Date(a.ngayTaoDon).getTime() : 0;
+            const tb = b.ngayTaoDon ? new Date(b.ngayTaoDon).getTime() : 0;
+            return tb - ta;
+        });
+
+    const finished = sortByNewest(finishedAll).slice(0, 10);
+    const cancelled = sortByNewest(cancelledAll).slice(0, 10);
 
     return (
         <div className="flex bg-[#f1f5f9] min-h-screen">

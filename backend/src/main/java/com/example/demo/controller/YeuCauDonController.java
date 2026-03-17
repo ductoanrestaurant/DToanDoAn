@@ -5,6 +5,7 @@ import com.example.demo.entity.ChiTietYeuCauDon;
 import com.example.demo.entity.YeuCauDon;
 import com.example.demo.service.ChiTietYeuCauDonService;
 import com.example.demo.service.YeuCauDonService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/yeu-cau-don")
+@Slf4j
 @CrossOrigin("*")
 public class YeuCauDonController {
 
@@ -161,4 +163,69 @@ public class YeuCauDonController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/doanh-thu-thang")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<List<Map<String, Object>>> getDoanhThuTheoThang() {
+        try{
+            List<Map<String, Object>> stats = yeuCauDonService.getDoanhThuTheoThang();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.internalServerError().build();
+    }
+
+    @GetMapping("/doanh-thu-ngay")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<List<Map<String, Object>>> getDoanhThuTheoNgay() {
+        try {
+            List<Map<String, Object>> stats = yeuCauDonService.getDoanhThuTheoNgay();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.internalServerError().build();
+    }
+
+    @GetMapping("/tong-don-hom-nay")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<Long> getTongDonHomNay() {
+        log.info("Yêu cầu lấy tổng số đơn hàng của ngày hôm nay."); // Ghi log khi có người gọi API
+
+        try {
+            Long stats = yeuCauDonService.getTongDonHomNay();
+            Long result = (stats != null) ? stats : 0L;
+
+            log.info("Lấy dữ liệu thành công: {} đơn hàng.", result);
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            // 3. Ghi log lỗi kèm theo nội dung lỗi e
+            log.error("Lỗi nghiêm trọng khi truy vấn tổng đơn hôm nay: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/tong-don-thang-nay")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<Long> getTongDonThangNay() {
+        log.info("Yêu cầu lấy tổng số đơn hàng của tháng hôm nay.");
+
+        try{
+            Long stats = yeuCauDonService.getTongDonThangNay();
+            Long result = (stats != null) ? stats : 0L;
+
+            log.info("Lấy dữ liệu thành công: {} đơn hàng.", result);
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e){
+            log.error("Lỗi nghiêm trọng khi truy vấn tổng đơn hôm nay: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
+
+
 }

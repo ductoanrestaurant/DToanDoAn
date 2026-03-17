@@ -7,19 +7,55 @@ import { DollarSign, Moon, LogOut, ArrowUp, ArrowDown, ShoppingCart, TrendingUp 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import api from '@/constants/api';
 
-// --- Mock Data ---
-const monthlyRevenueData = [
-    { name: 'Tháng 1', value: 40000000 }, { name: 'Tháng 2', value: 30000000 }, { name: 'Tháng 3', value: 20000000 },
-    { name: 'Tháng 4', value: 27800000 }, { name: 'Tháng 5', value: 18900000 }, { name: 'Tháng 6', value: 23900000 },
-    { name: 'Tháng 7', value: 34900000 }, { name: 'Tháng 8', value: 36000000 }, { name: 'Tháng 9', value: 31000000 },
-    { name: 'Tháng 10', value: 41000000 }, { name: 'Tháng 11', value: 45000000 }, { name: 'Tháng 12', value: 48000000 },
-];
+// --- Helpers: format API revenue for charts ---
+const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-const dailyRevenueData = [
-    { name: 'T2', value: 2400000 }, { name: 'T3', value: 1398000 }, { name: 'T4', value: 9800000 },
-    { name: 'T5', value: 3908000 }, { name: 'T6', value: 4800000 }, { name: 'T7', value: 3800000 }, { name: 'CN', value: 4300000 },
-];
+const MONTH_NAMES = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
 
+function formatMonthlyRevenueFromApi(raw: { month?: string; total?: number }[]): { name: string; value: number }[] {
+    const currentYear = new Date().getFullYear();
+    const byMonth = new Map<number, number>();
+    if (Array.isArray(raw)) {
+        raw.forEach((x) => {
+            const monthStr = x.month as string;
+            const total = Number(x.total) || 0;
+            if (!monthStr) return;
+            const [y, m] = monthStr.split('-').map(Number);
+            if (y === currentYear && m >= 1 && m <= 12) byMonth.set(m, total);
+        });
+    }
+    return MONTH_NAMES.map((name, index) => ({
+        name,
+        value: byMonth.get(index + 1) || 0,
+    }));
+}
+
+function formatDailyRevenueFromApi(raw: { day?: string; total?: number }[]): { name: string; value: number }[] {
+    if (!raw?.length) return [];
+    const byDay = new Map<string, number>();
+    raw.forEach((x) => {
+        const d = x.day as string;
+        const total = Number(x.total) || 0;
+        if (d) byDay.set(d, total);
+    });
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startOfWeek.setDate(today.getDate() - diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const result: { name: string; value: number }[] = [];
+    const cur = new Date(startOfWeek);
+    while (cur <= today) {
+        const key = cur.toISOString().slice(0, 10);
+        const dayIndex = cur.getDay() === 0 ? 6 : cur.getDay() - 1;
+        result.push({ name: DAY_LABELS[dayIndex], value: byDay.get(key) || 0 });
+        cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+}
+
+// --- Mock Data (chỉ dùng cho số lượng đơn hàng) ---
 const dailyOrderData = [
     { name: 'T2', value: 85 }, { name: 'T3', value: 72 }, { name: 'T4', value: 115 },
     { name: 'T5', value: 98 }, { name: 'T6', value: 120 }, { name: 'T7', value: 105 }, { name: 'CN', value: 110 },
@@ -60,6 +96,10 @@ export default function DoanhThuPage() {
 
     // State for chart data
     const [monthlyOrderData, setMonthlyOrderData] = useState<{name: string, value: number}[]>([]);
+    const [monthlyRevenueData, setMonthlyRevenueData] = useState<{ name: string; value: number }[]>([]);
+    const [dailyRevenueData, setDailyRevenueData] = useState<{ name: string; value: number }[]>([]);
+    const [tongDonHomNay, setTongDonHomNay] = useState<number>(0);
+    const [tongDonThangNay, setTongDonThangNay] = useState<number>(0);
 
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
@@ -80,7 +120,45 @@ export default function DoanhThuPage() {
             }
         };
 
+        const fetchRevenueData = async () => {
+            try {
+                const [monthRes, dayRes] = await Promise.all([
+                    api.get('/yeu-cau-don/doanh-thu-thang'),
+                    api.get('/yeu-cau-don/doanh-thu-ngay'),
+                ]);
+                if (monthRes.status === 200 && Array.isArray(monthRes.data)) {
+                    setMonthlyRevenueData(formatMonthlyRevenueFromApi(monthRes.data));
+                }
+                if (dayRes.status === 200 && Array.isArray(dayRes.data)) {
+                    setDailyRevenueData(formatDailyRevenueFromApi(dayRes.data));
+                }
+            } catch (error) {
+                console.error("Failed to fetch revenue data:", error);
+            }
+        };
+
+        const fetchOrderCountData = async () => {
+            try {
+                const [todayRes, monthRes] = await Promise.all([
+                    api.get('/yeu-cau-don/tong-don-hom-nay'),
+                    api.get('/yeu-cau-don/tong-don-thang-nay'),
+                ]);
+
+                if (todayRes.status === 200) {
+                    setTongDonHomNay(typeof todayRes.data === 'number' ? todayRes.data : Number(todayRes.data) || 0);
+                }
+
+                if (monthRes.status === 200) {
+                    setTongDonThangNay(typeof monthRes.data === 'number' ? monthRes.data : Number(monthRes.data) || 0);
+                }
+            } catch (error) {
+                console.error("Failed to fetch order count data:", error);
+            }
+        };
+
         fetchMonthlyOrderData();
+        fetchRevenueData();
+        fetchOrderCountData();
     }, [router]);
 
     const handleLogout = () => {
@@ -96,9 +174,13 @@ export default function DoanhThuPage() {
         );
     }
 
-    // --- Chart Logic ---
+    // --- Chart Logic & derived revenue for cards ---
     const revenueChartData = revenueChartView === 'monthly' ? monthlyRevenueData : dailyRevenueData;
     const revenueChartTitle = revenueChartView === 'monthly' ? 'Biểu đồ doanh thu hàng tháng' : 'Biểu đồ doanh thu hàng ngày';
+
+    const doanhThuHomNay = dailyRevenueData.length > 0 ? dailyRevenueData[dailyRevenueData.length - 1].value : 0;
+    const doanhThuThangNay = monthlyRevenueData[new Date().getMonth()]?.value ?? 0;
+    const formatVnd = (n: number) => n.toLocaleString('vi-VN') + 'đ';
 
     const orderChartData = orderChartView === 'monthly' ? monthlyOrderData : dailyOrderData;
     const orderChartTitle = orderChartView === 'monthly' ? 'Biểu đồ số lượng đơn hàng (Theo tháng)' : 'Biểu đồ số lượng đơn hàng (Theo ngày)';
@@ -120,7 +202,7 @@ export default function DoanhThuPage() {
 
                 {/* Page Title */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800">Tổng quan Doanh thu</h1>
+                    <h1 className="text-3xl font-bold text-gray-800">Tổng quan thống kê nhà hàng</h1>
                     <p className="text-gray-500 mt-1">Phân tích và thống kê doanh thu của nhà hàng.</p>
                 </div>
 
@@ -133,7 +215,7 @@ export default function DoanhThuPage() {
                                 <DollarSign size={20} />
                             </div>
                         </div>
-                        <p className="text-3xl font-bold text-gray-800 mt-2">12.500.000đ</p>
+                        <p className="text-3xl font-bold text-gray-800 mt-2">{formatVnd(doanhThuHomNay)}</p>
                         <div className="flex items-center text-sm text-green-500 mt-2">
                             <ArrowUp size={16} className="mr-1" />
                             <span>15% so với hôm qua</span>
@@ -146,7 +228,7 @@ export default function DoanhThuPage() {
                                 <ShoppingCart size={20} />
                             </div>
                         </div>
-                        <p className="text-3xl font-bold text-gray-800 mt-2">85</p>
+                        <p className="text-3xl font-bold text-gray-800 mt-2">{tongDonHomNay}</p>
                         <div className="flex items-center text-sm text-green-500 mt-2">
                             <ArrowUp size={16} className="mr-1" />
                             <span>5% so với hôm qua</span>
@@ -159,7 +241,7 @@ export default function DoanhThuPage() {
                                 <DollarSign size={20} />
                             </div>
                         </div>
-                        <p className="text-3xl font-bold text-gray-800 mt-2">189.000.000đ</p>
+                        <p className="text-3xl font-bold text-gray-800 mt-2">{formatVnd(doanhThuThangNay)}</p>
                         <div className="flex items-center text-sm text-green-500 mt-2">
                             <ArrowUp size={16} className="mr-1" />
                             <span>8% so với tháng trước</span>
@@ -172,7 +254,7 @@ export default function DoanhThuPage() {
                                 <ShoppingCart size={20} />
                             </div>
                         </div>
-                        <p className="text-3xl font-bold text-gray-800 mt-2">1.250</p>
+                        <p className="text-3xl font-bold text-gray-800 mt-2">{tongDonThangNay}</p>
                         <div className="flex items-center text-sm text-red-500 mt-2">
                             <ArrowDown size={16} className="mr-1" />
                             <span>-2% so với tháng trước</span>

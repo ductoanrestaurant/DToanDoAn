@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     MessageSquare,
@@ -17,10 +17,57 @@ import {
     CircleDollarSign, Utensils, // Doanh thu
     ChefHat,
     TicketPercent,
+    LogOut, // Icon Đăng xuất
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+
+type Role = 'QUAN_LY' | 'THU_NGAN' | 'BEP';
+
+type MenuItem = {
+    label: string;
+    href: string;
+    icon: React.ReactNode;
+    allowedRoles: Role[];
+};
+
+
+const SIDEBAR_MENU: MenuItem[] = [
+    { label: 'Doanh thu', href: '/doanhthu', icon: <CircleDollarSign size={20} />, allowedRoles: ['QUAN_LY', 'THU_NGAN'] },
+    { label: 'Tin nhắn', href: '/tin-nhan', icon: <MessageSquare size={20} />, allowedRoles: ['QUAN_LY', 'THU_NGAN'] },
+    { label: 'Đơn hàng', href: '/donhang', icon: <ClipboardList size={20} />, allowedRoles: ['QUAN_LY', 'THU_NGAN'] },
+    { label: 'Sản phẩm (Menu)', href: '/sanpham', icon: <UtensilsCrossed size={20} />, allowedRoles: ['QUAN_LY', 'THU_NGAN'] },
+    { label: 'Quản lý Bàn', href: '/ban', icon: <Armchair size={20} />, allowedRoles: ['QUAN_LY', 'THU_NGAN'] },
+    { label: 'Khách hàng', href: '/khachhang', icon: <Users size={20} />, allowedRoles: ['QUAN_LY', 'THU_NGAN'] },
+    { label: 'Nhân viên', href: '/nhanvien', icon: <UserCog size={20} />, allowedRoles: ['QUAN_LY'] },
+    { label: 'Kho hàng', href: '/khohang', icon: <PackageOpen size={20} />, allowedRoles: ['QUAN_LY', 'BEP'] },
+    { label: 'Công thức món', href: '/congthuc', icon: <Utensils size={20} />, allowedRoles: ['QUAN_LY', 'BEP'] },
+    { label: 'Nhập hàng', href: '/nhaphang', icon: <Truck size={20} />, allowedRoles: ['QUAN_LY', 'BEP'] },
+    { label: 'Bếp', href: '/bep', icon: <ChefHat size={20} />, allowedRoles: ['BEP', 'QUAN_LY'] },
+    { label: 'Mã Giảm Giá', href: '/giamgia', icon: <TicketPercent size={20} />, allowedRoles: ['QUAN_LY'] },
+];
+
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const [role, setRole] = useState<string | null>(null);
+    const [showLogout, setShowLogout] = useState(false); // State để điều khiển hiển thị nút đăng xuất
+
+    useEffect(() => {
+        const stored = localStorage.getItem('userRole');
+        const id = requestAnimationFrame(() => setRole(stored));
+        return () => cancelAnimationFrame(id);
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        router.push('/'); // Chuyển hướng về trang đăng nhập
+    };
+
+
+    const visibleMenu = role ? SIDEBAR_MENU.filter(item => item.allowedRoles.includes(role as Role)) : [];
 
     const getLinkClass = (path: string) => {
         // Logic: Active khi pathname trùng khớp hoàn toàn hoặc là trang con
@@ -50,107 +97,44 @@ export default function Sidebar() {
 
             {/* Navigation Menu */}
             <nav className="flex-1 px-4 space-y-1.5 mt-4">
-                {/* --- Group: Menu --- */}
-                {/*<p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">*/}
-                {/*    Tổng quan*/}
-                {/*</p>*/}
-
-                {/*<Link href="/dashboard" className={getLinkClass('/dashboard')}>*/}
-                {/*    <LayoutDashboard size={20} />*/}
-                {/*    <span>Bảng điều khiển</span>*/}
-                {/*</Link>*/}
-                {/*<Link href="/doanhthu" className={getLinkClass('/doanhthu')}>*/}
-                {/*    <CircleDollarSign size={20} />*/}
-                {/*    <span>Doanh thu</span>*/}
-                {/*</Link>*/}
-                {/*<Link href="/tin-nhan" className={getLinkClass('/tin-nhan')}>*/}
-                {/*    <MessageSquare size={20} />*/}
-                {/*    <span>Tin nhắn</span>*/}
-                {/*</Link>*/}
-                {/* <Link href="/thongbao" className={getLinkClass('/thongbao')}>
-                    <Bell size={20} />
-                    <span>Thông báo</span>
-                </Link> */}
-
-                {/* --- Group: Quản lý --- */}
                 <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">
                     Quản lý cửa hàng
                 </p>
 
-                <Link href="/doanhthu" className={getLinkClass('/doanhthu')}>
-                    <CircleDollarSign size={20} />
-                    <span>Doanh thu</span>
-                </Link>
-                <Link href="/tin-nhan" className={getLinkClass('/tin-nhan')}>
-                    <MessageSquare size={20} />
-                    <span>Tin nhắn</span>
-                </Link>
-
-                <Link href="/donhang" className={getLinkClass('/donhang')}>
-                    <ClipboardList size={20} />
-                    <span>Đơn hàng</span>
-                </Link>
-
-                <Link href="/sanpham" className={getLinkClass('/sanpham')}>
-                    <UtensilsCrossed size={20} />
-                    <span>Sản phẩm (Menu)</span>
-                </Link>
-
-                <Link href="/ban" className={getLinkClass('/ban')}>
-                    <Armchair size={20} />
-                    <span>Quản lý Bàn</span>
-                </Link>
-
-                <Link href="/khachhang" className={getLinkClass('/khachhang')}>
-                    <Users size={20} />
-                    <span>Khách hàng</span>
-                </Link>
-
-                <Link href="/nhanvien" className={getLinkClass('/nhanvien')}>
-                    <UserCog size={20} />
-                    <span>Nhân viên</span>
-                </Link>
-
-                <Link href="/khohang" className={getLinkClass('/khohang')}>
-                    <PackageOpen size={20} />
-                    <span>Kho hàng</span>
-                </Link>
-
-                {/*<Link href="/quangcao" className={getLinkClass('/quangcao')}>*/}
-                {/*    <Megaphone size={20} />*/}
-                {/*    <span>Quảng cáo</span>*/}
-                {/*</Link>*/}
-
-                <Link href="/congthuc" className={getLinkClass('/congthuc')}>
-                    <Utensils size={20} />
-                    <span>Công thức món</span>
-                </Link>
-
-                <Link href="/nhaphang" className={getLinkClass('/nhaphang')}>
-                    <Truck size={20} />
-                    <span>Nhập hàng</span>
-                </Link>
-
-                <Link href="/bep" className={getLinkClass('/bep')}>
-                    <ChefHat size={20} />
-                    <span>Bếp</span>
-                </Link>
-
-                <Link href="/giamgia" className={getLinkClass('/giamgia')}>
-                    <TicketPercent size={20} />
-                    <span>Mã Giảm Giá</span>
-                </Link>
+                {visibleMenu.map(item => (
+                    <Link key={item.href} href={item.href} className={getLinkClass(item.href)}>
+                        {item.icon}
+                        <span>{item.label}</span>
+                    </Link>
+                ))}
             </nav>
 
             {/* Footer User Profile */}
             <div className="p-4 mt-auto border-t border-slate-700/50 bg-[#1e293b]">
-                <div className="bg-[#2d3748] rounded-xl p-3 flex items-center gap-3 hover:bg-[#374151] transition cursor-pointer group">
+                {/* Nút đăng xuất - hiển thị có điều kiện */}
+                {showLogout && (
+                    <div className="pb-2">
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold text-white bg-red-600/80 hover:bg-red-600 transition-all duration-200"
+                        >
+                            <LogOut size={18} />
+                            <span>Đăng xuất</span>
+                        </button>
+                    </div>
+                )}
+
+                {/* Khu vực thông tin người dùng */}
+                <div
+                    className="bg-[#2d3748] rounded-xl p-3 flex items-center gap-3 hover:bg-[#374151] transition cursor-pointer group"
+                    onClick={() => setShowLogout(!showLogout)} // Bấm để hiển thị/ẩn nút đăng xuất
+                >
                     <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-lg group-hover:bg-blue-500 transition">
                         NV
                     </div>
                     <div className="overflow-hidden">
-                        <p className="text-sm font-semibold text-white truncate">Nguyễn Văn I</p>
-                        <p className="text-xs text-gray-400 truncate">Quản lý chi nhánh</p>
+                        <p className="text-sm font-semibold text-white truncate">{localStorage.getItem('maNhanVien')}-{localStorage.getItem('tenNhanVien')}</p>
+                        <p className="text-xs text-gray-400 truncate">{localStorage.getItem('userRole')}</p>
                     </div>
                 </div>
             </div>

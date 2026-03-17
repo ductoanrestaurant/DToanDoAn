@@ -1,6 +1,7 @@
 'use client';
 
 import api, { ENDPOINTS } from '@/constants/api';
+import { getFirstRouteForRole } from '@/lib/sidebar-menu';
 import {useEffect, useState} from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
@@ -62,9 +63,8 @@ export default function LoginPage() {
 
           localStorage.setItem('userRole', role);
 
-          // 3. Điều hướng chuẩn Next.js
-          // Vì đã lưu vào localStorage rồi, trang Dashboard tự lấy dữ liệu từ đó, không cần truyền qua params
-          router.replace('/dashboard');
+          // 3. Điều hướng vào trang đầu tiên mà tài khoản được phép truy cập
+          router.replace(getFirstRouteForRole(role));
         } else {
           setError("quyen tai khoan chua được cấp phép xác thực.");
           localStorage.removeItem('accessToken');

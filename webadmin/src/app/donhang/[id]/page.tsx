@@ -28,6 +28,7 @@ interface ChiTietYeuCauDon {
 interface OrderDetail {
   id: {
     maDonHang: number;
+    idRestaurant?: number;
   };
   khachHang: {
     hoTen: string;
@@ -111,6 +112,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showStatusOptions, setShowStatusOptions] = useState(false);
 
   const fetchOrderDetail = useCallback(async () => {
     if (!id || !idRestaurant) return;
@@ -142,31 +144,53 @@ export default function OrderDetailPage() {
     }
   }, [id, idRestaurant, router, fetchOrderDetail]);
 
-  const handleUpdateStatus = async () => {
+  const handleApplyStatus = async (newStatus: 'đang dùng bữa' | 'hoàn thành') => {
     if (!order || !idRestaurant) return;
 
-    if (!window.confirm('Xác nhận khách hàng đã dùng bữa xong và hoàn thành đơn hàng?')) {
-        return;
+    if (
+      !window.confirm(
+        `Bạn chắc chắn muốn cập nhật tất cả món (trừ món đã hủy/hoàn thành) sang trạng thái "${newStatus}"?`
+      )
+    ) {
+      return;
     }
 
     try {
-        const updatePromises = order.chiTietYeuCauDons.map(item => {
-            // Check if item needs update (e.g. not cancelled)
-            if (item.id && item.id.maSanPham && item.trangThai !== 'đã hủy' && item.trangThai !== 'hoàn thành') {
-                return api.put(
-                    `/yeu-cau-don/chi-tiet/trang-thai?maDonHang=${order.id.maDonHang}&idRestaurant=${idRestaurant}&maSanPham=${item.id.maSanPham}`,
-                    { trangThai: 'hoàn thành' }
-                );
-            }
-            return Promise.resolve();
-        });
+      const updatePromises = order.chiTietYeuCauDons.map((item) => {
+        if (
+          item.id &&
+          item.id.maSanPham &&
+          item.trangThai !== 'đã hủy' &&
+          item.trangThai !== newStatus
+        ) {
+          return api.put(
+            `/yeu-cau-don/chi-tiet/trang-thai?maDonHang=${order.id.maDonHang}&idRestaurant=${idRestaurant}&maSanPham=${item.id.maSanPham}`,
+            { trangThai: newStatus }
+          );
+        }
+        return Promise.resolve();
+      });
 
-        await Promise.all(updatePromises);
-        alert('Cập nhật trạng thái thành công!');
-        fetchOrderDetail();
+      await Promise.all(updatePromises);
+
+      // Nếu hoàn thành và thanh toán tiền mặt -> chuyển trạng thái thanh toán sang "đã thanh toán"
+      if (newStatus === 'hoàn thành' && order.thanhToan?.kieuThanhToan?.toLowerCase() === 'tiền mặt') {
+        try {
+          await api.put(`/yeu-cau-don/${order.id.maDonHang}/${idRestaurant}`, {
+            ...order,
+            trangThaiThanhToan: 'đã thanh toán',
+          });
+        } catch (e) {
+          console.error('Lỗi khi cập nhật trạng thái thanh toán:', e);
+        }
+      }
+
+      alert('Cập nhật trạng thái thành công!');
+      setShowStatusOptions(false);
+      fetchOrderDetail();
     } catch (err) {
-        console.error(err);
-        alert('Có lỗi xảy ra khi cập nhật trạng thái.');
+      console.error(err);
+      alert('Có lỗi xảy ra khi cập nhật trạng thái.');
     }
   };
 
@@ -299,12 +323,28 @@ export default function OrderDetailPage() {
                   <Printer size={20} /> In hóa đơn
                 </button>
                 <button
-                    onClick={handleUpdateStatus}
+                    onClick={() => setShowStatusOptions((prev) => !prev)}
                     disabled={isCompleted}
                     className={`w-full flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition ${isCompleted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
                 >
                   {isCompleted ? 'Đã hoàn thành' : 'Cập nhật trạng thái'}
                 </button>
+                {!isCompleted && showStatusOptions && (
+                  <div className="flex flex-col gap-2 mt-1">
+                    <button
+                      onClick={() => handleApplyStatus('đang dùng bữa')}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition"
+                    >
+                      Checkin (đang dùng bữa)
+                    </button>
+                    <button
+                      onClick={() => handleApplyStatus('hoàn thành')}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition"
+                    >
+                      Hoàn thành
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

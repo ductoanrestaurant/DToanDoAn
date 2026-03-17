@@ -5,6 +5,7 @@ import com.example.demo.entity.ChiTietYeuCauDon;
 import com.example.demo.entity.ChiTietYeuCauDonId;
 import com.example.demo.entity.YeuCauDon;
 import com.example.demo.entity.YeuCauDonId;
+import com.example.demo.repository.ChiTietYeuCauDonRepository;
 import com.example.demo.repository.YeuCauDonRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -226,4 +227,23 @@ public class YeuCauDonService {
         
         return true; // Bàn khả dụng
     }
+
+    public List<Map<String, Object>> getDoanhThuTheoThang(){
+        List<Map<String, Object>> rawStats = yeuCauDonRepository.getDoanhThuTheoThang();
+        return rawStats;
+    }
+
+    public List<Map<String, Object>> getDoanhThuTheoNgay() {
+        return yeuCauDonRepository.getDoanhThuTheoNgay();
+    }
+
+
+    public Long getTongDonHomNay() {
+        return yeuCauDonRepository.tongDonHomNay();
+    }
+
+    public Long getTongDonThangNay(){
+        return yeuCauDonRepository.tongDonThangNay();
+    }
+
 }

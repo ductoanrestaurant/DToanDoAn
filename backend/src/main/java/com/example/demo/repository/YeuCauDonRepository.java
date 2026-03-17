@@ -67,4 +67,41 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
 
     @Query("SELECT y.id.maDonHang FROM YeuCauDon y")
     List<Integer> findAllMaDonHang();
+
+    //  Query tính Tổng doanh thu trong khoảng thời gian
+    @Query(value = "SELECT TO_CHAR(y.giosudung, 'YYYY-MM') as month, SUM(y.tongtien) as total " +
+            "FROM yeucaudon y " +
+            "WHERE EXISTS (" +
+            "    SELECT 1 FROM chitietyeucau c " +
+            "    WHERE y.madonhang = c.madonhang " +
+            "    AND y.id_restaurant = c.id_restaurant " +
+            "    AND lower(c.trangthai) = 'hoàn thành'" +
+            ") " +
+            "GROUP BY TO_CHAR(y.giosudung, 'YYYY-MM')", nativeQuery = true)
+    List<Map<String, Object>> getDoanhThuTheoThang();
+
+    @Query(value = "SELECT TO_CHAR(y.giosudung, 'YYYY-MM-DD') as day, SUM(y.tongtien) as total " +
+            "FROM yeucaudon y " +
+            "WHERE (y.giosudung::date >= date_trunc('week', CURRENT_DATE)::date AND y.giosudung::date <= CURRENT_DATE) " +
+            "AND EXISTS (" +
+            "    SELECT 1 FROM chitietyeucau c " +
+            "    WHERE y.madonhang = c.madonhang " +
+            "    AND y.id_restaurant = c.id_restaurant " +
+            "    AND lower(c.trangthai) = 'hoàn thành'" +
+            ") " +
+            "GROUP BY TO_CHAR(y.giosudung, 'YYYY-MM-DD') " +
+            "ORDER BY day", nativeQuery = true)
+    List<Map<String, Object>> getDoanhThuTheoNgay();
+
+    @Query("SELECT COUNT(y) FROM YeuCauDon y " +
+            "WHERE cast(y.gioSuDung as date) = current_date " +
+            "AND y.trangThaiThanhToan = 'đã thanh toán'")
+    Long tongDonHomNay();
+
+    @Query("SELECT COUNT(y) FROM YeuCauDon y " +
+            "WHERE MONTH(y.gioSuDung) = MONTH(current_date) " +
+            "AND YEAR(y.gioSuDung) = YEAR(current_date) " +
+            "AND y.trangThaiThanhToan = 'đã thanh toán'")
+    Long tongDonThangNay();
+
 }

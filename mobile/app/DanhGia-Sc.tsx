@@ -383,3 +383,4 @@ const styles = StyleSheet.create({
   submitBtnDisabled: { backgroundColor: '#ccc', elevation: 0 },
   submitText: { fontSize: 16, fontWeight: 'bold', color: COLORS.white },
 });
+

@@ -20,7 +20,9 @@ interface Order {
   id: OrderId;
   khachHang: {
     hoTen: string;
+    sdt?: string;
   };
+  gioSuDung?: string | null;
   ngayTaoDon: string;
   tongTien: number | null;
   trangThaiThanhToan: string;
@@ -81,6 +83,8 @@ export default function DonHangPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterDate, setFilterDate] = useState<'all' | 'today'>('today');
+  const [searchPhone, setSearchPhone] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -128,6 +132,37 @@ export default function DonHangPage() {
     );
   }
 
+  const filteredOrders = orders.filter(order => {
+    // Filter by date
+    let dateMatch = true;
+    if (filterDate === 'today') {
+      if (!order.ngayTaoDon) {
+        dateMatch = false;
+      } else {
+        const orderDate = new Date(order.ngayTaoDon);
+        const today = new Date();
+        dateMatch = (
+          orderDate.getDate() === today.getDate() &&
+          orderDate.getMonth() === today.getMonth() &&
+          orderDate.getFullYear() === today.getFullYear()
+        );
+      }
+    }
+
+    // Filter by phone number (4 số cuối, chỉ lấy chữ số)
+    let phoneMatch = true;
+    const keyword = searchPhone.trim();
+    if (keyword !== '') {
+      const phoneRaw = order.khachHang?.sdt || '';
+      const phoneDigits = phoneRaw.replace(/\D/g, '');
+      const last4 = phoneDigits.slice(-4);
+      const keywordDigits = keyword.replace(/\D/g, '');
+      phoneMatch = last4 === keywordDigits;
+    }
+
+    return dateMatch && phoneMatch;
+  });
+
   return (
     <div className="flex bg-[#f1f5f9] min-h-screen font-sans">
       <Sidebar />
@@ -135,12 +170,22 @@ export default function DonHangPage() {
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Đơn hàng</h1>
           <div className="flex items-center gap-4">
+            <select 
+              value={filterDate} 
+              onChange={(e) => setFilterDate(e.target.value as 'all' | 'today')}
+              className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="today">Hôm nay</option>
+              <option value="all">Tất cả đơn hàng</option>
+            </select>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Tìm kiếm đơn hàng..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl border-none bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Nhập 4 số cuối SĐT..."
+                value={searchPhone}
+                onChange={(e) => setSearchPhone(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all placeholder:text-gray-400 font-medium"
               />
             </div>
             <button className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition">
@@ -156,6 +201,8 @@ export default function DonHangPage() {
                 <tr className="text-left text-gray-500 text-sm border-b border-gray-100">
                   <th className="p-4 font-medium">Mã Đơn</th>
                   <th className="p-4 font-medium">Khách hàng</th>
+                  <th className="p-4 font-medium">Số điện thoại</th>
+                  <th className="p-4 font-medium">Giờ sử dụng</th>
                   <th className="p-4 font-medium">Ngày tạo</th>
                   {/*<th className="p-4 font-medium">Thời gian TT</th>*/}
                   <th className="p-4 font-medium">Tổng tiền</th>
@@ -166,39 +213,71 @@ export default function DonHangPage() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {orders.map((order) => {
-                  const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
-                  return (
-                    <tr key={order.id.maDonHang} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition">
-                      <td className="p-4 font-medium text-blue-600">#{order.id.maDonHang}</td>
-                      <td className="p-4 text-gray-800">{order.khachHang?.hoTen || 'N/A'}</td>
-                      <td className="p-4 text-gray-500">{order.ngayTaoDon ? new Date(order.ngayTaoDon).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
-                      {/*<td className="p-4 text-gray-500">{order.thoiGianThanhToan ? new Date(order.thoiGianThanhToan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>*/}
-                      <td className="p-4 font-bold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</td>
-                      <td className="p-4 text-gray-500">{order.thanhToan?.kieuThanhToan || 'N/A'}</td>
-                      <td className="p-4 text-center">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(order.trangThaiThanhToan)}`}>
-                          {order.trangThaiThanhToan}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${orderStatusInfo.color}`}>
-                          {orderStatusInfo.text}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <Link href={`/donhang/${order.id.maDonHang}?idRestaurant=${order.id.idRestaurant}`} className="text-blue-600 hover:underline">
-                          Xem chi tiết
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => {
+                    const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
+                    return (
+                      <tr key={order.id.maDonHang} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition">
+                        <td className="p-4 font-medium text-blue-600">#{order.id.maDonHang}</td>
+                        <td className="p-4 text-gray-800">
+                          <div>{order.khachHang?.hoTen || 'N/A'}</div>
+                        </td>
+                        <td className="p-4 text-gray-800">
+                          {order.khachHang?.sdt || 'N/A'}
+                        </td>
+                        <td className="p-4 text-gray-500">
+                          {order.gioSuDung
+                            ? new Date(order.gioSuDung).toLocaleString('vi-VN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'N/A'}
+                        </td>
+                        <td className="p-4 text-gray-500">
+                          {order.ngayTaoDon
+                            ? new Date(order.ngayTaoDon).toLocaleString('vi-VN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'N/A'}
+                        </td>
+                        {/*<td className="p-4 text-gray-500">{order.thoiGianThanhToan ? new Date(order.thoiGianThanhToan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>*/}
+                        <td className="p-4 font-bold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</td>
+                        <td className="p-4 text-gray-500">{order.thanhToan?.kieuThanhToan || 'N/A'}</td>
+                        <td className="p-4 text-center">
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(order.trangThaiThanhToan)}`}>
+                            {order.trangThaiThanhToan}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${orderStatusInfo.color}`}>
+                            {orderStatusInfo.text}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <Link href={`/donhang/${order.id.maDonHang}?idRestaurant=${order.id.idRestaurant}`} className="text-blue-600 hover:underline">
+                            Xem chi tiết
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="p-4 text-center text-gray-500">Không có đơn hàng nào</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
           <div className="flex justify-between items-center mt-6">
-            <p className="text-sm text-gray-500">Hiển thị 1 đến {orders.length} của {orders.length} kết quả</p>
+            <p className="text-sm text-gray-500">Hiển thị 1 đến {filteredOrders.length} của {filteredOrders.length} kết quả</p>
             <div className="flex items-center gap-2">
               <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Trước</button>
               <button className="px-3 py-1 border rounded-lg bg-blue-600 text-white text-sm">1</button>

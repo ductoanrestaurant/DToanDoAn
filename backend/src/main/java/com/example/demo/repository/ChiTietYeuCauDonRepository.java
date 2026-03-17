@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public interface ChiTietYeuCauDonRepository extends JpaRepository<ChiTietYeuCauDon, ChiTietYeuCauDonId> {
@@ -50,9 +51,13 @@ public interface ChiTietYeuCauDonRepository extends JpaRepository<ChiTietYeuCauD
             )
       """)
   List<ChiTietYeuCauDon> findChuaDanhGiaByDon(
-      @Param("maDonHang") Integer maDonHang,
-      @Param("idRestaurant") Integer idRestaurant,
-      @Param("maTaiKhoan") Integer maTaiKhoan);
+          @Param("maDonHang") Integer maDonHang,
+          @Param("idRestaurant") Integer idRestaurant,
+          @Param("maTaiKhoan") Integer maTaiKhoan);
+
+
+
+
 
   /**
    * Lấy TẤT CẢ sản phẩm có trangThai = 'hoàn thành' trong một đơn cụ thể,
