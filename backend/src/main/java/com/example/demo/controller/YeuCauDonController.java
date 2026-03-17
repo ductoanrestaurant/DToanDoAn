@@ -114,6 +114,38 @@ public class YeuCauDonController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * PATCH endpoint chỉ cập nhật thông tin thanh toán (trangThaiThanhToan, idThanhToan).
+     * KHÔNG kiểm tra xung đột bàn/giờ để tránh lỗi 409 khi thanh toán.
+     */
+    @PatchMapping("/{maDonHang}/{idRestaurant}/thanh-toan")
+    @PreAuthorize("hasAnyRole('KHACH_HANG','QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<?> updateThanhToan(
+            @PathVariable Integer maDonHang,
+            @PathVariable Integer idRestaurant,
+            @RequestBody Map<String, Object> body) {
+        return yeuCauDonService.getById(maDonHang, idRestaurant).map(yeuCauDon -> {
+            try {
+                if (body.containsKey("trangThaiThanhToan")) {
+                    yeuCauDon.setTrangThaiThanhToan((String) body.get("trangThaiThanhToan"));
+                }
+                if ("đã thanh toán".equalsIgnoreCase(yeuCauDon.getTrangThaiThanhToan())) {
+                    yeuCauDon.setThoiGianThanhToan(LocalDateTime.now());
+                }
+                if (body.containsKey("idThanhToan") && body.get("idThanhToan") != null) {
+                    yeuCauDon.setIdThanhToan(((Number) body.get("idThanhToan")).intValue());
+                }
+                // Lưu trực tiếp qua repository, KHÔNG qua save() để tránh check bàn
+                return ResponseEntity.ok(yeuCauDonService.saveDirectly(yeuCauDon));
+            } catch (Exception e) {
+                log.error("Error updating payment info: {}", e.getMessage(), e);
+                return new ResponseEntity<>(
+                        Map.of("error", "Có lỗi xảy ra khi cập nhật thanh toán: " + e.getMessage()),
+                        HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{maDonHang}/{idRestaurant}")
     @PreAuthorize("hasAnyRole('KHACH_HANG','QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<Void> delete(

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -137,6 +137,33 @@ const StatusBadge: React.FC<{ text: string }> = ({ text }) => {
     );
 };
 
+// Reusable PaymentOption component
+const PaymentOption = ({ method, icon, label, current, onPress, points, disabled }: { method: any, icon: any, label: string, current: any, onPress: (m: any) => void, points?: number, disabled?: boolean }) => (
+    <TouchableOpacity
+        style={[
+            styles.paymentOption,
+            current === method && styles.paymentActive,
+            disabled && styles.disabledPaymentOption
+        ]}
+        onPress={() => !disabled && onPress(method)}
+        disabled={disabled}
+    >
+        <Ionicons name={icon} size={24} color={disabled ? '#AAA' : (current === method ? "#FFF" : COLORS.primary)} />
+        <Text style={[
+            styles.paymentText,
+            current === method && styles.paymentTextActive,
+            disabled && styles.disabledPaymentText
+        ]}>
+            {label}
+        </Text>
+        {method === 'vi' && points !== undefined && (
+            <Text style={[styles.pointsText, disabled && styles.disabledPaymentText]}>
+                ({Math.floor(points).toLocaleString('vi-VN')}đ)
+            </Text>
+        )}
+    </TouchableOpacity>
+);
+
 
 const ChiTietDonHangScreen = () => {
     const router = useRouter();
@@ -148,6 +175,8 @@ const ChiTietDonHangScreen = () => {
     const [error, setError] = useState<string | null>(null);
     const [isPaying, setIsPaying] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false); // New state for payment method modal
+    const [userPoints, setUserPoints] = useState(0); // New state for user points
 
     const fetchOrderDetails = useCallback(async () => {
         if (!maDonHang || !idRestaurant) return;
@@ -156,6 +185,19 @@ const ChiTietDonHangScreen = () => {
             const response = await api.get(`${ENDPOINTS.YEU_CAU_DON}/${maDonHang}/${idRestaurant}`);
             setOrder(response.data);
             setError(null);
+
+            // Fetch user points
+            const customerId = response.data.maTaiKhoan;
+            if (customerId) {
+                try {
+                    const pointsRes = await api.get(`${ENDPOINTS.KHACH_HANG}/${customerId}/diem`);
+                    setUserPoints(pointsRes.data.diemTichLuy || 0);
+                } catch (pointsErr) {
+                    console.warn("Could not fetch user points:", pointsErr);
+                    setUserPoints(0); // Default to 0 if fetching fails
+                }
+            }
+
         } catch (err: any) {
             console.error("Failed to fetch order details:", err);
             if (err.response?.status === 403) {
@@ -243,41 +285,80 @@ const ChiTietDonHangScreen = () => {
         );
     };
 
+    // Modified handlePayment to open modal
     const handlePayment = async () => {
         if (!order || !order.tongTien) {
             Alert.alert("Lỗi", "Không có thông tin tổng tiền để thanh toán.");
             return;
         }
-        setIsPaying(true);
-        try {
-            const paymentResponse = await api.post(ENDPOINTS.CREATE_PAYOS_PAYMENT, {
-                amount: order.tongTien,
-                orderId: order.id.maDonHang,
-                paymentMethod: 'payos',
-                returnUrl: `${BASE_URL}/payment/success`,
-                cancelUrl: `${BASE_URL}/payment/cancel`,
-            });
+        setShowPaymentMethodModal(true);
+    };
 
-            const paymentUrl = paymentResponse.data.checkoutUrl;
-            if (paymentUrl) {
-                router.push({
-                    pathname: '/PaymentWebView',
-                    params: {
-                        url: paymentUrl,
-                        orderId: order.id.maDonHang.toString(),
-                        idRestaurant: order.id.idRestaurant.toString(),
-                    }
+    // New function to initiate payment based on selected method
+    const initiatePayment = async (method: 'chuyen_khoan' | 'vi') => {
+        setShowPaymentMethodModal(false); // Close the modal
+
+        if (!order || !order.tongTien) {
+            Alert.alert("Lỗi", "Không có thông tin tổng tiền để thanh toán.");
+            return;
+        }
+
+        setIsPaying(true); // Set loading state for payment
+
+        try {
+            if (method === 'chuyen_khoan') {
+                const paymentResponse = await api.post(ENDPOINTS.CREATE_PAYOS_PAYMENT, {
+                    amount: order.tongTien,
+                    orderId: order.id.maDonHang,
+                    paymentMethod: 'payos',
+                    returnUrl: `${BASE_URL}/payment/success`,
+                    cancelUrl: `${BASE_URL}/payment/cancel`,
                 });
-            } else {
-                throw new Error("Không thể tạo link thanh toán.");
+
+                const paymentUrl = paymentResponse.data.checkoutUrl;
+                if (paymentUrl) {
+                    router.push({
+                        pathname: '/PaymentWebView',
+                        params: {
+                            url: paymentUrl,
+                            orderId: order.id.maDonHang.toString(),
+                            idRestaurant: order.id.idRestaurant.toString(),
+                            idThanhToan: '2', // Truyền idThanhToan=2 (Chuyển khoản) sang WebView
+                        }
+                    });
+                } else {
+                    throw new Error("Không thể tạo link thanh toán.");
+                }
+            } else if (method === 'vi') {
+                if (userPoints < order.tongTien) {
+                    Alert.alert("Lỗi", "Điểm trong ví không đủ để thực hiện thanh toán.");
+                    return;
+                }
+
+                // Deduct points
+                await api.post(`${ENDPOINTS.KHACH_HANG}/${order.maTaiKhoan}/tru-diem`, { diem: order.tongTien });
+
+                // Dùng PATCH endpoint mới - KHÔNG trigger check xung đột bàn/giờ
+                // idThanhToan=3: Điểm (thanh toán bằng ví)
+                await api.patch(
+                    `${ENDPOINTS.YEU_CAU_DON}/${order.id.maDonHang}/${order.id.idRestaurant}/thanh-toan`,
+                    {
+                        trangThaiThanhToan: 'đã thanh toán',
+                        idThanhToan: 3, 
+                    }
+                );
+
+                Alert.alert("Thành công", "Đơn hàng đã được thanh toán bằng ví thành công!");
+                fetchOrderDetails(); // Re-fetch to update UI
             }
-        } catch (err) {
-            console.error("Payment creation failed:", err);
-            Alert.alert("Lỗi thanh toán", "Không thể khởi tạo thanh toán. Vui lòng thử lại.");
+        } catch (err: any) {
+            console.error("Payment failed:", err);
+            Alert.alert("Lỗi thanh toán", `Không thể khởi tạo thanh toán: ${err.response?.data?.error || err.message}`);
         } finally {
             setIsPaying(false);
         }
     };
+
 
     if (loading && !refreshing) {
         return (
@@ -390,7 +471,7 @@ const ChiTietDonHangScreen = () => {
                     { canPay && (
                         <TouchableOpacity
                             style={[styles.paymentButton, (isPaying || isCancelling) && styles.disabledButton]}
-                            onPress={handlePayment}
+                            onPress={handlePayment} // Now opens the modal
                             disabled={isPaying || isCancelling}
                         >
                             {isPaying ?(
@@ -402,6 +483,36 @@ const ChiTietDonHangScreen = () => {
                     )}
                 </View>
             )}
+
+            {/* Payment Method Selection Modal */}
+            <Modal visible={showPaymentMethodModal} transparent={true} animationType="fade" onRequestClose={() => setShowPaymentMethodModal(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.paymentMethodModalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Chọn phương thức thanh toán</Text>
+                            <TouchableOpacity onPress={() => setShowPaymentMethodModal(false)}>
+                                <Ionicons name="close-circle" size={28} color="#999" />
+                            </TouchableOpacity>
+                        </View>
+                        <PaymentOption
+                            method="chuyen_khoan"
+                            icon="qr-code-outline"
+                            label="Chuyển khoản ngân hàng"
+                            current={null} // No pre-selection
+                            onPress={() => initiatePayment('chuyen_khoan')}
+                        />
+                        <PaymentOption
+                            method="vi"
+                            icon="wallet-outline"
+                            label="Thanh toán bằng ví"
+                            current={null} // No pre-selection
+                            onPress={() => initiatePayment('vi')}
+                            points={userPoints}
+                            disabled={userPoints < (order?.tongTien || 0)}
+                        />
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -419,6 +530,7 @@ const styles = StyleSheet.create({
     backButton: { padding: 5 },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
     scrollContainer: { padding: 15 },
+
     card: {
         backgroundColor: COLORS.white, borderRadius: 12, padding: 15, marginBottom: 15,
         elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10,
@@ -478,6 +590,24 @@ const styles = StyleSheet.create({
     disabledButton: {
         backgroundColor: '#CCCCCC',
     },
+    // Styles for Payment Method Modal
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    paymentMethodModalContent: {
+        width: '90%', backgroundColor: COLORS.white, borderRadius: 20, padding: 20,
+        shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5,
+    },
+    modalHeader: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    modalTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
+    paymentOption: {
+        flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: COLORS.background,
+        borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: COLORS.lightGray,
+    },
+    paymentActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    paymentText: { fontSize: 16, color: COLORS.textMain, marginLeft: 15, fontWeight: '500' },
+    paymentTextActive: { color: COLORS.white },
+    disabledPaymentOption: { backgroundColor: '#F0F0F0', borderColor: '#E0E0E0' },
+    disabledPaymentText: { color: '#AAA' },
+    pointsText: { fontSize: 12, color: COLORS.textSec, marginLeft: 'auto' },
 });
 
 export default ChiTietDonHangScreen;

@@ -61,6 +61,14 @@ public class YeuCauDonService {
         return yeuCauDonRepository.save(yeuCauDon);
     }
 
+    /**
+     * Lưu trực tiếp vào repository mà KHÔNG kiểm tra xung đột bàn/giờ.
+     * Dùng khi cập nhật thông tin thanh toán.
+     */
+    public YeuCauDon saveDirectly(YeuCauDon yeuCauDon) {
+        return yeuCauDonRepository.save(yeuCauDon);
+    }
+
     @Transactional
     public YeuCauDon createYeuCauDon(YeuCauDonRequest request) {
         YeuCauDon yeuCauDon = request.getYeuCauDon();

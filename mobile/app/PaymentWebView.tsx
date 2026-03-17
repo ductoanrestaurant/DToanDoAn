@@ -14,7 +14,7 @@ import api, { ENDPOINTS } from '@/constants/api';
 
 
 const PaymentWebView = () => {
-    const params = useLocalSearchParams<{ url: string; orderId: string; idRestaurant: string }>();
+    const params = useLocalSearchParams<{ url: string; orderId: string; idRestaurant: string; idThanhToan?: string }>();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -22,17 +22,17 @@ const PaymentWebView = () => {
     const [seconds, setSeconds] = useState(5);
     const webviewRef = useRef<WebView>(null);
 
-    const updateOrderStatus = async (orderId: string, idRestaurant: string) => {
+    const updateOrderStatus = async (orderId: string, idRestaurant: string, idThanhToan?: string) => {
         try {
-            const getResponse = await api.get(`${ENDPOINTS.YEU_CAU_DON}/${orderId}/${idRestaurant}`);
-            const existingOrderData = getResponse.data;
-            const updatedOrderData = {
-                ...existingOrderData,
+            // Dùng PATCH endpoint mới để tránh trigger check xung đột bàn/giờ (lỗi 409)
+            await api.patch(`${ENDPOINTS.YEU_CAU_DON}/${orderId}/${idRestaurant}/thanh-toan`, {
                 trangThaiThanhToan: 'đã thanh toán',
-                trangThai:'chờ xác nhận',
-            };
-            await api.put(`${ENDPOINTS.YEU_CAU_DON}/${orderId}/${idRestaurant}`, updatedOrderData);
+                idThanhToan: idThanhToan ? parseInt(idThanhToan, 10) : undefined,
+            });
             console.log(`Order ${orderId} status updated to 'đã thanh toán' and payment time recorded.`);
+            
+            // Note: API put full order cũ có 'trangThai: chờ xác nhận' nhưng endpoint chi-tiet/trang-thai lo việc đó
+            // Hoặc nếu cần, có thể gọi update trạng thái riêng nếu DB yêu cầu. 
         } catch (error) {
             console.error('Failed to update order status:', error);
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
@@ -53,7 +53,7 @@ const PaymentWebView = () => {
         if (!showSuccess) return;
 
         if (params.orderId && params.idRestaurant) {
-            updateOrderStatus(params.orderId, params.idRestaurant);
+            updateOrderStatus(params.orderId, params.idRestaurant, params.idThanhToan);
         }
 
         const timer = setInterval(() => {
