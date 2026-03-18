@@ -324,6 +324,7 @@ const ChiTietDonHangScreen = () => {
                             orderId: order.id.maDonHang.toString(),
                             idRestaurant: order.id.idRestaurant.toString(),
                             idThanhToan: '2', // Truyền idThanhToan=2 (Chuyển khoản) sang WebView
+                            returnScreen: '/HomeScreen',
                         }
                     });
                 } else {

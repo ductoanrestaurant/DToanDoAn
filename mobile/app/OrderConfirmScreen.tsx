@@ -262,6 +262,7 @@ const OrderConfirmationScreen = () => {
                             url: paymentUrl,
                             orderId: orderId.toString(),
                             idRestaurant: currentRestaurant.idRestaurant.toString(),
+                            returnScreen: isStaffOrder ? '/NvOrder' : '/HomeScreen',
                         }
                     });
                 } else {

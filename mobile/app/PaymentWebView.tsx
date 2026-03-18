@@ -14,7 +14,7 @@ import api, { ENDPOINTS } from '@/constants/api';
 
 
 const PaymentWebView = () => {
-    const params = useLocalSearchParams<{ url: string; orderId: string; idRestaurant: string; idThanhToan?: string }>();
+    const params = useLocalSearchParams<{ url: string; orderId: string; idRestaurant: string; idThanhToan?: string; returnScreen?: string }>();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -60,7 +60,11 @@ const PaymentWebView = () => {
             setSeconds((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    router.replace('/HomeScreen');
+                    if (params.returnScreen && params.returnScreen !== 'back') {
+                        router.replace(params.returnScreen as any);
+                    } else {
+                        router.back();
+                    }
                     return 0;
                 }
                 return prev - 1;

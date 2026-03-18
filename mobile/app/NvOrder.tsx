@@ -3,6 +3,7 @@ import {
     ActivityIndicator, Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
     TouchableOpacity, View
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import api, { ENDPOINTS } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -225,6 +226,13 @@ const NvOrderScreen = () => {
                     <View style={styles.headerSection}>
                         <Text style={styles.title}>Thông Tin Đặt Bàn</Text>
                         <View style={styles.titleUnderline} />
+                        <TouchableOpacity 
+                            style={styles.dailyOrdersBtn}
+                            onPress={() => router.push('/NvDonHangScreen')}
+                        >
+                            <Ionicons name="receipt-outline" size={20} color="#007AFF" />
+                            <Text style={styles.dailyOrdersText}>Đơn hôm nay</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.formContainer}>
@@ -309,6 +317,8 @@ const styles = StyleSheet.create({
     headerSection: { marginVertical: 15, alignItems: 'center' },
     title: { fontSize: 26, fontWeight: '800', color: '#1A1A1A' },
     titleUnderline: { width: 40, height: 4, backgroundColor: '#007AFF', borderRadius: 2, marginTop: 4 },
+    dailyOrdersBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E1EFFF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 15 },
+    dailyOrdersText: { color: '#007AFF', fontWeight: 'bold', marginLeft: 6 },
     formContainer: { width: '100%',backgroundColor: '#FFF', borderRadius: 24, padding: 20, elevation: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 15 },
     inputGroup: { marginBottom: 16 },
     label: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 6, textTransform: 'uppercase' },
