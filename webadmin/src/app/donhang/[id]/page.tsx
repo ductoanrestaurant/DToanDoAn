@@ -42,6 +42,14 @@ interface OrderDetail {
   thanhToan: {
     kieuThanhToan: string;
   };
+  giamGia?: {
+    code: string;
+    giaTri: number;
+    moTa: string;
+  };
+  nhanVien?: {
+    tenNhanVien: string;
+  };
   chiTietYeuCauDons: ChiTietYeuCauDon[];
 }
 
@@ -127,6 +135,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStatusOptions, setShowStatusOptions] = useState(false);
+  const [showInvoicePopup, setShowInvoicePopup] = useState(false);
 
   const fetchOrderDetail = useCallback(async () => {
     if (!id || !idRestaurant) return;
@@ -236,6 +245,10 @@ export default function OrderDetailPage() {
   const paymentStatusInfo = getPaymentStatusInfo(order.trangThaiThanhToan);
   const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
   const isCompleted = order.chiTietYeuCauDons.every(item => item.trangThai.toLowerCase() === 'hoàn thành' || item.trangThai.toLowerCase() === 'đã hủy');
+  
+  const subtotal = order.chiTietYeuCauDons.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
+  const finalTotal = order.tongTien ?? subtotal;
+  const discountAmount = subtotal > finalTotal ? subtotal - finalTotal : 0;
 
   return (
     <div className="flex bg-[#f1f5f9] min-h-screen font-sans relative">
@@ -293,8 +306,11 @@ export default function OrderDetailPage() {
               </div>
               <div className="border-t my-4"></div>
               <div className="space-y-2 text-right">
-                <p className="text-gray-500">Tổng phụ: <span className="font-semibold text-gray-800">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</span></p>
-                <p className="text-xl font-bold text-gray-900">Tổng cộng: <span className="text-blue-600">{(order.tongTien || 0).toLocaleString('vi-VN')}đ</span></p>
+                <p className="text-gray-500">Tạm tính: <span className="font-semibold text-gray-800">{subtotal.toLocaleString('vi-VN')}đ</span></p>
+                {discountAmount > 0 && (
+                  <p className="text-gray-500">Tổng giảm giá: <span className="font-semibold text-red-500">-{discountAmount.toLocaleString('vi-VN')}đ</span></p>
+                )}
+                <p className="text-xl font-bold text-gray-900">Tổng cộng: <span className="text-blue-600">{finalTotal.toLocaleString('vi-VN')}đ</span></p>
               </div>
             </div>
           </div>
@@ -309,10 +325,24 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
+            {order.nhanVien && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm">
+                <h2 className="text-lg font-bold text-gray-800 mb-4">Nhân viên order</h2>
+                <div className="space-y-2">
+                  <p className="font-semibold text-gray-800">Tên nhân viên: {order.nhanVien.tenNhanVien}</p>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white p-6 rounded-2xl shadow-sm">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Thông tin thanh toán</h2>
               <div className="space-y-2">
                 <p className="text-gray-600">Phương thức: <span className="font-semibold text-gray-800">{order.thanhToan.kieuThanhToan}</span></p>
+                {order.giamGia && (
+                  <p className="text-gray-600">
+                    Mã giảm giá: <span className="font-semibold text-gray-800">{order.giamGia.code} (-{order.giamGia.giaTri.toLocaleString('vi-VN')} {order.giamGia.giaTri > 100 ? 'đ' : '%'})</span>
+                  </p>
+                )}
                 {order.thoiGianThanhToan && (
                   <p className="text-gray-600">
                     Thời gian: <span className="font-semibold text-gray-800">{new Date(order.thoiGianThanhToan).toLocaleString('vi-VN')}</span>
@@ -324,7 +354,10 @@ export default function OrderDetailPage() {
             <div className="bg-white p-6 rounded-2xl shadow-sm">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Hành động</h2>
               <div className="flex flex-col gap-3">
-                <button className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">
+                <button 
+                  onClick={() => setShowInvoicePopup(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
+                >
                   <Printer size={20} /> In hóa đơn
                 </button>
                 <button
@@ -355,6 +388,98 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Invoice Popup */}
+      {showInvoicePopup && (
+        <div className="fixed inset-0 bg-black/50 flex flex-col items-center justify-center z-[100] p-4 print:bg-transparent print:p-0">
+          <style dangerouslySetInnerHTML={{__html: `
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              #invoice-popup-content, #invoice-popup-content * {
+                visibility: visible;
+              }
+              #invoice-popup-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+              }
+            }
+          `}} />
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col print:shadow-none print:bg-transparent print:max-h-none print:overflow-visible">
+            <div className="p-6 flex-1 print:p-2 bg-white" id="invoice-popup-content">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 uppercase">HÓA ĐƠN THANH TOÁN</h2>
+                <p className="text-gray-500">Mã đơn: #{order.id.maDonHang}</p>
+                <p className="text-sm text-gray-500">{new Date(order.ngayTaoDon).toLocaleString('vi-VN')}</p>
+                {restaurant && (
+                  <p className="text-sm text-gray-800 mt-2 font-semibold">DUCTOAN RESTAURANT</p>
+                )}
+              </div>
+
+              <div className="mb-6 space-y-1">
+                <p className="text-gray-700"><span className="font-semibold">Khách hàng:</span> {order.khachHang.hoTen}</p>
+                <p className="text-gray-700"><span className="font-semibold">SĐT:</span> {order.khachHang.sdt}</p>
+                {order.nhanVien && (
+                  <p className="text-gray-700"><span className="font-semibold">Nhân viên:</span> {order.nhanVien.tenNhanVien}</p>
+                )}
+              </div>
+
+              <table className="w-full mb-6">
+                <thead>
+                  <tr className="border-b-2 border-dashed border-gray-300">
+                    <th className="py-2 text-left text-gray-700">Món</th>
+                    <th className="py-2 text-center text-gray-700">SL</th>
+                    <th className="py-2 text-right text-gray-700">Giá</th>
+                    <th className="py-2 text-right text-gray-700">TT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.chiTietYeuCauDons.map((item, index) => (
+                    <tr key={index} className="border-b border-dashed border-gray-200">
+                      <td className="py-2 text-gray-800">{item.sanPham.tenSanPham}</td>
+                      <td className="py-2 text-center text-gray-800">{item.soLuong}</td>
+                      <td className="py-2 text-right text-gray-800">{item.gia.toLocaleString('vi-VN')}</td>
+                      <td className="py-2 text-right text-gray-800">{(item.gia * item.soLuong).toLocaleString('vi-VN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="space-y-2 text-right border-t-2 border-dashed border-gray-300 pt-4">
+                <p className="text-gray-700">Tạm tính: <span className="font-semibold text-gray-800">{subtotal.toLocaleString('vi-VN')} đ</span></p>
+                {discountAmount > 0 && (
+                  <p className="text-gray-700">Giảm giá {order.giamGia ? `(${order.giamGia.code})` : ''}: <span className="font-semibold text-gray-800">-{discountAmount.toLocaleString('vi-VN')} đ</span></p>
+                )}
+                <p className="text-xl font-bold text-gray-900 mt-2">Tổng cộng: {finalTotal.toLocaleString('vi-VN')} đ</p>
+              </div>
+              
+              <div className="mt-8 text-center text-gray-500 italic text-sm">
+                Cảm ơn quý khách và hẹn gặp lại!
+              </div>
+            </div>
+            
+            <div className="p-4 border-t flex gap-3 print:hidden bg-white rounded-b-xl">
+              <button 
+                onClick={() => setShowInvoicePopup(false)}
+                className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+              >
+                Đóng
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="flex-1 py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex justify-center items-center gap-2"
+              >
+                <Printer size={18} /> In ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -55,6 +55,14 @@ public class YeuCauDon {
     private LocalDateTime gioSuDung;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+        @JoinColumn(name = "MANHANVIEN", referencedColumnName = "MANHANVIEN", insertable = false, updatable = false),
+        @JoinColumn(name = "ID_RESTAURANT", referencedColumnName = "ID_RESTAURANT", insertable = false, updatable = false)
+    })
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private NhanVien nhanVien;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "MATAIKHOAN", referencedColumnName = "MATAIKHOAN", insertable = false, updatable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private KhachHang khachHang;

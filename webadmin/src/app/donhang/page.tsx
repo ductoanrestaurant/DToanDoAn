@@ -89,6 +89,8 @@ export default function DonHangPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<'all' | 'today'>('today');
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('all');
+  const [filterOrderStatus, setFilterOrderStatus] = useState<string>('all');
   const [searchPhone, setSearchPhone] = useState('');
 
   useEffect(() => {
@@ -165,7 +167,21 @@ export default function DonHangPage() {
       phoneMatch = last4 === keywordDigits;
     }
 
-    return dateMatch && phoneMatch;
+    // Filter by payment status
+    let paymentMatch = true;
+    if (filterPaymentStatus !== 'all') {
+      const pStatus = (order.trangThaiThanhToan || '').toLowerCase();
+      paymentMatch = pStatus === filterPaymentStatus.toLowerCase();
+    }
+
+    // Filter by order status
+    let orderStatusMatch = true;
+    if (filterOrderStatus !== 'all') {
+      const oStatus = getOrderStatusInfo(order.chiTietYeuCauDons).text.toLowerCase();
+      orderStatusMatch = oStatus === filterOrderStatus.toLowerCase();
+    }
+
+    return dateMatch && phoneMatch && paymentMatch && orderStatusMatch;
   });
 
   return (
@@ -174,14 +190,36 @@ export default function DonHangPage() {
       <main className="flex-1 ml-64 p-8">
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Đơn hàng</h1>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <select 
               value={filterDate} 
               onChange={(e) => setFilterDate(e.target.value as 'all' | 'today')}
               className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="today">Hôm nay</option>
-              <option value="all">Tất cả đơn hàng</option>
+              <option value="all">Tất cả thời gian</option>
+            </select>
+            
+            <select 
+              value={filterPaymentStatus} 
+              onChange={(e) => setFilterPaymentStatus(e.target.value)}
+              className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="all">Tất cả trạng thái thanh toán</option>
+              <option value="đã thanh toán">Đã thanh toán</option>
+              <option value="chưa thanh toán">Chưa thanh toán</option>
+            </select>
+
+            <select 
+              value={filterOrderStatus} 
+              onChange={(e) => setFilterOrderStatus(e.target.value)}
+              className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="all">Tất cả trạng thái đơn</option>
+              <option value="hoàn thành">Hoàn thành</option>
+              <option value="đã hủy">Đã hủy</option>
+              <option value="chờ xác nhận">Chờ xác nhận</option>
+              <option value="đang dùng bữa">Đang dùng bữa</option>
             </select>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
