@@ -10,6 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
+import com.example.demo.dto.TopSanPhamDTO;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class ChiTietYeuCauDonService {
@@ -39,5 +43,22 @@ public class ChiTietYeuCauDonService {
         } else {
             return Optional.empty();
         }
+    }
+
+    public List<TopSanPhamDTO> getTop5SanPhamBanChay() {
+        Pageable topFive = PageRequest.of(0, 5);
+        List<Object[]> results = chiTietYeuCauDonRepository.findTopSanPham(topFive);
+        List<TopSanPhamDTO> topSanPhamList = new ArrayList<>();
+        
+        for (Object[] result : results) {
+            Integer maSanPham = (Integer) result[0];
+            String tenSanPham = (String) result[1];
+            Long soLuotBan = ((Number) result[2]).longValue();
+            Double saoDanhGia = ((Number) result[3]).doubleValue();
+            
+            topSanPhamList.add(new TopSanPhamDTO(maSanPham, tenSanPham, soLuotBan, saoDanhGia));
+        }
+        
+        return topSanPhamList;
     }
 }

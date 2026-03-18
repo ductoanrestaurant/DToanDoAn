@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
@@ -51,13 +52,9 @@ public interface ChiTietYeuCauDonRepository extends JpaRepository<ChiTietYeuCauD
             )
       """)
   List<ChiTietYeuCauDon> findChuaDanhGiaByDon(
-          @Param("maDonHang") Integer maDonHang,
-          @Param("idRestaurant") Integer idRestaurant,
-          @Param("maTaiKhoan") Integer maTaiKhoan);
-
-
-
-
+      @Param("maDonHang") Integer maDonHang,
+      @Param("idRestaurant") Integer idRestaurant,
+      @Param("maTaiKhoan") Integer maTaiKhoan);
 
   /**
    * Lấy TẤT CẢ sản phẩm có trangThai = 'hoàn thành' trong một đơn cụ thể,
@@ -72,4 +69,13 @@ public interface ChiTietYeuCauDonRepository extends JpaRepository<ChiTietYeuCauD
   List<ChiTietYeuCauDon> findHoanThanhByDon(
       @Param("maDonHang") Integer maDonHang,
       @Param("idRestaurant") Integer idRestaurant);
+
+  @Query("SELECT c.id.maSanPham, c.sanPham.tenSanPham, SUM(c.soLuong) as total, " +
+      "COALESCE(AVG(CAST(d.soSao AS double)), 0.0) as avgRating " +
+      "FROM ChiTietYeuCauDon c " +
+      "LEFT JOIN DanhGia d ON c.id.maSanPham = d.id.maSanPham " +
+      "WHERE c.trangThai = 'hoàn thành' " +
+      "GROUP BY c.id.maSanPham, c.sanPham.tenSanPham " +
+      "ORDER BY total DESC, avgRating DESC")
+  List<Object[]> findTopSanPham(Pageable pageable);
 }

@@ -3,10 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { DollarSign, Moon, LogOut, ArrowUp, ArrowDown, ShoppingCart, TrendingUp } from 'lucide-react';
+import { DollarSign, Moon, LogOut, ArrowUp, ArrowDown, ShoppingCart, TrendingUp, Star } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import api from '@/constants/api';
 
+// --- Types and Helpers ---
+interface TopSanPhamDTO {
+    maSanPham: number;
+    tenSanPham: string;
+    soLuotBan: number;
+    saoDanhGia: number;
+}
 // --- Helpers: format API revenue for charts ---
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
@@ -30,44 +37,35 @@ function formatMonthlyRevenueFromApi(raw: { month?: string; total?: number }[]):
     }));
 }
 
-function formatDailyRevenueFromApi(raw: { day?: string; total?: number }[]): { name: string; value: number }[] {
-    if (!raw?.length) return [];
+function formatDailyDataFromApi(raw: { day?: string; value?: number }[]): { name: string; value: number }[] {
     const byDay = new Map<string, number>();
-    raw.forEach((x) => {
-        const d = x.day as string;
-        const total = Number(x.total) || 0;
-        if (d) byDay.set(d, total);
-    });
+    if (Array.isArray(raw)) {
+        raw.forEach((x) => {
+            const d = x.day as string;
+            const value = Number(x.value) || 0;
+            if (d) byDay.set(d, value);
+        });
+    }
+
     const today = new Date();
     const startOfWeek = new Date(today);
-    const dayOfWeek = today.getDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const dayOfWeek = today.getDay(); // Sunday is 0, Monday is 1, etc.
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday is the start of the week
     startOfWeek.setDate(today.getDate() - diff);
     startOfWeek.setHours(0, 0, 0, 0);
+
     const result: { name: string; value: number }[] = [];
     const cur = new Date(startOfWeek);
-    while (cur <= today) {
+
+    for (let i = 0; i < 7; i++) {
         const key = cur.toISOString().slice(0, 10);
         const dayIndex = cur.getDay() === 0 ? 6 : cur.getDay() - 1;
         result.push({ name: DAY_LABELS[dayIndex], value: byDay.get(key) || 0 });
         cur.setDate(cur.getDate() + 1);
     }
+
     return result;
 }
-
-// --- Mock Data (chỉ dùng cho số lượng đơn hàng) ---
-const dailyOrderData = [
-    { name: 'T2', value: 85 }, { name: 'T3', value: 72 }, { name: 'T4', value: 115 },
-    { name: 'T5', value: 98 }, { name: 'T6', value: 120 }, { name: 'T7', value: 105 }, { name: 'CN', value: 110 },
-];
-
-const mockBestSellers = [
-    { id: 1, name: 'Phở Bò Kobe', quantity: 345, revenue: 25875000 },
-    { id: 2, name: 'Cơm Rang Dưa Bò', quantity: 289, revenue: 14450000 },
-    { id: 3, name: 'Bún Chả Hà Nội', quantity: 256, revenue: 12800000 },
-    { id: 4, name: 'Gỏi Cuốn', quantity: 210, revenue: 10500000 },
-    { id: 5, name: 'Nem Rán', quantity: 198, revenue: 7920000 },
-];
 
 
 // --- Types and Helpers ---
@@ -96,10 +94,13 @@ export default function DoanhThuPage() {
 
     // State for chart data
     const [monthlyOrderData, setMonthlyOrderData] = useState<{name: string, value: number}[]>([]);
+    const [dailyOrderData, setDailyOrderData] = useState<{name: string, value: number}[]>([]);
     const [monthlyRevenueData, setMonthlyRevenueData] = useState<{ name: string; value: number }[]>([]);
     const [dailyRevenueData, setDailyRevenueData] = useState<{ name: string; value: number }[]>([]);
     const [tongDonHomNay, setTongDonHomNay] = useState<number>(0);
     const [tongDonThangNay, setTongDonThangNay] = useState<number>(0);
+    const [topProducts, setTopProducts] = useState<TopSanPhamDTO[]>([]);
+
 
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
@@ -120,6 +121,21 @@ export default function DoanhThuPage() {
             }
         };
 
+        const fetchDailyOrderData = async () => {
+            try {
+                const response = await api.get('/yeu-cau-don/stats/orders-by-day');
+                if (response.status === 200 && Array.isArray(response.data)) {
+                    const formattedData = response.data.map(item => ({
+                        day: item.day,
+                        value: Number(item.ordercount) || 0
+                    }));
+                    setDailyOrderData(formatDailyDataFromApi(formattedData));
+                }
+            } catch (error) {
+                console.error("Failed to fetch daily order data:", error);
+            }
+        };
+
         const fetchRevenueData = async () => {
             try {
                 const [monthRes, dayRes] = await Promise.all([
@@ -130,7 +146,11 @@ export default function DoanhThuPage() {
                     setMonthlyRevenueData(formatMonthlyRevenueFromApi(monthRes.data));
                 }
                 if (dayRes.status === 200 && Array.isArray(dayRes.data)) {
-                    setDailyRevenueData(formatDailyRevenueFromApi(dayRes.data));
+                    const formattedData = dayRes.data.map(item => ({
+                        day: item.day,
+                        value: Number(item.total) || 0
+                    }));
+                    setDailyRevenueData(formatDailyDataFromApi(formattedData));
                 }
             } catch (error) {
                 console.error("Failed to fetch revenue data:", error);
@@ -156,9 +176,22 @@ export default function DoanhThuPage() {
             }
         };
 
+        const fetchTopProducts = async () => {
+            try {
+                const response = await api.get('/yeu-cau-don/top-san-pham');
+                if (response.status === 200 && Array.isArray(response.data)) {
+                    setTopProducts(response.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch top products:", error);
+            }
+        };
+
         fetchMonthlyOrderData();
+        fetchDailyOrderData();
         fetchRevenueData();
         fetchOrderCountData();
+        fetchTopProducts();
     }, [router]);
 
     const handleLogout = () => {
@@ -210,55 +243,55 @@ export default function DoanhThuPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-gray-500 text-sm font-medium">Doanh thu hôm nay</h3>
+                            <h3 className="text-gray-500 text-base font-medium">Doanh thu hôm nay</h3>
                             <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
-                                <DollarSign size={20} />
+                                <DollarSign size={30} />
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{formatVnd(doanhThuHomNay)}</p>
-                        <div className="flex items-center text-sm text-green-500 mt-2">
-                            <ArrowUp size={16} className="mr-1" />
-                            <span>15% so với hôm qua</span>
-                        </div>
+                        {/*<div className="flex items-center text-sm text-green-500 mt-2">*/}
+                        {/*    <ArrowUp size={16} className="mr-1" />*/}
+                        {/*    <span>15% so với hôm qua</span>*/}
+                        {/*</div>*/}
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-gray-500 text-sm font-medium">Tổng đơn hôm nay</h3>
+                            <h3 className="text-gray-500 text-base font-medium">Tổng đơn hôm nay</h3>
                             <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
-                                <ShoppingCart size={20} />
+                                <ShoppingCart size={30} />
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{tongDonHomNay}</p>
-                        <div className="flex items-center text-sm text-green-500 mt-2">
-                            <ArrowUp size={16} className="mr-1" />
-                            <span>5% so với hôm qua</span>
-                        </div>
+                        {/*<div className="flex items-center text-sm text-green-500 mt-2">*/}
+                        {/*    <ArrowUp size={16} className="mr-1" />*/}
+                        {/*    <span>5% so với hôm qua</span>*/}
+                        {/*</div>*/}
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-gray-500 text-sm font-medium">Doanh thu tháng này</h3>
+                            <h3 className="text-gray-500 text-base font-medium">Doanh thu tháng này</h3>
                             <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                                <DollarSign size={20} />
+                                <DollarSign size={30} />
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{formatVnd(doanhThuThangNay)}</p>
-                        <div className="flex items-center text-sm text-green-500 mt-2">
-                            <ArrowUp size={16} className="mr-1" />
-                            <span>8% so với tháng trước</span>
-                        </div>
+                        {/*<div className="flex items-center text-sm text-green-500 mt-2">*/}
+                        {/*    <ArrowUp size={16} className="mr-1" />*/}
+                        {/*    <span>8% so với tháng trước</span>*/}
+                        {/*</div>*/}
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-gray-500 text-sm font-medium">Tổng đơn tháng này</h3>
+                            <h3 className="text-gray-500 text-base font-medium">Tổng đơn tháng này</h3>
                             <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
-                                <ShoppingCart size={20} />
+                                <ShoppingCart size={30}/>
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{tongDonThangNay}</p>
-                        <div className="flex items-center text-sm text-red-500 mt-2">
-                            <ArrowDown size={16} className="mr-1" />
-                            <span>-2% so với tháng trước</span>
-                        </div>
+                        {/*<div className="flex items-center text-sm text-red-500 mt-2">*/}
+                        {/*    <ArrowDown size={16} className="mr-1" />*/}
+                        {/*    <span>-2% so với tháng trước</span>*/}
+                        {/*</div>*/}
                     </div>
                 </div>
 
@@ -293,19 +326,20 @@ export default function DoanhThuPage() {
                             <h3 className="font-bold text-lg text-gray-800">Top 5 Món Bán Chạy</h3>
                         </div>
                         <div className="space-y-4">
-                            {mockBestSellers.map((item, index) => (
-                                <div key={item.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition border border-gray-100">
+                            {topProducts.map((item, index) => (
+                                <div key={item.maSanPham} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition border border-gray-100">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-600' : index === 1 ? 'bg-gray-200 text-gray-600' : index === 2 ? 'bg-orange-100 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
                                             #{index + 1}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
-                                            <p className="text-xs text-gray-500">{item.quantity} đã bán</p>
+                                            <p className="font-semibold text-gray-800 text-sm">{item.tenSanPham}</p>
+                                            <p className="text-xs text-gray-500">{item.soLuotBan} đã bán</p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-sm text-green-600">{(item.revenue).toLocaleString('vi-VN')}đ</p>
+                                    <div className="flex items-center gap-1 text-sm text-yellow-500">
+                                        <Star size={16} />
+                                        <span className="font-bold">{item.saoDanhGia.toFixed(1)}</span>
                                     </div>
                                 </div>
                             ))}

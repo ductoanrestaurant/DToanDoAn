@@ -155,6 +155,10 @@ public class YeuCauDonService {
         return yeuCauDonRepository.countOrdersByMonth(year);
     }
 
+    public List<Map<String, Object>> getDailyOrderCounts() {
+        return yeuCauDonRepository.countOrdersByDay();
+    }
+
     /**
      * Kiểm tra xem bàn có khả dụng tại thời điểm yêu cầu không
      * Mỗi đơn sử dụng bàn trong 2 giờ (từ gioSuDung đến gioSuDung + 2h)

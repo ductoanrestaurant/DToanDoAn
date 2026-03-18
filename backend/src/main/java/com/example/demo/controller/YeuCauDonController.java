@@ -44,6 +44,18 @@ public class YeuCauDonController {
         return ResponseEntity.ok(stats);
     }
 
+    @GetMapping("/stats/orders-by-day")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<List<Map<String, Object>>> getOrdersByDay() {
+        try {
+            List<Map<String, Object>> stats = yeuCauDonService.getDailyOrderCounts();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy số lượng đơn hàng theo ngày: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/{maDonHang}/{idRestaurant}")
     @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'THU_NGAN')")
     public ResponseEntity<YeuCauDon> getById(
@@ -258,6 +270,15 @@ public class YeuCauDonController {
     }
 
 
-
+    @GetMapping("/top-san-pham")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    public ResponseEntity<List<com.example.demo.dto.TopSanPhamDTO>> getTop5SanPhamBanChay() {
+        try {
+            return ResponseEntity.ok(chiTietYeuCauDonService.getTop5SanPhamBanChay());
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy top 5 sản phẩm bán chạy: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
 }

@@ -33,6 +33,14 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
             "ORDER BY month(y.ngayTaoDon)")
     List<Map<String, Object>> countOrdersByMonth(@Param("year") int year);
 
+    @Query(value = "SELECT TO_CHAR(y.ngaytaodon, 'YYYY-MM-DD') as day, COUNT(y.madonhang) as orderCount " +
+            "FROM yeucaudon y " +
+            "WHERE y.ngaytaodon >= date_trunc('week', CURRENT_DATE) " +
+            "AND y.ngaytaodon < date_trunc('week', CURRENT_DATE) + interval '1 week' " +
+            "GROUP BY day " +
+            "ORDER BY day", nativeQuery = true)
+    List<Map<String, Object>> countOrdersByDay();
+
     // Tìm các đơn hàng của một bàn trong khoảng thời gian nhất định,
     // CHỈ lấy đơn có ít nhất 1 chiTiet KHÔNG phải Đã hủy / hoàn thành
     // (đơn bị hủy không được chiếm bàn)
