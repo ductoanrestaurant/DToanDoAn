@@ -9,9 +9,7 @@
 
 ## 🚀 Các thành phần chính
 
-*   **`backend`**: Một ứng dụng Spring Boot (Java) chịu trách nhiệm xử lý tất cả các yêu cầu, xác thực người dùng, và tương tác với cơ sở dữ liệu.
-*   **`webadmin`**: Một ứng dụng Next.js (React) cung cấp giao diện quản trị cho phép quản lý các khía cạnh của nhà hàng như nhân viên, thực đơn, kho, v.v.
-*   **`DucToanRestaurant`**: Một ứng dụng di động React Native (Expo) cho phép khách hàng xem thực đơn, đặt hàng và cho phép nhân viên (Quản lý, Thu ngân) thực hiện các tác vụ nhanh.
+*   **`mobile`**: Một ứng dụng di động React Native (Expo) cho phép khách hàng xem thực đơn, đặt hàng và cho phép nhân viên (Quản lý, Thu ngân) thực hiện các tác vụ nhanh.
 
 ---
 
@@ -21,10 +19,10 @@
 - **Xác thực & Phân quyền:** Hệ thống sử dụng JWT (JSON Web Tokens) để xác thực. Quyền truy cập được phân chia rõ ràng theo vai trò người dùng (`KHACH_HANG`, `QUAN_LY`, `THU_NGAN`, `BEP`).
 - **Phân quyền theo Client:** Giới hạn quyền truy cập vào ứng dụng Web và Mobile tùy theo vai trò.
 
-### Ứng dụng Di động (`DucToanRestaurant`)
+### Ứng dụng Di động (`mobile`)
 - Dành cho **Khách hàng**, **Quản lý**, và **Thu ngân**.
 - Khách hàng có thể đăng nhập, xem thông tin, đặt món.
-- Nhân viên có thể đăng nhập để thực hiện các nghiệp vụ nhanh (ví dụ: quản lý đơn hàng).
+- Nhân viên (Quản lý, Thu ngân) có thể đăng nhập để thực hiện các nghiệp vụ nhanh (ví dụ: quản lý đơn hàng).
 
 ### Trang Web Admin (`webadmin`)
 - Dành cho **Quản lý**, **Thu ngân**, và **Bếp**.
@@ -38,6 +36,48 @@
 
 ## 📸 Screenshots
 
+### Ứng dụng Di động (`mobile`)
+<h4 align="center">------ Luồng khách hàng sử dụng app ------</h4>
+<p align="center">
+  <img src="Screenshots/image.png" width="20%" />
+  <img src="Screenshots/image-1.png" width="20%" /> 
+  <img src="Screenshots/image-2.png" width="20%" />
+  <img src="Screenshots/image-3.png" width="20%" />
+  <img src="Screenshots/image-4.png" width="20%" />
+  <img src="Screenshots/image-5.png" width="20%" />
+  <img src="Screenshots/image-6.png" width="20%" />
+  <img src="Screenshots/image-7.png" width="20%" />
+  <img src="Screenshots/image-8.png" width="20%" />
+  <img src="Screenshots/image-9.png" width="20%" />
+</p>
+
+<h4 align="center">------ Luồng nhân viên sử dụng app ------</h4>
+<p align="center">
+  <img src="Screenshots/image-10.png" width="20%" />
+  <img src="Screenshots/image-12.png" width="20%" />
+  <img src="Screenshots/image-13.png" width="20%" />
+  <img src="Screenshots/image-14.png" width="20%" />
+  <img src="Screenshots/image-15.png" width="20%" />
+  <img src="Screenshots/image-16.png" width="20%" />
+</p>
+
+### Trang Web Admin (`webadmin`)
+<h4 align="center">------ Luồng sử dụng webadmin ------</h4>
+<p align="center">
+<img src="Screenshots/image-17.png" width="48%" />
+<img src="Screenshots/image-18.png" width="48%" />
+<img src="Screenshots/image-19.png" width="48%" />
+<img src="Screenshots/image-20.png" width="48%" />
+<img src="Screenshots/image-21.png" width="48%" /> 
+<img src="Screenshots/image-22.png" width="48%" />
+<img src="Screenshots/image-23.png" width="48%" />
+<img src="Screenshots/image-24.png" width="48%" />
+<img src="Screenshots/image-25.png" width="48%" />
+<img src="Screenshots/image-26.png" width="48%" />
+<img src="Screenshots/image-27.png" width="48%" />
+<img src="Screenshots/image-28.png" width="48%" />
+<img src="Screenshots/image-29.png" width="48%" />
+</p>
 ---
 
 
@@ -58,7 +98,7 @@
 /demo1
 ├── backend/         # Source code của server Spring Boot
 ├── webadmin/        # Source code của trang quản trị Next.js
-└── DucToanRestaurant/ # Source code của ứng dụng di động React Native
+└── mobile/            # Source code của ứng dụng di động React Native
 ```
 
 ---
@@ -72,9 +112,10 @@
 # 2. Cấu hình cơ sở dữ liệu
 #    - Mở tệp `src/main/resources/application.properties`
 #    - Cập nhật các thông tin sau cho phù hợp với môi trường của bạn:
-#      spring.datasource.url=jdbc:mysql://localhost:3306/your_database_name
+#      spring.datasource.url=jdbc:postgresql://localhost:5432/your_database_name
 #      spring.datasource.username=your_username
 #      spring.datasource.password=your_password
+#    *Mẹo: Nếu có sẵn Docker, chạy lệnh `docker-compose up -d` để khởi động DB nhanh chóng.
 
 # 3. Chạy ứng dụng
 #    - Chạy file DemoApplication.java hoặc sử dụng Maven
@@ -97,8 +138,8 @@ Trang quản trị sẽ có sẵn tại `http://localhost:3000`.
 
 ### 3. Mobile App
 ```bash
-# 1. Di chuyển vào thư mục DucToanRestaurant
-cd DucToanRestaurant
+# 1. Di chuyển vào thư mục mobile
+cd mobile
 
 # 2. Cài đặt các gói phụ thuộc
 npm install
