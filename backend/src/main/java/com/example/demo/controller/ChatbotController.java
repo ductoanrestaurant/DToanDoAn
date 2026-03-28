@@ -26,11 +26,12 @@ public class ChatbotController {
     private final YeuCauDonRepository yeuCauDonRepository;
     private final ChiTietYeuCauDonRepository chiTietYeuCauDonRepository;
     private final BanRepository banRepository;
-
     private final GeminiChatHistoryService geminiChatHistoryService;
 
-
-    public ChatbotController(GeminiService geminiService, KhachHangRepository khachHangRepository, SanPhamRepository sanPhamRepository, YeuCauDonRepository yeuCauDonRepository, ChiTietYeuCauDonRepository chiTietYeuCauDonRepository, BanRepository banRepository, GeminiChatHistoryService geminiChatHistoryService) {
+    public ChatbotController(GeminiService geminiService, KhachHangRepository khachHangRepository,
+            SanPhamRepository sanPhamRepository, YeuCauDonRepository yeuCauDonRepository,
+            ChiTietYeuCauDonRepository chiTietYeuCauDonRepository, BanRepository banRepository,
+            GeminiChatHistoryService geminiChatHistoryService) {
         this.geminiService = geminiService;
         this.khachHangRepository = khachHangRepository;
         this.sanPhamRepository = sanPhamRepository;
@@ -43,122 +44,187 @@ public class ChatbotController {
     @PostMapping
     public Mono<ChatResponse> chat(@RequestBody ChatRequest request, Authentication authentication) {
 
-        // 1. Fetch all products from the database
+        String userId = (authentication != null && authentication.isAuthenticated())
+                ? authentication.getName()
+                : "anonymous";
+
+        // 1. Lay danh sach san pham tu DB
         List<SanPham> danhSachSanPham = sanPhamRepository.findAll();
         String danhSachMonAn = danhSachSanPham.stream()
-                .map(sp -> sp.getTenSanPham() + " (ID: " + sp.getMaSanPham() + ")")
+                .map(sp -> sp.getTenSanPham() + " (ID: " + sp.getMaSanPham() + ", Giá: " + sp.getGia().intValue() + "đ)")
                 .collect(Collectors.joining(", "));
 
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append("Bạn là trợ lý ảo chuyên nghiệp của nhà hàng 'Đức Toàn Restaurant'. ");
-        promptBuilder.append("Nhiệm vụ: Hỗ trợ đặt bàn, tư vấn món ăn và TẠO ĐƠN HÀNG. ");
+        promptBuilder.append("Nhiệm vụ: Hỗ trợ đặt bàn, tư vấn món ăn và xác nhận đơn hàng với khách.");
 
-        // 2. Add the strict rule and the list of dishes to the prompt
         promptBuilder.append("\n\nQUY TẮC CỰC KỲ QUAN TRỌNG:");
-        promptBuilder.append("\n1. CHỈ ĐƯỢC PHÉP tư vấn, gợi ý, và nói về những món ăn có trong danh sách sau đây. TUYỆT ĐỐI KHÔNG được bịa ra món khác.");
-        promptBuilder.append("\n2. DANH SÁCH MÓN ĂN CỦA NHÀ HÀNG: ").append(danhSachMonAn);
-        promptBuilder.append("\n3. Nếu khách hỏi món không có trong danh sách, hãy trả lời là 'Xin lỗi, nhà hàng hiện không có món [tên món khách hỏi]. Tuy nhiên, nhà hàng có những món đặc sắc khác như [gợi ý 1, 2 món trong danh sách].'");
-//        promptBuilder.append("\n4. KHI KHÁCH HÀNG YÊU CẦU ĐẶT BÀN VÀ MÓN ĂN, hãy phân tích chi tiết yêu cầu của họ và trả lời bằng một chuỗi JSON duy nhất, không có bất kỳ văn bản nào khác. JSON phải có cấu trúc sau: {\"action\": \"CREATE_ORDER\", \"order\": {\"customerName\": \"<tên khách>\", \"customerPhone\": \"<SĐT khách>\", \"numGuests\": <số người>, \"reservationTime\": \"<YYYY-MM-DDTHH:MM:SS>\", \"notes\": \"<ghi chú nếu có>\", \"items\": [{\"productId\": <ID sản phẩm>, \"quantity\": <số lượng>}, ...]}}");
-        promptBuilder.append("\n5. Nếu không thể xác định được thông tin nào, hãy đặt giá trị đó là null trong JSON.");
-        promptBuilder.append("\n6. Nếu khách chỉ hỏi thông tin chung, hãy trả lời bình thường, không sử dụng JSON.");
+        promptBuilder.append("\n1. CHỈ ĐƯỢC PHÉP tư vấn về món ăn có trong danh sách sau. TUYỆT ĐỐI KHÔNG bịa ra món khác.");
+        promptBuilder.append("\n2. DANH SÁCH MÓN ĂN (kèm ID và giá): ").append(danhSachMonAn);
+        promptBuilder.append("\n3. Nếu khách hỏi món không có trong danh sách: 'Xin lỗi, nhà hàng không có món đó. Có thể gợi ý [1-2 món trong danh sách].'");
+        promptBuilder.append("\n4. LUÔN trả lời bằng ngôn ngữ tự nhiên, thân thiện. TUYỆT ĐỐI KHÔNG xuất ra JSON hay code block — TRỪ quy tắc 5.");
 
+        promptBuilder.append("\n\nQUY TRÌNH ĐẶT BÀN:");
+        promptBuilder.append("\nKhi khách muốn đặt bàn, thu thập ĐỦ 3 thông tin sau trước khi xác nhận:");
+        promptBuilder.append("\n  A. Số lượng người (nếu thiếu → hỏi: 'Anh/chị sẽ có bao nhiêu người ạ?')");
+        promptBuilder.append("\n  B. Giờ đến (nếu thiếu → hỏi: 'Anh/chị muốn đến lúc mấy giờ ạ?')");
+        promptBuilder.append("\n  C. Món ăn và số lượng (nếu thiếu → hỏi: 'Anh/chị muốn đặt trước món gì không? Nhà hàng có: [liệt kê 3-5 món nổi bật kèm giá]')");
+        promptBuilder.append("\nChỉ khi đủ A+B+C mới tổng kết và hỏi: 'Anh/chị xác nhận đặt bàn không ạ?'");
+        promptBuilder.append("\nHỏi TỪNG CÂU MỘT nếu còn thiếu thông tin, không hỏi dồn.");
+
+        promptBuilder.append("\n\nQUY TẮC 5 — CHỈ ÁP DỤNG KHI KHÁCH XÁC NHẬN:");
+        promptBuilder.append("\nNếu khách nói 'xác nhận'/'đồng ý'/'ok'/'được'/'đặt đi' SAU KHI đã có đủ A+B+C,");
+        promptBuilder.append("\nHÃY TRẢ LỜI ĐÚNG MỘT CHUỖI JSON (không kèm bất kỳ text nào), theo cấu trúc:");
+        promptBuilder.append("\n{\"action\":\"CREATE_ORDER\",\"soNguoi\":<số>,\"gioSuDung\":\"<YYYY-MM-DDTHH:MM:SS>\",\"items\":[{\"maSanPham\":<ID>,\"soLuong\":<số>}]}");
+        promptBuilder.append("\nNgày hôm nay: ").append(java.time.LocalDate.now());
 
         if (authentication != null && authentication.isAuthenticated()) {
-            String username = authentication.getName();
-            Optional<KhachHang> khachHangOpt = khachHangRepository.findByEmail(username);
-
+            Optional<KhachHang> khachHangOpt = khachHangRepository.findByEmail(authentication.getName());
             if (khachHangOpt.isPresent()) {
                 KhachHang kh = khachHangOpt.get();
-                promptBuilder.append("\n\nTHÔNG TIN KHÁCH HÀNG ĐANG CHAT:");
-                promptBuilder.append("\n- Tên khách: ").append(kh.getHoTen());
-                promptBuilder.append("\n- Số điện thoại: ").append(kh.getSdt());
+                promptBuilder.append("\n\nTHÔNG TIN KHÁCH ĐANG CHAT:");
+                promptBuilder.append("\n- Tên: ").append(kh.getHoTen());
+                promptBuilder.append("\n- SĐT: ").append(kh.getSdt());
                 promptBuilder.append("\n- Email: ").append(kh.getEmail());
-
-                promptBuilder.append("\n\nQUY TẮC BỔ SUNG KHI BIẾT THÔNG TIN KHÁCH:");
-                promptBuilder.append("\n- Hãy chào khách bằng tên thật của họ (Ví dụ: 'Chào anh Toàn').");
-                promptBuilder.append("\n- Khi khách đặt bàn, HÃY TỰ ĐỘNG DÙNG SĐT VÀ TÊN Ở TRÊN để điền vào đơn, KHÔNG được hỏi lại 'tên bạn là gì' hay 'sđt của bạn là gì' nữa.");
+                promptBuilder.append("\nChào khách bằng tên thật. Tự động dùng tên và SĐT khi đặt bàn, KHÔNG hỏi lại.");
             }
         }
 
+        // Lay lich su TRUOC khi luu tin nhan moi
+        String history = geminiChatHistoryService.getHistoryAsText(userId);
+        if (!history.isEmpty()) {
+            promptBuilder.append("\n\nLỊCH SỬ TRÒ CHUYỆN (để nhớ ngữ cảnh):\n").append(history);
+        }
+
         promptBuilder.append("\n\nKhách hỏi: ").append(request.message());
+        geminiChatHistoryService.addMessage(userId, "user", request.message());
 
         String fullPrompt = promptBuilder.toString();
         System.out.println("DEBUG PROMPT: " + fullPrompt);
 
         return geminiService.generateResponse(fullPrompt)
                 .flatMap(chatResponse -> {
-                    // Logic to process the response from Gemini
-                    // This is a simplified example. You'll need a robust JSON parser.
-                    String responseText = chatResponse.reply();
-                    if (responseText.trim().startsWith("{\"action\": \"CREATE_ORDER\"")) {
-                        // It's an order creation request
-                        return createOrderFromGeminiResponse(responseText, authentication)
-                                .map(ChatResponse::new); // Convert the confirmation message to ChatResponse
+                    String responseText = chatResponse.reply().trim();
+
+                    if (responseText.startsWith("{") && responseText.contains("\"action\":\"CREATE_ORDER\"")) {
+                        return createOrderFromJson(responseText, authentication, userId);
                     } else {
-                        // It's a normal chat response
+                        geminiChatHistoryService.addMessage(userId, "assistant", responseText);
                         return Mono.just(chatResponse);
                     }
                 });
     }
 
-    private Mono<String> createOrderFromGeminiResponse(String jsonResponse, Authentication authentication) {
-        // Here you would parse the JSON and create the order
-        // This is a placeholder for the actual implementation
-        // You would need a JSON parsing library like Jackson or Gson
-        // For simplicity, we'll just return a confirmation message.
+    private Mono<ChatResponse> createOrderFromJson(String json, Authentication authentication, String userId) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
 
-        // 1. Find an available table
-        List<Ban> availableTables = banRepository.findByTrangThai(false);
-        if (availableTables.isEmpty()) {
-            return Mono.just("Xin lỗi, hiện tại đã hết bàn trống. Vui lòng quay lại sau.");
-        }
-        Ban ban = availableTables.get(0); // Take the first available table
+            int soNguoi = root.path("soNguoi").asInt(1);
+            String gioSuDungStr = root.path("gioSuDung").asText("");
+            com.fasterxml.jackson.databind.JsonNode itemsNode = root.path("items");
 
-        // 2. Get customer info
-        KhachHang khachHang = null;
-        if (authentication != null && authentication.isAuthenticated()) {
-            String username = authentication.getName();
-            Optional<KhachHang> khachHangOpt = khachHangRepository.findByEmail(username);
-            if (khachHangOpt.isPresent()) {
-                khachHang = khachHangOpt.get();
+            // Parse gio su dung
+            LocalDateTime gioSuDung;
+            try {
+                gioSuDung = LocalDateTime.parse(gioSuDungStr);
+            } catch (Exception e) {
+                gioSuDung = LocalDateTime.now().plusHours(1);
             }
+
+            // Kiem tra dang nhap
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return Mono.just(new ChatResponse("Xin lỗi, bạn cần đăng nhập để đặt bàn."));
+            }
+
+            Optional<KhachHang> khachHangOpt = khachHangRepository.findByEmail(authentication.getName());
+            if (khachHangOpt.isEmpty()) {
+                return Mono.just(new ChatResponse("Xin lỗi, không tìm thấy thông tin tài khoản của bạn."));
+            }
+            KhachHang khachHang = khachHangOpt.get();
+
+            // Tim ban trong
+            List<Ban> availableTables = banRepository.findByTrangThai(false);
+            if (availableTables.isEmpty()) {
+                return Mono.just(new ChatResponse("Xin lỗi, hiện nhà hàng đã hết bàn trống. Vui lòng liên hệ trực tiếp với nhà hàng."));
+            }
+            Ban ban = availableTables.get(0);
+
+            // Tao YeuCauDon
+            int maDonHang = generateOrderId();
+            YeuCauDon yeuCauDon = new YeuCauDon();
+            yeuCauDon.setId(new YeuCauDonId(maDonHang, 1));
+            yeuCauDon.setMaTaiKhoan(khachHang.getMaTaiKhoan());
+            yeuCauDon.setNgayTaoDon(LocalDateTime.now());
+            yeuCauDon.setGioSuDung(gioSuDung);
+            yeuCauDon.setMaBan(ban.getId().getMaBan());
+            yeuCauDon.setTrangThaiThanhToan("Chưa thanh toán");
+            yeuCauDon.setIdThanhToan(1); // Mac dinh: tien mat
+            yeuCauDon.setGhiChu("Số khách: " + soNguoi);
+            yeuCauDon.setTongTien(0.0);
+            yeuCauDon.setChiTietYeuCauDons(new ArrayList<>());
+            yeuCauDonRepository.save(yeuCauDon);
+
+            // Tao chi tiet mon an
+            double tongTien = 0.0;
+            List<String> danhSachMonDat = new ArrayList<>();
+
+            if (itemsNode != null && itemsNode.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode item : itemsNode) {
+                    int maSanPham = item.path("maSanPham").asInt();
+                    int soLuong = item.path("soLuong").asInt(1);
+                    if (soLuong <= 0) continue;
+
+                    Optional<SanPham> spOpt = sanPhamRepository.findById(maSanPham);
+                    if (spOpt.isEmpty()) continue;
+
+                    SanPham sp = spOpt.get();
+                    float gia = sp.getGia().floatValue();
+
+                    ChiTietYeuCauDon chiTiet = new ChiTietYeuCauDon();
+                    chiTiet.setId(new ChiTietYeuCauDonId(maDonHang, 1, maSanPham));
+                    chiTiet.setSoLuong(soLuong);
+                    chiTiet.setGia(gia);
+                    chiTiet.setTrangThai("Chờ xử lý");
+                    chiTietYeuCauDonRepository.save(chiTiet);
+
+                    tongTien += (double) gia * soLuong;
+                    danhSachMonDat.add(sp.getTenSanPham() + " x" + soLuong);
+                }
+            }
+
+            // Cap nhat tong tien va ban
+            yeuCauDon.setTongTien(tongTien);
+            yeuCauDonRepository.save(yeuCauDon);
+            ban.setTrangThai(true);
+            banRepository.save(ban);
+
+            // Reset lich su sau khi dat xong
+            geminiChatHistoryService.clearHistory(userId);
+
+            String monDat = danhSachMonDat.isEmpty() ? "Chưa chọn món" : String.join(", ", danhSachMonDat);
+            String confirmMsg =
+                "✅ Đặt bàn thành công!\n\n" +
+                "📋 Thông tin đơn:\n" +
+                "• Mã đơn: #" + maDonHang + "\n" +
+                "• Bàn số: " + ban.getId().getMaBan() + "\n" +
+                "• Số khách: " + soNguoi + " người\n" +
+                "• Giờ đến: " + gioSuDung.toLocalTime() + "\n" +
+                "• Món đã đặt: " + monDat + "\n" +
+                "• Tạm tính: " + String.format("%,.0f", tongTien) + "đ\n\n" +
+                "Cảm ơn anh/chị đã tin tưởng Đức Toàn Restaurant! 🙏";
+
+            geminiChatHistoryService.addMessage(userId, "assistant", confirmMsg);
+            return Mono.just(new ChatResponse(confirmMsg));
+
+        } catch (Exception e) {
+            System.err.println("Error creating order from chatbot: " + e.getMessage());
+            e.printStackTrace();
+            return Mono.just(new ChatResponse("Xin lỗi, đã có lỗi khi tạo đơn hàng. Vui lòng thử lại hoặc liên hệ trực tiếp nhà hàng."));
         }
-        if (khachHang == null) {
-            return Mono.just("Xin lỗi, tôi không thể tạo đơn hàng vì không tìm thấy thông tin của bạn.");
-        }
-
-        // 3. Create YeuCauDon
-        YeuCauDon yeuCauDon = new YeuCauDon();
-        YeuCauDonId yeuCauDonId = new YeuCauDonId();
-        yeuCauDonId.setMaDonHang(generateRandomOrderId()); // You need a way to generate unique IDs
-        yeuCauDonId.setIdRestaurant(1); // Assuming a fixed restaurant ID
-        yeuCauDon.setId(yeuCauDonId);
-        yeuCauDon.setMaTaiKhoan(khachHang.getMaTaiKhoan());
-        yeuCauDon.setNgayTaoDon(LocalDateTime.now());
-        yeuCauDon.setGioSuDung(LocalDateTime.now().plusHours(2)); // Placeholder, parse from JSON
-        yeuCauDon.setMaBan(ban.getId().getMaBan());
-        yeuCauDon.setTrangThaiThanhToan("Chưa thanh toán");
-        yeuCauDon.setTongTien(0.0); // Will be calculated later
-
-        // 4. Create ChiTietYeuCauDon (parse items from JSON)
-        // This part is complex and requires a proper JSON parser and logic to extract items
-        // For now, we'll create a dummy list
-        List<ChiTietYeuCauDon> chiTietList = new ArrayList<>();
-        // ... parsing logic here ...
-
-        yeuCauDon.setChiTietYeuCauDons(chiTietList);
-
-        // 5. Save to DB
-        yeuCauDonRepository.save(yeuCauDon);
-        ban.setTrangThai(true);
-        banRepository.save(ban);
-
-
-        return Mono.just("Đã xác nhận! Đơn hàng của bạn đã được tạo thành công với mã đơn hàng " + yeuCauDon.getId().getMaDonHang() + ". Bàn số " + ban.getId().getMaBan() + " đã được đặt cho bạn.");
     }
 
-    private int generateRandomOrderId() {
-        // A simple random ID generator for demonstration
-        return (int) (Math.random() * 100000);
+    private int generateOrderId() {
+        return (int) (Math.random() * 900000) + 100000;
     }
 }

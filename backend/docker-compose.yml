@@ -20,7 +20,7 @@ services:
 
       # Custom API Keys
       - NHANVIEN_API_KEY=nguyenductoan123456
-      - GEMINI_API_KEY=AIzaSyAxWeE8H9bh7Df5H_J8AhYlHk4kJQao5t4
+      - GEMINI_API_KEY=AIzaSyBhOpjzC08zx
       - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
 
       # PayOS Configuration
