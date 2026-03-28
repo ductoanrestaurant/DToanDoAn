@@ -37,7 +37,7 @@ public class ThanhToanController {
             CreatePaymentLinkRequest paymentRequest = CreatePaymentLinkRequest.builder()
                     .orderCode(System.currentTimeMillis() / 1000)
                     .amount(amount)
-                    .description("Thanh toan don hang " + request.getOrderId())
+                    .description("Thanh toan #" + request.getOrderId())
                     .cancelUrl(request.getCancelUrl() != null && !request.getCancelUrl().isBlank()
                             ? request.getCancelUrl()
                             : "https://your-domain.com/cancel")

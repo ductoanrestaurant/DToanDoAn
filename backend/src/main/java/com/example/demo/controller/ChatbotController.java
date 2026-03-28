@@ -106,8 +106,18 @@ public class ChatbotController {
                 .flatMap(chatResponse -> {
                     String responseText = chatResponse.reply().trim();
 
-                    if (responseText.startsWith("{") && responseText.contains("\"action\":\"CREATE_ORDER\"")) {
-                        return createOrderFromJson(responseText, authentication, userId);
+                    // Strip markdown code fences neu Gemini boc JSON trong ```json ... ```
+                    String trimmed = responseText;
+                    if (trimmed.startsWith("```json")) {
+                        trimmed = trimmed.substring(7).trim();
+                        if (trimmed.endsWith("```")) trimmed = trimmed.substring(0, trimmed.length() - 3).trim();
+                    } else if (trimmed.startsWith("```")) {
+                        trimmed = trimmed.substring(3).trim();
+                        if (trimmed.endsWith("```")) trimmed = trimmed.substring(0, trimmed.length() - 3).trim();
+                    }
+
+                    if (trimmed.startsWith("{") && trimmed.contains("\"action\":\"CREATE_ORDER\"")) {
+                        return createOrderFromJson(trimmed, authentication, userId);
                     } else {
                         geminiChatHistoryService.addMessage(userId, "assistant", responseText);
                         return Mono.just(chatResponse);
@@ -159,7 +169,7 @@ public class ChatbotController {
             yeuCauDon.setGioSuDung(gioSuDung);
             yeuCauDon.setMaBan(ban.getId().getMaBan());
             yeuCauDon.setTrangThaiThanhToan("Chưa thanh toán");
-            yeuCauDon.setIdThanhToan(1); // Mac dinh: tien mat
+            yeuCauDon.setIdThanhToan(1); // Mac dinh: tien mat, se cap nhat sau
             yeuCauDon.setGhiChu("Số khách: " + soNguoi);
             yeuCauDon.setTongTien(0.0);
             yeuCauDon.setChiTietYeuCauDons(new ArrayList<>());
@@ -199,23 +209,22 @@ public class ChatbotController {
             ban.setTrangThai(true);
             banRepository.save(ban);
 
-            // Reset lich su sau khi dat xong
-            geminiChatHistoryService.clearHistory(userId);
+            // Lay so du vi khach hang
+            double viHienTai = khachHang.getDiemTichLuy() != null ? khachHang.getDiemTichLuy() : 0.0;
 
-            String monDat = danhSachMonDat.isEmpty() ? "Chưa chọn món" : String.join(", ", danhSachMonDat);
-            String confirmMsg =
-                "✅ Đặt bàn thành công!\n\n" +
-                "📋 Thông tin đơn:\n" +
-                "• Mã đơn: #" + maDonHang + "\n" +
-                "• Bàn số: " + ban.getId().getMaBan() + "\n" +
-                "• Số khách: " + soNguoi + " người\n" +
-                "• Giờ đến: " + gioSuDung.toLocalTime() + "\n" +
-                "• Món đã đặt: " + monDat + "\n" +
-                "• Tạm tính: " + String.format("%,.0f", tongTien) + "đ\n\n" +
-                "Cảm ơn anh/chị đã tin tưởng Đức Toàn Restaurant! 🙏";
+            // Build data JSON de gui ve frontend
+            String monDat = String.join(", ", danhSachMonDat);
+            String dataJson = String.format(
+                "{\"orderId\":%d,\"idRestaurant\":1,\"tongTien\":%.0f,\"viHienTai\":%.0f,\"monDat\":\"%s\",\"soNguoi\":%d,\"gioSuDung\":\"%s\",\"maBan\":%d}",
+                maDonHang, tongTien, viHienTai, monDat.replace("\"", "'"),
+                soNguoi, gioSuDung.toLocalTime().toString(), ban.getId().getMaBan()
+            );
 
-            geminiChatHistoryService.addMessage(userId, "assistant", confirmMsg);
-            return Mono.just(new ChatResponse(confirmMsg));
+            String replyText = "✅ Đơn hàng đã được ghi nhận! Vui lòng chọn phương thức thanh toán:";
+            geminiChatHistoryService.addMessage(userId, "assistant", replyText);
+            // KHONG clearHistory o day - se xoa sau khi thanh toan xong (xu ly ben frontend)
+
+            return Mono.just(new ChatResponse(replyText, "SHOW_PAYMENT_OPTIONS", dataJson));
 
         } catch (Exception e) {
             System.err.println("Error creating order from chatbot: " + e.getMessage());

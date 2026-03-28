@@ -1,26 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    TextInput,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
+    View, Text, StyleSheet, TouchableOpacity,
+    TextInput, FlatList, KeyboardAvoidingView,
+    Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-
-import api, { ENDPOINTS } from '@/constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api, { BASE_URL, ENDPOINTS } from '@/constants/api';
 
 interface Message {
     id: string;
     text: string;
     sender: 'user' | 'bot';
+    paymentOptions?: PaymentOptionsData; // chi render neu co
+}
+
+interface PaymentOptionsData {
+    orderId: number;
+    idRestaurant: number;
+    tongTien: number;
+    viHienTai: number;
+    monDat: string;
+    soNguoi: number;
+    gioSuDung: string;
+    maBan: number;
 }
 
 const ChatbotScreen = () => {
@@ -35,7 +40,6 @@ const ChatbotScreen = () => {
     const handleSend = async () => {
         if (inputText.trim().length === 0) return;
 
-
         const userMessage: Message = {
             id: Date.now().toString(),
             text: inputText,
@@ -48,67 +52,135 @@ const ChatbotScreen = () => {
         setIsLoading(true);
 
         try {
+            const response = await api.post(ENDPOINTS.AI_CHAT, { message: messageToSend });
+            const data = response.data;
 
-            const response = await api.post(ENDPOINTS.AI_CHAT, {
-                message: messageToSend
-            });
-
-
-            let botResponseText = '';
-            if (typeof response.data === 'string') {
-                botResponseText = response.data;
-            } else if (response.data.reply) {
-                botResponseText = response.data.reply;
-            } else if (response.data.text) {
-                botResponseText = response.data.text;
+            // Kiem tra action dac biet tu backend
+            if (data.action === 'SHOW_PAYMENT_OPTIONS' && data.data) {
+                const parsedData: PaymentOptionsData = JSON.parse(data.data);
+                const botMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: data.reply,
+                    sender: 'bot',
+                    paymentOptions: parsedData,
+                };
+                setMessages(prev => [...prev, botMessage]);
             } else {
-                botResponseText = JSON.stringify(response.data);
+                // Chat binh thuong
+                let botResponseText = '';
+                if (typeof data === 'string') botResponseText = data;
+                else if (data.reply) botResponseText = data.reply;
+                else if (data.text) botResponseText = data.text;
+                else botResponseText = JSON.stringify(data);
+
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(),
+                    text: botResponseText,
+                    sender: 'bot',
+                }]);
             }
-
-            const botMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                text: botResponseText,
-                sender: 'bot',
-            };
-            setMessages(prev => [...prev, botMessage]);
-
         } catch (error) {
             console.error("Lỗi gọi API Chatbot:", error);
-            const errorMessage: Message = {
+            setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 text: 'Server đang bận hoặc mất kết nối. Vui lòng thử lại sau.',
                 sender: 'bot',
-            };
-            setMessages(prev => [...prev, errorMessage]);
+            }]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const handlePayment = async (method: 'cash' | 'transfer' | 'wallet', options: PaymentOptionsData) => {
+        const { orderId, idRestaurant, tongTien, viHienTai } = options;
 
+        if (method === 'wallet' && viHienTai < tongTien) {
+            Alert.alert('Không đủ số dư', `Số dư ví: ${viHienTai.toLocaleString('vi-VN')}đ\nCần: ${tongTien.toLocaleString('vi-VN')}đ`);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+
+            if (method === 'cash') {
+                // Cap nhat phuong thuc tien mat
+                await api.patch(`${ENDPOINTS.YEU_CAU_DON}/${orderId}/${idRestaurant}/thanh-toan`, {
+                    trangThaiThanhToan: 'Chưa thanh toán',
+                    idThanhToan: 1,
+                });
+                const confirmMsg = `✅ Đặt bàn thành công!\n• Mã đơn: #${orderId}\n• Bàn số: ${options.maBan}\n• Số khách: ${options.soNguoi} người\n• Giờ đến: ${options.gioSuDung}\n• Món: ${options.monDat}\n• Tổng tiền: ${tongTien.toLocaleString('vi-VN')}đ\n• Thanh toán: Tiền mặt tại quầy\n\nCảm ơn anh/chị! 🙏`;
+                setMessages(prev => [...prev, { id: Date.now().toString(), text: confirmMsg, sender: 'bot' }]);
+
+            } else if (method === 'wallet') {
+                // Cap nhat phuong thuc vi va tru diem
+                await api.patch(`${ENDPOINTS.YEU_CAU_DON}/${orderId}/${idRestaurant}/thanh-toan`, {
+                    trangThaiThanhToan: 'đã thanh toán',
+                    idThanhToan: 3,
+                });
+                // Lay ma tai khoan tu AsyncStorage de tru diem
+                const customerInfoStr = await AsyncStorage.getItem('customerInfo');
+                if (customerInfoStr) {
+                    const customerInfo = JSON.parse(customerInfoStr);
+                    const maKhachHang = customerInfo.maKhachHang || customerInfo.maTaiKhoan;
+                    if (maKhachHang) {
+                        await api.post(`${ENDPOINTS.KHACH_HANG}/${maKhachHang}/tru-diem`, { diem: tongTien });
+                    }
+                }
+                const confirmMsg = `✅ Thanh toán bằng ví thành công!\n• Mã đơn: #${orderId}\n• Bàn số: ${options.maBan}\n• Số khách: ${options.soNguoi} người\n• Giờ đến: ${options.gioSuDung}\n• Món: ${options.monDat}\n• Đã trừ ví: ${tongTien.toLocaleString('vi-VN')}đ\n\nCảm ơn anh/chị! 🙏`;
+                setMessages(prev => [...prev, { id: Date.now().toString(), text: confirmMsg, sender: 'bot' }]);
+
+            } else if (method === 'transfer') {
+                // Tao PayOS payment URL
+                const paymentResponse = await api.post(ENDPOINTS.CREATE_PAYOS_PAYMENT, {
+                    amount: Math.round(tongTien),
+                    orderId,
+                    returnUrl: `${BASE_URL}/payment/success`,
+                    cancelUrl: `${BASE_URL}/payment/cancel`,
+                });
+                const paymentUrl = paymentResponse.data.checkoutUrl;
+                if (paymentUrl) {
+                    router.push({
+                        pathname: '/PaymentWebView',
+                        params: {
+                            url: paymentUrl,
+                            orderId: orderId.toString(),
+                            idRestaurant: idRestaurant.toString(),
+                            idThanhToan: '2',
+                            returnScreen: '/chatbot',
+                        }
+                    });
+                } else {
+                    throw new Error('Không tạo được link thanh toán.');
+                }
+            }
+        } catch (err: any) {
+            console.error('Payment error:', err);
+            Alert.alert('Lỗi', `Không thể xử lý thanh toán: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (flatListRef.current) {
-            setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         }
     }, [messages]);
 
     const renderMessageItem = ({ item }: { item: Message }) => {
         const isUser = item.sender === 'user';
         return (
-            <View style={[
-                styles.messageBubbleContainer,
-                isUser ? styles.userMessageContainer : styles.botMessageContainer
-            ]}>
-                <View style={[
-                    styles.messageBubble,
-                    isUser ? styles.userBubble : styles.botBubble
-                ]}>
-                    <Text style={isUser ? styles.userText : styles.botText}>
-                        {item.text}
-                    </Text>
+            <View style={[styles.messageBubbleContainer, isUser ? styles.userMessageContainer : styles.botMessageContainer]}>
+                <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.botBubble]}>
+                    <Text style={isUser ? styles.userText : styles.botText}>{item.text}</Text>
+
+                    {/* Render 3 nut thanh toan neu co paymentOptions */}
+                    {item.paymentOptions && (
+                        <PaymentButtons
+                            data={item.paymentOptions}
+                            onSelect={handlePayment}
+                        />
+                    )}
                 </View>
             </View>
         );
@@ -137,7 +209,7 @@ const ChatbotScreen = () => {
                 {isLoading && (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="small" color="#FF6600" />
-                        <Text style={{marginLeft: 10, color: '#888', fontSize: 12}}>Đang soạn câu trả lời...</Text>
+                        <Text style={{ marginLeft: 10, color: '#888', fontSize: 12 }}>Đang xử lý...</Text>
                     </View>
                 )}
 
@@ -168,6 +240,64 @@ const ChatbotScreen = () => {
     );
 };
 
+// Component hien thi 3 nut thanh toan
+const PaymentButtons = ({
+    data,
+    onSelect,
+}: {
+    data: PaymentOptionsData;
+    onSelect: (method: 'cash' | 'transfer' | 'wallet', data: PaymentOptionsData) => void;
+}) => {
+    const viDu = data.viHienTai < data.tongTien;
+
+    return (
+        <View style={btnStyles.container}>
+            <Text style={btnStyles.label}>Chọn phương thức:</Text>
+            <View style={btnStyles.row}>
+                {/* Tien mat */}
+                <TouchableOpacity style={btnStyles.btn} onPress={() => onSelect('cash', data)}>
+                    <Ionicons name="cash-outline" size={22} color="#fff" />
+                    <Text style={btnStyles.btnText}>Tiền mặt</Text>
+                </TouchableOpacity>
+
+                {/* Chuyen khoan */}
+                <TouchableOpacity style={[btnStyles.btn, btnStyles.btnTransfer]} onPress={() => onSelect('transfer', data)}>
+                    <Ionicons name="qr-code-outline" size={22} color="#fff" />
+                    <Text style={btnStyles.btnText}>Chuyển khoản</Text>
+                </TouchableOpacity>
+
+                {/* Vi - disabled neu khong du so du */}
+                <TouchableOpacity
+                    style={[btnStyles.btn, btnStyles.btnWallet, viDu && btnStyles.btnDisabled]}
+                    onPress={() => !viDu && onSelect('wallet', data)}
+                    disabled={viDu}
+                    activeOpacity={viDu ? 1 : 0.7}
+                >
+                    <Ionicons name="wallet-outline" size={22} color={viDu ? '#aaa' : '#fff'} />
+                    <Text style={[btnStyles.btnText, viDu && btnStyles.btnTextDisabled]}>Ví</Text>
+                    <Text style={[btnStyles.walletBalance, viDu && btnStyles.btnTextDisabled]}>
+                        {data.viHienTai.toLocaleString('vi-VN')}đ
+                    </Text>
+                    {viDu && <Text style={btnStyles.insufficientLabel}>Không đủ</Text>}
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+};
+
+const btnStyles = StyleSheet.create({
+    container: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.1)' },
+    label: { fontSize: 13, color: '#555', marginBottom: 8 },
+    row: { flexDirection: 'row', gap: 8 },
+    btn: { flex: 1, backgroundColor: '#27AE60', borderRadius: 10, paddingVertical: 10, alignItems: 'center', gap: 4 },
+    btnTransfer: { backgroundColor: '#2980B9' },
+    btnWallet: { backgroundColor: '#FF6600' },
+    btnDisabled: { backgroundColor: '#E0E0E0' },
+    btnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+    btnTextDisabled: { color: '#aaa' },
+    walletBalance: { fontSize: 10, color: 'rgba(255,255,255,0.85)' },
+    insufficientLabel: { fontSize: 9, color: '#999', marginTop: 1 },
+});
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fff' },
@@ -179,7 +309,7 @@ const styles = StyleSheet.create({
     messageBubbleContainer: { marginBottom: 15, flexDirection: 'row' },
     userMessageContainer: { justifyContent: 'flex-end' },
     botMessageContainer: { justifyContent: 'flex-start' },
-    messageBubble: { maxWidth: '80%', padding: 14, borderRadius: 20 },
+    messageBubble: { maxWidth: '85%', padding: 14, borderRadius: 20 },
     userBubble: { backgroundColor: '#FF6600', borderBottomRightRadius: 4 },
     botBubble: { backgroundColor: '#E5E5EA', borderBottomLeftRadius: 4 },
     userText: { color: '#fff', fontSize: 15 },
