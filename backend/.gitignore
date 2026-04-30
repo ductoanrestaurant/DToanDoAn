@@ -36,8 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
-# Ignore sensitive application properties
-/src/main/resources/application.properties
+# Build output
+target/
+node_modules/
 
 # Ignore environment variable files (chứa secrets thật)
 .env
