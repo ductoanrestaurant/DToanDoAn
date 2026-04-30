@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     retryBtn: { marginTop: 16, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
     retryText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingBottom: 12, paddingHorizontal: 16 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 12, paddingHorizontal: 16 },
     backBtn: { padding: 4 },
     refreshBtn: { padding: 4 },
     headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
