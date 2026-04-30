@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, ScrollView, Image, StyleSheet,
     TouchableOpacity, ActivityIndicator, Dimensions,
-    Modal, FlatList
+    Modal, FlatList, ImageBackground
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -53,11 +53,20 @@ interface WeatherResponse {
     total: number;
 }
 
-const weatherBgColor: Record<string, string> = {
-    hot: '#FF6B35',
-    rainy: '#4A90D9',
-    cold: '#5BA4CF',
-    normal: '#52C41A',
+// ── Ảnh nền theo từng loại thời tiết ─────────────────────────
+const weatherBgImage: Record<string, any> = {
+    hot: { uri: 'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=800&q=80' },  // nắng gắt
+    rainy: { uri: 'https://images.unsplash.com/photo-1501691223387-dd0500403074?w=800&q=80' },  // mưa
+    cold: { uri: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?w=800&q=80' },  // lạnh/tuyết
+    normal: { uri: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80' },  // mây nhẹ, dễ chịu
+};
+
+// Màu overlay tint theo thời tiết (làm tối ảnh để chữ dễ đọc)
+const weatherOverlayColor: Record<string, string> = {
+    hot: 'rgba(200, 80, 0, 0.45)',
+    rainy: 'rgba(30, 60, 120, 0.50)',
+    cold: 'rgba(40, 80, 130, 0.45)',
+    normal: 'rgba(30, 100, 40, 0.40)',
 };
 
 // ── Helper ───────────────────────────────────────────────────
@@ -67,7 +76,7 @@ const getRating = (reviews?: DanhGia[]): number => {
     return Number((sum / reviews.length).toFixed(1));
 };
 
-// ── ReviewFood (giống HomeScreen) ────────────────────────────
+// ── ReviewFood ────────────────────────────────────────────────
 const ReviewFood = ({ reviews }: { reviews?: DanhGia[] }) => {
     if (!reviews || reviews.length === 0) {
         return <Text style={styles.noReviewText}>Chưa có đánh giá nào cho món này.</Text>;
@@ -107,7 +116,6 @@ export default function GoiYThoiTietScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Modal state
     const [selectedMon, setSelectedMon] = useState<SanPham | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [activeImgIndex, setActiveImgIndex] = useState(0);
@@ -128,7 +136,6 @@ export default function GoiYThoiTietScreen() {
         }
     };
 
-    // Bấm vào sản phẩm → fetch đánh giá → mở modal
     const handleOpenDetail = async (mon: SanPham) => {
         setSelectedMon(mon);
         setActiveImgIndex(0);
@@ -186,30 +193,42 @@ export default function GoiYThoiTietScreen() {
         );
     }
 
-    const bgColor = weatherBgColor[data.weatherType] || COLORS.primary;
+    const bgImage = weatherBgImage[data.weatherType] || weatherBgImage.normal;
+    const overlayColor = weatherOverlayColor[data.weatherType] || weatherOverlayColor.normal;
 
     return (
         <View style={styles.container}>
-            {/* ── Header ───────────────────────────────────── */}
-            <View style={[styles.header, { backgroundColor: bgColor }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="chevron-back" size={26} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Gợi ý theo thời tiết</Text>
-                <TouchableOpacity onPress={fetchGoiY} style={styles.refreshBtn}>
-                    <Ionicons name="refresh" size={22} color="#fff" />
-                </TouchableOpacity>
-            </View>
+            {/* ── Header + Weather Card dùng chung ImageBackground ── */}
+            <ImageBackground
+                source={bgImage}
+                style={styles.weatherBgWrapper}
+                imageStyle={styles.weatherBgImage}
+                resizeMode="cover"
+            >
+                {/* Overlay tint */}
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} />
 
-            {/* ── Weather Card ──────────────────────────────── */}
-            <View style={[styles.weatherCard, { backgroundColor: bgColor }]}>
-                <View style={styles.weatherLeft}>
-                    <Text style={styles.tempText}>{data.temperature}°C</Text>
-                    <Text style={styles.weatherLabel}>{getWeatherLabel(data.weatherType)}</Text>
-                    <Text style={styles.weatherDesc} numberOfLines={2}>{data.weatherDescription}</Text>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                        <Ionicons name="chevron-back" size={26} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Gợi ý theo thời tiết</Text>
+                    <TouchableOpacity onPress={fetchGoiY} style={styles.refreshBtn}>
+                        <Ionicons name="refresh" size={22} color="#fff" />
+                    </TouchableOpacity>
                 </View>
-                <Ionicons name={getWeatherIcon(data.weatherType) as any} size={80} color="rgba(255,255,255,0.9)" />
-            </View>
+
+                {/* Weather Card */}
+                <View style={styles.weatherCard}>
+                    <View style={styles.weatherLeft}>
+                        <Text style={styles.tempText}>{data.temperature}°C</Text>
+                        <Text style={styles.weatherLabel}>{getWeatherLabel(data.weatherType)}</Text>
+                        <Text style={styles.weatherDesc} numberOfLines={2}>{data.weatherDescription}</Text>
+                    </View>
+                    <Ionicons name={getWeatherIcon(data.weatherType) as any} size={80} color="rgba(255,255,255,0.9)" />
+                </View>
+            </ImageBackground>
 
             {/* ── Suggestion Banner ─────────────────────────── */}
             <View style={styles.suggestionBanner}>
@@ -250,18 +269,16 @@ export default function GoiYThoiTietScreen() {
                 <View style={{ height: 30 }} />
             </ScrollView>
 
-            {/* ── Modal chi tiết (giống HomeScreen) ─────────── */}
+            {/* ── Modal chi tiết ─────────────────────────────── */}
             <Modal animationType="slide" transparent visible={showModal} onRequestClose={() => setShowModal(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        {/* Nút đóng */}
                         <TouchableOpacity style={styles.closeModalBtn} onPress={() => { setShowModal(false); setSelectedMon(null); }}>
                             <Text style={styles.closeModalText}>X</Text>
                         </TouchableOpacity>
 
                         {selectedMon && (
                             <ScrollView showsVerticalScrollIndicator={false}>
-                                {/* Carousel ảnh */}
                                 <View style={{ height: 250, width }}>
                                     <FlatList
                                         data={selectedMon.danhSachAnh?.length > 0 ? selectedMon.danhSachAnh : [{ urlAnh: '' }]}
@@ -287,15 +304,12 @@ export default function GoiYThoiTietScreen() {
                                     )}
                                 </View>
 
-                                {/* Nội dung */}
                                 <View style={styles.modalBody}>
-                                    {/* Tên + Giá */}
                                     <View style={styles.modalHeaderTitleRow}>
                                         <Text style={styles.modalFoodName}>{selectedMon.tenSanPham}</Text>
                                         <Text style={styles.modalPrice}>{selectedMon.gia.toLocaleString('vi-VN')}đ</Text>
                                     </View>
 
-                                    {/* Stars */}
                                     <View style={styles.modalRatingRow}>
                                         {[1, 2, 3, 4, 5].map(star => (
                                             <Ionicons
@@ -307,20 +321,17 @@ export default function GoiYThoiTietScreen() {
                                         <Text style={styles.modalRatingText}>{selectedMon.avgRating || 0} / 5</Text>
                                     </View>
 
-                                    {/* Danh mục */}
                                     {selectedMon.danhMuc && (
                                         <Text style={styles.modalCategory}>{selectedMon.danhMuc.tenDanhMuc}</Text>
                                     )}
 
                                     <View style={styles.divider} />
 
-                                    {/* Mô tả */}
                                     <Text style={styles.modalSectionTitle}>Mô tả món ăn</Text>
                                     <Text style={styles.modalDescription}>{selectedMon.moTa || 'Chưa có mô tả.'}</Text>
 
                                     <View style={styles.divider} />
 
-                                    {/* Loading reviews */}
                                     {loadingDetail ? (
                                         <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 12 }} />
                                     ) : (
@@ -345,16 +356,26 @@ const styles = StyleSheet.create({
     retryBtn: { marginTop: 16, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
     retryText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 
+    // ── Weather background wrapper ────────────────────────────
+    weatherBgWrapper: {
+        width: '100%',
+        paddingBottom: 30,
+        overflow: 'hidden',
+    },
+    weatherBgImage: {
+        // bo góc dưới nếu muốn
+    },
+
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 12, paddingHorizontal: 16 },
     backBtn: { padding: 4 },
     refreshBtn: { padding: 4 },
     headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 
-    weatherCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 30 },
+    weatherCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20 },
     weatherLeft: { flex: 1 },
     tempText: { fontSize: 52, fontWeight: 'bold', color: '#fff' },
-    weatherLabel: { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '600', marginBottom: 4 },
-    weatherDesc: { fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 18 },
+    weatherLabel: { fontSize: 18, color: 'rgba(255,255,255,0.95)', fontWeight: '600', marginBottom: 4 },
+    weatherDesc: { fontSize: 13, color: 'rgba(255,255,255,0.80)', lineHeight: 18 },
 
     suggestionBanner: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: -16, borderRadius: 14, padding: 14, elevation: 4, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
     suggestionText: { fontSize: 14, color: COLORS.textMain, lineHeight: 20, textAlign: 'center' },
@@ -371,7 +392,6 @@ const styles = StyleSheet.create({
     foodDesc: { fontSize: 12, color: COLORS.textSec, lineHeight: 17, marginBottom: 6 },
     foodPrice: { fontSize: 15, fontWeight: 'bold', color: COLORS.primary },
 
-    // ── Modal (giống HomeScreen) ──────────────────────────────
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, height: '85%', paddingBottom: 20 },
     closeModalBtn: { position: 'absolute', right: 20, top: 20, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
@@ -390,7 +410,6 @@ const styles = StyleSheet.create({
     modalSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#444', marginBottom: 8 },
     modalDescription: { fontSize: 15, color: '#666', lineHeight: 22 },
 
-    // ── ReviewFood ────────────────────────────────────────────
     reviewContainer: { marginTop: 10 },
     reviewHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     avgBadge: { flexDirection: 'row', backgroundColor: COLORS.primary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignItems: 'center' },
