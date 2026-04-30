@@ -42,7 +42,7 @@ public class ImageMigrationController {
      * API này idempotent: chạy lại nhiều lần vẫn an toàn.
      */
     @PostMapping("/migrate-images")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Map<String, Object>> migrateImages() {
         if (!cloudinaryService.isEnabled()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -106,7 +106,7 @@ public class ImageMigrationController {
      * GET /api/admin/migrate-images/status
      */
     @GetMapping("/migrate-images/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('QUAN_LY')")
     public ResponseEntity<Map<String, Object>> migrationStatus() {
         List<ListImage> allImages = listImageRepository.findAll();
 
