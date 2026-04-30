@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import api, { getImageUrl } from '@/constants/api';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { Search, PlusCircle, Edit, Trash2, ImageIcon } from 'lucide-react';
@@ -104,7 +104,7 @@ const GiamGiaPage = () => {
                                             {gg.urlAnh ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img
-                                                    src={`${BASE_URL_IMG}/${gg.urlAnh}`} 
+                                                 src={getImageUrl(gg.urlAnh)}
                                                     alt={gg.code} 
                                                     width={96} 
                                                     height={96} 

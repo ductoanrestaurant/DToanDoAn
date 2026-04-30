@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import api, { getImageUrl } from '@/constants/api';
 import Sidebar from '@/components/Sidebar';
 import { ArrowLeft } from 'lucide-react';
 
@@ -29,7 +29,7 @@ const EditGiamGiaPage = () => {
                     setGiaTri(data.giaTri);
                     if (data.urlAnh) {
                         setUrlAnh(data.urlAnh);
-                        setPreview(`${BASE_URL_IMG}/${data.urlAnh}`);
+                        setPreview(getImageUrl(data.urlAnh));
                     }
                 } catch (err) {
                     setError('Không thể tải dữ liệu mã giảm giá.');

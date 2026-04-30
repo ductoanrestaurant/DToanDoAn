@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { ChevronLeft, Tag, Image as ImageIcon, Edit, Trash2, Star, MessageSquare } from 'lucide-react';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import api, { getImageUrl } from '@/constants/api';
 import Link from 'next/link';
 
 // --- Types ---
@@ -58,10 +58,6 @@ export default function SanPhamDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImg, setSelectedImg] = useState(0);
 
-  const getFullImageUrl = (imagePath: string) => {
-    if (!imagePath) return '';
-    return `${BASE_URL_IMG}/${imagePath}`;
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -115,7 +111,7 @@ export default function SanPhamDetailPage() {
   if (error || !sanPham) return <div className="flex min-h-screen items-center justify-center"><p>{error}</p></div>;
 
   const images = sanPham.danhSachAnh || [];
-  const mainImageUrl = images.length > 0 ? getFullImageUrl(images[selectedImg]?.urlAnh) : '';
+  const mainImageUrl = images.length > 0 ? getImageUrl(images[selectedImg]?.urlAnh) : '';
 
   return (
     <div className="flex bg-[#F8FAFC] min-h-screen font-sans">
@@ -152,7 +148,7 @@ export default function SanPhamDetailPage() {
                       onClick={() => setSelectedImg(i)}
                       className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition ${selectedImg === i ? 'border-blue-500' : 'border-transparent'}`}
                     >
-                      <img src={getFullImageUrl(img.urlAnh)} alt="" className="w-full h-full object-cover" />
+                      <img src={getImageUrl(img.urlAnh)} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

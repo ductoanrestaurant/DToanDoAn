@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { Search, PlusCircle, Tag, Image as ImageIcon, MoreVertical, LayoutGrid, Edit, Trash2 } from 'lucide-react';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import api, { getImageUrl } from '@/constants/api';
 import Link from 'next/link';
 
 // --- Types ---
@@ -42,11 +42,6 @@ export default function SanPhamPage() {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Helper: Xử lý đường dẫn ảnh
-  const getFullImageUrl = (imagePath: string) => {
-    if (!imagePath) return '';
-    return `${BASE_URL_IMG}/${imagePath}`;
-  };
 
   // Fetch Data
   const fetchData = async () => {
@@ -244,7 +239,7 @@ export default function SanPhamPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredSanPhams.map((sanPham) => {
                   const firstImage = sanPham.danhSachAnh && sanPham.danhSachAnh.length > 0 ? sanPham.danhSachAnh[0] : null;
-                  const imageUrl = firstImage ? getFullImageUrl(firstImage.urlAnh) : '';
+                  const imageUrl = firstImage ? getImageUrl(firstImage.urlAnh) : '';
 
                   return (
                       <div

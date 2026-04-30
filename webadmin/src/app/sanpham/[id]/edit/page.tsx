@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { ChevronLeft, Save, XCircle, Plus, Loader2 } from 'lucide-react';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import api, { getImageUrl } from '@/constants/api';
 import Link from 'next/link';
 
 // --- Types ---
@@ -51,10 +51,9 @@ export default function SanPhamEditPage() {
     const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
     const getDisplayUrl = (img: ListImage) => {
-        // Ưu tiên blob preview URL (ảnh vừa chọn chưa/đang upload)
         if (img.previewUrl) return img.previewUrl;
         if (!img.urlAnh) return '';
-        return `${BASE_URL_IMG}/${img.urlAnh}`;
+        return getImageUrl(img.urlAnh);
     };
 
     // ── Fetch data ──────────────────────────────────────────────────────────
