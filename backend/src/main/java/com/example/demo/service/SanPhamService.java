@@ -7,6 +7,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -49,7 +50,10 @@ public class SanPhamService {
     @Autowired
     private NguyenLieuRepository nguyenLieuRepository;
 
-    @Value("${app.upload.dir:/uploads/images}")
+    @Autowired
+    private CloudinaryService cloudinaryService;
+
+    @Value("${app.upload.dir:./image-dir}")
     private String uploadDir;
 
     private Path imageStorageLocation;
@@ -158,20 +162,26 @@ public class SanPhamService {
         SanPham sanPham = sanPhamRepository.findById(maSanPham)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + maSanPham));
 
-        // Get the original filename and clean it
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String imageUrl;
 
-        // Check if the file's name contains invalid characters
-        if (originalFilename.contains("..")) {
-            throw new IOException("Sorry! Filename contains invalid path sequence " + originalFilename);
+        if (cloudinaryService.isEnabled()) {
+            // ☁️ Upload lên Cloudinary — lưu full URL
+            imageUrl = cloudinaryService.uploadFile(file);
+            System.out.println("✅ Image uploaded to Cloudinary: " + imageUrl);
+        } else {
+            // 💾 Fallback: lưu file local
+            String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+            if (originalFilename.contains("..")) {
+                throw new IOException("Invalid path sequence: " + originalFilename);
+            }
+            Path targetLocation = this.imageStorageLocation.resolve(originalFilename);
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            imageUrl = originalFilename; // Lưu tên file vào DB
+            System.out.println("💾 Image saved locally: " + imageUrl);
         }
 
-        // Copy file to the target location (Replacing existing file with the same name)
-        Path targetLocation = this.imageStorageLocation.resolve(originalFilename);
-        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
         ListImage newImage = new ListImage();
-        newImage.setUrlAnh(originalFilename); // Save the original filename to the database
+        newImage.setUrlAnh(imageUrl);
         newImage.setSanPham(sanPham);
 
         if (sanPham.getDanhSachAnh() == null) {

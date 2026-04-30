@@ -25,7 +25,10 @@ public class GiamGiaService {
     @Autowired
     private GiamGiaRepository giamGiaRepository;
 
-    @Value("${app.upload.dir:/uploads/images}")
+    @Autowired
+    private CloudinaryService cloudinaryService;
+
+    @Value("${app.upload.dir:./image-dir}")
     private String uploadDir;
 
     private Path imageStorageLocation;
@@ -65,16 +68,23 @@ public class GiamGiaService {
         GiamGia giamGia = giamGiaRepository.findById(idGiamGia)
                 .orElseThrow(() -> new RuntimeException("Discount not found with id: " + idGiamGia));
 
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String imageUrl;
 
-        if (originalFilename.contains("..")) {
-            throw new IOException("Sorry! Filename contains invalid path sequence " + originalFilename);
+        if (cloudinaryService.isEnabled()) {
+            // ☁️ Upload lên Cloudinary
+            imageUrl = cloudinaryService.uploadFile(file);
+        } else {
+            // 💾 Fallback: lưu file local
+            String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+            if (originalFilename.contains("..")) {
+                throw new IOException("Sorry! Filename contains invalid path sequence " + originalFilename);
+            }
+            Path targetLocation = this.imageStorageLocation.resolve(originalFilename);
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            imageUrl = originalFilename;
         }
 
-        Path targetLocation = this.imageStorageLocation.resolve(originalFilename);
-        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
-        giamGia.setUrlAnh(originalFilename);
+        giamGia.setUrlAnh(imageUrl);
         return giamGiaRepository.save(giamGia);
     }
 }
