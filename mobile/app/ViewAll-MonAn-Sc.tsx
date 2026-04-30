@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import api, { ENDPOINTS, BASE_URL_IMG } from '@/constants/api';
+import api, { ENDPOINTS, getImageUrl } from '@/constants/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -85,7 +85,7 @@ const ReviewFood = ({ reviews }: { reviews?: DanhGia[] }) => {
 // ---- Product Card ----
 const ProductCard = ({ item, onPress }: { item: SanPham; onPress: () => void }) => {
     const imageUrl = item.danhSachAnh?.[0]?.urlAnh
-        ? `${BASE_URL_IMG}/${item.danhSachAnh[0].urlAnh}`
+        ? getImageUrl(item.danhSachAnh[0].urlAnh)
         : 'https://via.placeholder.com/150';
 
     return (
@@ -264,7 +264,7 @@ const ViewAllMonAnScreen = () => {
                                         }}
                                         renderItem={({ item: img }) => (
                                             <Image
-                                                source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }}
+                                                source={{ uri: getImageUrl(img.urlAnh) }}
                                                 style={{ width: SCREEN_WIDTH, height: 250, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
                                                 resizeMode="cover"
                                             />

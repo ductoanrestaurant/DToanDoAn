@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api, { BASE_URL_IMG } from '@/constants/api';
+import api, { getImageUrl } from '@/constants/api';
 
 const COLORS = {
   primary: '#FF6600',
@@ -239,7 +239,7 @@ export default function DanhGiaScreen() {
                   <View style={styles.cardTop}>
                     {item.urlAnh ? (
                       <Image
-                        source={{ uri: `${BASE_URL_IMG}/${item.urlAnh}` }}
+                        source={{ uri: getImageUrl(item.urlAnh) }}
                         style={styles.foodImg}
                       />
                     ) : (

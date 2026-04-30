@@ -8,6 +8,19 @@ export const BASE_URL = `http://${IP_ADDRESS}:${PORT}/api`;
 export const BASE_URL_IMG= `http://${IP_ADDRESS}:${PORT}/uploads`;
 export const WEBSOCKET_URL = `ws://${IP_ADDRESS}:${PORT}/ws`;
 
+/**
+ * Trả về URL ảnh đúng:
+ * - Nếu urlAnh là full URL (Cloudinary) → dùng trực tiếp
+ * - Nếu urlAnh là tên file cũ → ghép với BASE_URL_IMG
+ */
+export const getImageUrl = (urlAnh: string | null | undefined): string => {
+  if (!urlAnh) return '';
+  if (urlAnh.startsWith('http://') || urlAnh.startsWith('https://')) {
+    return urlAnh; // Cloudinary URL — dùng trực tiếp
+  }
+  return `${BASE_URL_IMG}/${urlAnh}`; // Ảnh local cũ
+};
+
 export const ENDPOINTS = {
     AUTH: `${BASE_URL}/auth/login`,
     REGISTER: `${BASE_URL}/auth/register`,

@@ -1,4 +1,4 @@
-import api, { ENDPOINTS, BASE_URL_IMG } from '@/constants/api';
+import api, { ENDPOINTS, getImageUrl } from '@/constants/api';
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, FlatList, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -214,7 +214,7 @@ const HomeScreen = () => {
                     keyExtractor={item => item.idGiamGia.toString()}
                     renderItem={({ item }) => (
                         <View style={styles.promotionCard}>
-                            <Image source={{ uri: `${BASE_URL_IMG}/${item.urlAnh}` }} style={styles.promotionImage} />
+                            <Image source={{ uri: getImageUrl(item.urlAnh) }} style={styles.promotionImage} />
                             <View style={styles.promotionTextContainer}>
                                 <Text style={styles.promotionTitle}>{item.code}</Text>
                                 <Text style={styles.promotionSubtitle}>{item.moTa}</Text>
@@ -240,7 +240,7 @@ const HomeScreen = () => {
                     style={styles.foodCard}
                     onPress={() => handleOpenDetails(item)}
                 >
-                    <Image source={{ uri: `${BASE_URL_IMG}/${item.danhSachAnh[0]?.urlAnh}` }} style={styles.foodImage} />
+                    <Image source={{ uri: getImageUrl(item.danhSachAnh[0]?.urlAnh) }} style={styles.foodImage} />
                     <View style={styles.foodInfo}>
                         <Text style={styles.foodName}>{item.tenSanPham}</Text>
 
@@ -275,7 +275,7 @@ const HomeScreen = () => {
                     const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/4287/4287725.png";
                     let imageUri = DEFAULT_IMAGE;
                     if (item.img && item.img.trim() !== "") {
-                        imageUri = item.img.startsWith('http') ? item.img : `${BASE_URL_IMG}/${item.img}`;
+                        imageUri = getImageUrl(item.img);
                     }
                     return (
                         <TouchableOpacity style={styles.branchCard}>
@@ -349,7 +349,7 @@ const HomeScreen = () => {
                                             }}
                                             renderItem={({ item: img }) => (
                                                 <Image
-                                                    source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }}
+                                                    source={{ uri: getImageUrl(img.urlAnh) }}
                                                     style={{
                                                         width: SCREEN_WIDTH,
                                                         height: 250,

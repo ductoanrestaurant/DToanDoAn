@@ -1,4 +1,4 @@
-import api, { BASE_URL, BASE_URL_IMG, ENDPOINTS } from '@/constants/api';
+import api, { BASE_URL, getImageUrl, ENDPOINTS } from '@/constants/api';
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -444,7 +444,7 @@ const OrderConfirmationScreen = () => {
                                         <View style={styles.couponCardLeft}>
                                             {item.urlAnh ? (
                                                 <Image
-                                                    source={{ uri: `${BASE_URL_IMG}/${item.urlAnh}` }}
+                                                    source={{ uri: getImageUrl(item.urlAnh) }}
                                                     style={styles.couponCardImg}
                                                     resizeMode="cover"
                                                 />
@@ -482,7 +482,7 @@ const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: stri
     <View style={styles.infoRow}><Ionicons name={icon} size={18} color="#FF6600" /><Text style={styles.headerText}> {label}: <Text style={styles.boldText}>{value}</Text></Text></View>
 );
 const ItemRow = ({ item }: { item: any }) => (
-    <View style={styles.itemRow}><Image source={{ uri: `${BASE_URL_IMG}/${item.danhSachAnh?.[0]?.urlAnh}` }} style={styles.itemImage} /><View style={styles.itemInfo}><Text style={styles.itemName}>{item.tenSanPham}</Text><Text style={styles.itemDetail}>SL: {item.soluong} x {(item.gia || 0).toLocaleString('vi-VN')}đ</Text></View><Text style={styles.itemSubtotal}>{((item.gia || 0) * item.soluong).toLocaleString('vi-VN')}đ</Text></View>
+    <View style={styles.itemRow}><Image source={{ uri: getImageUrl(item.danhSachAnh?.[0]?.urlAnh) }} style={styles.itemImage} /><View style={styles.itemInfo}><Text style={styles.itemName}>{item.tenSanPham}</Text><Text style={styles.itemDetail}>SL: {item.soluong} x {(item.gia || 0).toLocaleString('vi-VN')}đ</Text></View><Text style={styles.itemSubtotal}>{((item.gia || 0) * item.soluong).toLocaleString('vi-VN')}đ</Text></View>
 );
 const PaymentOption = ({ method, icon, current, onPress, points, disabled }: { method: any, icon: any, current: any, onPress: (m: any) => void, points?: number, disabled?: boolean }) => (
     <TouchableOpacity

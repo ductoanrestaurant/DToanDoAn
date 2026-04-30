@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {Stack, useLocalSearchParams, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import {BASE_URL_IMG, ENDPOINTS} from "@/constants/api";
+import {getImageUrl, ENDPOINTS} from "@/constants/api";
 import axios from "axios";
 
 
@@ -170,7 +170,7 @@ const CartScreen = () => {
     const renderItem = ({ item }: { item: ProductInCart }) => {
         const imageName = item.danhSachAnh?.[0]?.urlAnh;
         const fullImageUrl = imageName
-            ? `${BASE_URL_IMG}/${imageName}`
+            ? getImageUrl(imageName)
             : 'https://via.placeholder.com/150';
         const maxForThis = item.maxServings ?? 999;
 

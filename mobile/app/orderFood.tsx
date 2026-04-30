@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import api, { BASE_URL_IMG, ENDPOINTS } from '@/constants/api';
+import api, { getImageUrl, ENDPOINTS } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -84,7 +84,7 @@ const ReviewSection: React.FC<{ reviews?: DanhGia[] }> = ({ reviews }) => {
 const ProductItem: React.FC<{ item: SanPham; onAddToCart: (product: SanPham) => void; onOpenDetails: (product: SanPham) => void; }> = ({ item, onAddToCart, onOpenDetails }) => {
     const imageName = item.danhSachAnh?.[0]?.urlAnh;
     const avgRating = getAverageRating(item.danhSachDanhGia);
-    const fullImageUrl = imageName ? `${BASE_URL_IMG}/${imageName}` : 'https://via.placeholder.com/150';
+    const fullImageUrl = imageName ? getImageUrl(imageName) : 'https://via.placeholder.com/150';
     const isOutOfStock = (item.maxServings ?? 999) === 0;
 
     return (
@@ -316,7 +316,7 @@ const MenuScreen = () => {
                                             data={selectedMonToView.danhSachAnh} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
                                             keyExtractor={(img, index) => index.toString()}
                                             onMomentumScrollEnd={(event) => setActiveIndex(Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH))}
-                                            renderItem={({ item: img }) => <Image source={{ uri: `${BASE_URL_IMG}/${img.urlAnh}` }} style={{ width: SCREEN_WIDTH, height: 250 }} resizeMode="cover" />}
+                                            renderItem={({ item: img }) => <Image source={{ uri: getImageUrl(img.urlAnh) }} style={{ width: SCREEN_WIDTH, height: 250 }} resizeMode="cover" />}
                                             ListEmptyComponent={<Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.modalImage} />}
                                         />
                                         {selectedMonToView.danhSachAnh?.length > 1 && (
