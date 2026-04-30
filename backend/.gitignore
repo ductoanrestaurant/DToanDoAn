@@ -38,3 +38,8 @@ out/
 
 # Ignore sensitive application properties
 /src/main/resources/application.properties
+
+# Ignore environment variable files (chứa secrets thật)
+.env
+.env.docker
+# .env.example được phép commit (chỉ chứa placeholder)

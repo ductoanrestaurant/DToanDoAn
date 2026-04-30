@@ -9,39 +9,35 @@ services:
     volumes:
       # Map the local image directory to a directory inside the container
       - ./image-dir:/app/image-dir
+    env_file:
+      - .env.docker          # Đọc secrets từ file .env.docker (không commit lên git)
     environment:
-      # Database Configuration
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/DucToanRestaurant
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=123456
-
-      # JWT Configuration
-      - JWT_SECRET=c2VjcmV0a2V5Zm9yand0c2VjdXJpdHlzcHJpbmdib290YXBwbGljYXRpb24=
-
-      # Custom API Keys
-      - NHANVIEN_API_KEY=nguyenductoan123456
-      - GEMINI_API_KEY=AIzaSyBhOpjzC08zxxgW3KSe7qgTuwR5AhpM5As
-      - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
-
-      # PayOS Configuration
-      - PAYOS_CLIENT-ID=447141b6-244a-4d68-afef-cceb9ff5118e
-      - PAYOS_API-KEY=4d2416d7-6d48-446b-815c-194915d22f34
-      - PAYOS_CHECKSUM-KEY=2cdae33fac382d3119ce5876c17a8163220430df833f2ef2becb303bf82f79d1
+      # Override database URL để trỏ vào service 'db' trong docker network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-DucToanRestaurant}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-123456}
+      - UPLOAD_DIR=/app/image-dir
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:15
     container_name: postgres_db
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=DucToanRestaurant
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=${POSTGRES_DB:-DucToanRestaurant}
+      - POSTGRES_USER=${SPRING_DATASOURCE_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-123456}
     ports:
-      - "5432:5432" # Connect to DB from your PC via port 5433
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4

@@ -115,7 +115,7 @@ const LoginScreen = () => {
                     placeholderTextColor="#A9A9A9"
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry
+                    secureTextEntry = {false}
                 />
 
                 {errorMessage !== '' && (

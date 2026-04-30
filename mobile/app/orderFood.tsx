@@ -20,6 +20,7 @@ export interface SanPham {
     danhMuc: DanhMuc;
     danhSachAnh: { urlAnh: string }[];
     danhSachDanhGia?: DanhGia[];
+    maxServings?: number; // Số phần tối đa có thể chế biến (từ tồn kho)
 }
 export interface ProductInCart extends SanPham { soluong: number; }
 export interface DanhGia {
@@ -81,14 +82,21 @@ const ReviewSection: React.FC<{ reviews?: DanhGia[] }> = ({ reviews }) => {
 };
 
 const ProductItem: React.FC<{ item: SanPham; onAddToCart: (product: SanPham) => void; onOpenDetails: (product: SanPham) => void; }> = ({ item, onAddToCart, onOpenDetails }) => {
-    // ... (Component implementation remains the same)
     const imageName = item.danhSachAnh?.[0]?.urlAnh;
     const avgRating = getAverageRating(item.danhSachDanhGia);
     const fullImageUrl = imageName ? `${BASE_URL_IMG}/${imageName}` : 'https://via.placeholder.com/150';
+    const isOutOfStock = (item.maxServings ?? 999) === 0;
 
     return (
-        <TouchableOpacity style={styles.card} onPress={() => onOpenDetails(item)}>
-            <Image source={{ uri: fullImageUrl }} style={styles.foodImage} resizeMode="cover" />
+        <TouchableOpacity style={[styles.card, isOutOfStock && { opacity: 0.55 }]} onPress={() => onOpenDetails(item)}>
+            <View>
+                <Image source={{ uri: fullImageUrl }} style={styles.foodImage} resizeMode="cover" />
+                {isOutOfStock && (
+                    <View style={styles.outOfStockBadge}>
+                        <Text style={styles.outOfStockText}>Hết món</Text>
+                    </View>
+                )}
+            </View>
             <View style={styles.infoContainer}>
                 <View>
                     <Text style={styles.foodName}>{item.tenSanPham}</Text>
@@ -102,9 +110,15 @@ const ProductItem: React.FC<{ item: SanPham; onAddToCart: (product: SanPham) => 
                 </View>
                 <View style={styles.footerRow}>
                     <Text style={styles.price}>{item.gia.toLocaleString('vi-VN')}đ</Text>
-                    <TouchableOpacity style={styles.addButton} onPress={() => onAddToCart(item)}>
-                        <Text style={styles.addButtonText}>+</Text>
-                    </TouchableOpacity>
+                    {!isOutOfStock ? (
+                        <TouchableOpacity style={styles.addButton} onPress={() => onAddToCart(item)}>
+                            <Text style={styles.addButtonText}>+</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={[styles.addButton, { backgroundColor: '#ccc' }]}>
+                            <Ionicons name="close" size={18} color="#fff" />
+                        </View>
+                    )}
                 </View>
             </View>
         </TouchableOpacity>
@@ -132,6 +146,9 @@ const MenuScreen = () => {
         try { return updatedItems ? JSON.parse(updatedItems) : []; }
         catch (e) { return []; }
     });
+
+
+
 
     useEffect(() => {
         const loadUserData = async () => {
@@ -169,7 +186,7 @@ const MenuScreen = () => {
         setError(null);
         try {
             const [resSanPham, resDanhMuc, resDanhGia] = await Promise.all([
-                api.get(ENDPOINTS.SAN_PHAM),
+                api.get(ENDPOINTS.SAN_PHAM_MENU),
                 api.get(ENDPOINTS.DANH_MUC),
                 api.get(ENDPOINTS.DANH_GIA),
             ]);
@@ -193,9 +210,18 @@ const MenuScreen = () => {
     const onRefresh = () => fetchData(true);
 
     const handleAddToCart = (product: SanPham) => {
+        const maxForThis = product.maxServings ?? 999;
+        if (maxForThis === 0) {
+            Alert.alert("Hết món", `Món "${product.tenSanPham}" hiện đã hết nguyên liệu.`);
+            return;
+        }
         setMon(prev => {
             const existItem = prev.find(item => item.maSanPham === product.maSanPham);
             if (existItem) {
+                if (existItem.soluong >= maxForThis) {
+                    Alert.alert("Đã đạt giới hạn", `Chỉ được đặt tối đa ${maxForThis} phần cho món "${product.tenSanPham}" (theo tồn kho).`);
+                    return prev;
+                }
                 return prev.map(item => item.maSanPham === product.maSanPham ? { ...item, soluong: item.soluong + 1 } : item);
             }
             return [...prev, { ...product, soluong: 1 }];
@@ -315,9 +341,15 @@ const MenuScreen = () => {
                                     </View>
                                 </ScrollView>
                                 <View style={styles.modalFooter}>
-                                    <TouchableOpacity style={styles.modalAddBtn} onPress={() => { handleAddToCart(selectedMonToView); setViewMon(false); }}>
-                                        <Text style={styles.modalAddBtnText}>Thêm vào giỏ hàng</Text>
-                                    </TouchableOpacity>
+                                    {(selectedMonToView.maxServings ?? 999) > 0 ? (
+                                        <TouchableOpacity style={styles.modalAddBtn} onPress={() => { handleAddToCart(selectedMonToView); setViewMon(false); }}>
+                                            <Text style={styles.modalAddBtnText}>Thêm vào giỏ hàng</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={[styles.modalAddBtn, { backgroundColor: '#ccc' }]}>
+                                            <Text style={styles.modalAddBtnText}>Hết nguyên liệu</Text>
+                                        </View>
+                                    )}
                                 </View>
                             </>
                         )}
@@ -386,6 +418,8 @@ const styles = StyleSheet.create({
     reviewDate: { fontSize: 11, color: '#999' },
     reviewContent: { fontSize: 14, color: '#444', lineHeight: 20 },
     noReviewText: { textAlign: 'center', color: '#999', fontStyle: 'italic', marginVertical: 20 },
+    outOfStockBadge: { position: 'absolute', top: 5, left: 5, backgroundColor: '#FF4D4D', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, zIndex: 1 },
+    outOfStockText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 });
 
 export default MenuScreen;

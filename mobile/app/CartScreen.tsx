@@ -8,6 +8,7 @@ import {
     StyleSheet,
     SafeAreaView,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
 import {Stack, useLocalSearchParams, useRouter} from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +38,7 @@ export interface ProductInCart {
     danhMuc: DanhMuc;
     danhSachAnh: { urlAnh: string }[];
     soluong: number;
+    maxServings?: number; // Số phần tối đa (từ tồn kho)
 }
 
 interface SanPham {
@@ -46,6 +48,7 @@ interface SanPham {
     gia: number;
     danhMuc: DanhMuc;
     danhSachAnh: { urlAnh: string }[];
+    maxServings?: number;
 }
 
 const CartScreen = () => {
@@ -63,7 +66,6 @@ const CartScreen = () => {
     }>();
 
     const { tableId, tableName, maNv, maKhachHang, soLuongNguoi, bookingTime, verifyUser } = params;
-
 
     const [cartItems, setCartItems] = useState<ProductInCart[]>(() => {
         if (params.selectedItems) {
@@ -95,7 +97,7 @@ const CartScreen = () => {
                 }
 
 
-                const response = await axios.get(ENDPOINTS.SAN_PHAM);
+                const response = await axios.get(ENDPOINTS.SAN_PHAM_MENU);
                 const allProducts: SanPham[] = response.data;
 
 
@@ -108,7 +110,7 @@ const CartScreen = () => {
                         };
                     }
                     return null;
-                }).filter((item): item is ProductInCart => item !== null); // Loại bỏ các item không tìm thấy
+                }).filter((item): item is ProductInCart => item !== null); // bỏ item không tìm thấy
 
                 setCartItems(fullDetailsCart);
             } catch (error) {
@@ -122,12 +124,26 @@ const CartScreen = () => {
     }, [params.selectedItems]);
 
     const updateQuantity = (id: number, delta: number) => {
-        setCartItems(prev => prev.map(item =>
-            item.maSanPham === id
-                ? { ...item, soluong: Math.max(0, item.soluong + delta) }
-                : item
-        ).filter(item => item.soluong > 0));
+        setCartItems(prev => {
+            if (delta > 0) {
+                const currentItem = prev.find(item => item.maSanPham === id);
+                const maxForThis = currentItem?.maxServings ?? 999;
+                if (currentItem && currentItem.soluong >= maxForThis) {
+                    Alert.alert(
+                        "Đã đạt giới hạn",
+                        `Chỉ được đặt tối đa ${maxForThis} phần cho món "${currentItem.tenSanPham}" (theo tồn kho).`
+                    );
+                    return prev;
+                }
+            }
+            return prev.map(item =>
+                item.maSanPham === id
+                    ? { ...item, soluong: Math.max(0, item.soluong + delta) }
+                    : item
+            ).filter(item => item.soluong > 0);
+        });
     };
+
 
     const goBackWithData = () => {
         router.push({
@@ -151,14 +167,13 @@ const CartScreen = () => {
 
 
 
-    const renderItem = ({ item }: { item: any }) => {
-
+    const renderItem = ({ item }: { item: ProductInCart }) => {
         const imageName = item.danhSachAnh?.[0]?.urlAnh;
-
-
         const fullImageUrl = imageName
             ? `${BASE_URL_IMG}/${imageName}`
             : 'https://via.placeholder.com/150';
+        const maxForThis = item.maxServings ?? 999;
+
         return (
             <View style={styles.cartCard}>
                 <Image
@@ -174,11 +189,16 @@ const CartScreen = () => {
                             <Text style={styles.qtyBtnText}>-</Text>
                         </TouchableOpacity>
 
-                        <Text style={styles.qtyText}>{item.soluong}</Text>
-                        <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, 1)} style={styles.qtyBtn}>
-                            <Text style={styles.qtyBtnText}>+</Text>
+                        <Text style={styles.qtyText}>{item.soluong}<Text style={{ fontSize: 12, color: '#999' }}>/{maxForThis}</Text></Text>
+                        <TouchableOpacity
+                            onPress={() => updateQuantity(item.maSanPham, 1)}
+                            style={[styles.qtyBtn, item.soluong >= maxForThis && { backgroundColor: '#ddd' }]}
+                            disabled={item.soluong >= maxForThis}
+                        >
+                            <Text style={[styles.qtyBtnText, item.soluong >= maxForThis && { color: '#aaa' }]}>+</Text>
                         </TouchableOpacity>
                     </View>
+
                 </View>
 
                 <TouchableOpacity onPress={() => updateQuantity(item.maSanPham, -item.soluong)}>

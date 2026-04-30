@@ -161,7 +161,7 @@ public class ChatbotController {
             Ban ban = availableTables.get(0);
 
             // Tao YeuCauDon
-            int maDonHang = generateOrderId();
+            int maDonHang = yeuCauDonRepository.findMaxMaDonHangByIdRestaurant(1).orElse(0) + 1;
             YeuCauDon yeuCauDon = new YeuCauDon();
             yeuCauDon.setId(new YeuCauDonId(maDonHang, 1));
             yeuCauDon.setMaTaiKhoan(khachHang.getMaTaiKhoan());
@@ -233,7 +233,5 @@ public class ChatbotController {
         }
     }
 
-    private int generateOrderId() {
-        return (int) (Math.random() * 900000) + 100000;
-    }
+
 }

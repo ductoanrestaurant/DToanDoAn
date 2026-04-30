@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const IP_ADDRESS = '192.168.2.30';
+const IP_ADDRESS = '172.21.80.1';
 const PORT = '8080';
 
 export const BASE_URL = `http://${IP_ADDRESS}:${PORT}/api`;
@@ -16,6 +16,7 @@ export const ENDPOINTS = {
     CHECK_EMAIL: `${BASE_URL}/khach-hang/check-email`,
     CHECK_PHONE: `${BASE_URL}/khach-hang/check-phone`,
     SAN_PHAM: `${BASE_URL}/san-pham`,
+    SAN_PHAM_MENU: `${BASE_URL}/san-pham/menu`,
     DANH_MUC: `${BASE_URL}/danh-muc`,
     NHAN_VIEN: `${BASE_URL}/nhan-vien`,
     DANH_GIA: `${BASE_URL}/danh-gia`,

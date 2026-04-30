@@ -9,6 +9,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,9 +22,14 @@ import java.util.ArrayList;
 import com.example.demo.entity.SanPham;
 import com.example.demo.entity.ListImage;
 import com.example.demo.entity.DanhMuc;
+import com.example.demo.entity.CongThuc;
+import com.example.demo.entity.NguyenLieu;
+import com.example.demo.dto.SanPhamMenuDTO;
 import com.example.demo.repository.SanPhamRepository;
 import com.example.demo.repository.ListImageRepository;
 import com.example.demo.repository.DanhMucRepository;
+import com.example.demo.repository.CongThucRepository;
+import com.example.demo.repository.NguyenLieuRepository;
 
 @Service
 public class SanPhamService {
@@ -35,6 +42,12 @@ public class SanPhamService {
 
     @Autowired
     private DanhMucRepository danhMucRepository;
+
+    @Autowired
+    private CongThucRepository congThucRepository;
+
+    @Autowired
+    private NguyenLieuRepository nguyenLieuRepository;
 
     @Value("${app.upload.dir:/uploads/images}")
     private String uploadDir;
@@ -53,6 +66,62 @@ public class SanPhamService {
 
     public List<SanPham> getAll() {
         return sanPhamRepository.findAll();
+    }
+
+    /**
+     * Lấy danh sách sản phẩm kèm số phần tối đa có thể chế biến (dựa trên tồn kho nguyên liệu).
+     * maxServings = MIN(nguyenLieu.soLuong / congThuc.slNguyenLieu) cho tất cả nguyên liệu của món.
+     * Nếu món không có công thức → maxServings = 999 (không giới hạn).
+     */
+    public List<SanPhamMenuDTO> getAllWithMaxServings() {
+        List<SanPham> allProducts = sanPhamRepository.findAll();
+        List<SanPhamMenuDTO> result = new ArrayList<>();
+
+        for (SanPham sp : allProducts) {
+            SanPhamMenuDTO dto = new SanPhamMenuDTO();
+            dto.setMaSanPham(sp.getMaSanPham());
+            dto.setTenSanPham(sp.getTenSanPham());
+            dto.setMoTa(sp.getMoTa());
+            dto.setGia(sp.getGia());
+            dto.setDanhMuc(sp.getDanhMuc());
+            dto.setDanhSachAnh(sp.getDanhSachAnh());
+
+            // Tính maxServings dựa trên công thức và tồn kho
+            List<CongThuc> congThucList = congThucRepository.findByMaSanPham(sp.getMaSanPham());
+
+            if (congThucList == null || congThucList.isEmpty()) {
+                // Không có công thức → không giới hạn
+                dto.setMaxServings(999);
+            } else {
+                int minServings = Integer.MAX_VALUE;
+
+                for (CongThuc ct : congThucList) {
+                    if (ct.getSlNguyenLieu() == null || ct.getSlNguyenLieu().compareTo(BigDecimal.ZERO) <= 0) {
+                        continue; // Bỏ qua nguyên liệu có định lượng = 0
+                    }
+
+                    NguyenLieu nl = nguyenLieuRepository.findById(ct.getMaNguyenLieu()).orElse(null);
+
+                    if (nl == null || nl.getSoLuong() == null) {
+                        minServings = 0; // Nguyên liệu không tồn tại hoặc chưa có tồn kho
+                        break;
+                    }
+
+                    // Số phần có thể chế biến từ nguyên liệu này = tồn kho / định lượng 1 phần
+                    int servingsFromThis = nl.getSoLuong()
+                            .divide(ct.getSlNguyenLieu(), 0, RoundingMode.FLOOR)
+                            .intValue();
+
+                    minServings = Math.min(minServings, servingsFromThis);
+                }
+
+                dto.setMaxServings(minServings == Integer.MAX_VALUE ? 999 : minServings);
+            }
+
+            result.add(dto);
+        }
+
+        return result;
     }
 
     public Optional<SanPham> getById(Integer id) {

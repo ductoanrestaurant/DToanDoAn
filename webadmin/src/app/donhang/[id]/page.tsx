@@ -30,6 +30,8 @@ interface OrderDetail {
     maDonHang: number;
     idRestaurant?: number;
   };
+  maTaiKhoan: number;
+  idThanhToan: number;
   khachHang: {
     hoTen: string;
     sdt: string;
@@ -82,7 +84,6 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
   }
 
   const allStatuses = items.map(item => item.trangThai.toLowerCase());
-  const isFinished = (s: string) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
 
   if (allStatuses.every(s => s === 'đã hủy')) {
     return { text: 'Đã hủy', color: 'text-red-600', icon: <XCircle /> };
@@ -92,16 +93,20 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
     return { text: 'Hoàn thành', color: 'text-green-600', icon: <CheckCircle /> };
   }
 
-  if (allStatuses.every(isFinished)) {
-      return { text: 'Đang dùng bữa', color: 'text-purple-600', icon: <CheckCircle /> };
+  if (allStatuses.every(s => ['đã chế biến', 'hoàn thành', 'đã hủy'].includes(s)) && allStatuses.some(s => s === 'đã chế biến')) {
+    return { text: 'Đã chế biến', color: 'text-teal-600', icon: <CheckCircle /> };
   }
 
-  if (allStatuses.some(s => s === 'đang chuẩn bị')) {
-      return { text: 'Đang chuẩn bị', color: 'text-blue-600', icon: <Truck /> };
+  if (allStatuses.some(s => s === 'đã checkin') && allStatuses.every(s => ['đã checkin', 'hoàn thành', 'đã hủy'].includes(s))) {
+    return { text: 'Đã checkin', color: 'text-purple-600', icon: <CheckCircle /> };
   }
 
-  if (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận')) {
-      return { text: 'Đang xử lý', color: 'text-blue-600', icon: <Truck /> };
+  if (allStatuses.some(s => s === 'đang chế biến')) {
+    return { text: 'Đang chế biến', color: 'text-blue-600', icon: <Truck /> };
+  }
+
+  if (allStatuses.some(s => s === 'đã chế biến')) {
+    return { text: 'Đã chế biến', color: 'text-teal-600', icon: <CheckCircle /> };
   }
 
   if (allStatuses.every(s => s === 'chờ xác nhận')) {
@@ -113,10 +118,11 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
 
 const getItemStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
+    case 'đã chế biến': return 'text-teal-600';
     case 'hoàn thành': return 'text-green-600';
-    case 'đang dùng bữa': return 'text-purple-600';
+    case 'đã checkin': return 'text-purple-600';
     case 'chờ xác nhận': return 'text-yellow-600';
-    case 'đang chuẩn bị': return 'text-blue-600';
+    case 'đang chế biến': return 'text-blue-600';
     case 'đã hủy': return 'text-red-600';
     default: return 'text-gray-500';
   }
@@ -176,7 +182,7 @@ export default function OrderDetailPage() {
     }
   }, [id, idRestaurant, router, fetchOrderDetail]);
 
-  const handleApplyStatus = async (newStatus: 'đang dùng bữa' | 'hoàn thành') => {
+  const handleApplyStatus = async (newStatus: 'đã checkin' | 'hoàn thành') => {
     if (!order || !idRestaurant) return;
 
     if (
@@ -226,6 +232,54 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!order || !idRestaurant) return;
+
+    const isPaid = order.trangThaiThanhToan?.toLowerCase() === 'đã thanh toán';
+    const refundAmount = order.tongTien ?? 0;
+
+    const confirmMsg = isPaid && refundAmount > 0
+      ? `Đơn hàng này đã thanh toán (${refundAmount.toLocaleString('vi-VN')}đ). Hủy đơn và hoàn ${refundAmount.toLocaleString('vi-VN')}đ vào ví khách hàng?`
+      : 'Bạn chắc chắn muốn HỦY đơn hàng này? Hành động này không thể hoàn tác.';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      // 1. Hủy tất cả món chưa hoàn thành/chưa hủy
+      const updatePromises = order.chiTietYeuCauDons
+        .filter(item => item.trangThai.toLowerCase() !== 'đã hủy' && item.trangThai.toLowerCase() !== 'hoàn thành')
+        .map(item =>
+          api.put(
+            `/yeu-cau-don/chi-tiet/trang-thai?maDonHang=${order.id.maDonHang}&idRestaurant=${idRestaurant}&maSanPham=${item.id.maSanPham}`,
+            { trangThai: 'đã hủy' }
+          )
+        );
+      await Promise.all(updatePromises);
+
+      // 2. Hoàn tiền vào ví nếu đơn đã thanh toán (bất kể phương thức)
+      if (isPaid && refundAmount > 0 && order.maTaiKhoan) {
+        await api.post(`/khach-hang/${order.maTaiKhoan}/cong-diem`, {
+          diem: refundAmount,
+        });
+      }
+
+      // 3. Cập nhật trạng thái thanh toán
+      await api.put(`/yeu-cau-don/${order.id.maDonHang}/${idRestaurant}`, {
+        ...order,
+        trangThaiThanhToan: 'đã hủy',
+      });
+
+      const successMsg = isPaid && refundAmount > 0
+        ? `Đơn hàng đã hủy và hoàn ${refundAmount.toLocaleString('vi-VN')}đ vào ví khách hàng!`
+        : 'Đơn hàng đã được hủy thành công!';
+      alert(successMsg);
+      fetchOrderDetail();
+    } catch (err) {
+      console.error(err);
+      alert('Có lỗi xảy ra khi hủy đơn hàng.');
+    }
+  };
+
   const getFullImageUrl = (imagePath: string) => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
@@ -244,7 +298,9 @@ export default function OrderDetailPage() {
 
   const paymentStatusInfo = getPaymentStatusInfo(order.trangThaiThanhToan);
   const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
-  const isCompleted = order.chiTietYeuCauDons.every(item => item.trangThai.toLowerCase() === 'hoàn thành' || item.trangThai.toLowerCase() === 'đã hủy');
+  const isCompleted = order.chiTietYeuCauDons.every(item => item.trangThai.toLowerCase() === 'hoàn thành' || item.trangThai.toLowerCase() === 'đã hủy') && order.chiTietYeuCauDons.some(item => item.trangThai.toLowerCase() === 'hoàn thành');
+  const isCancelled = order.chiTietYeuCauDons.every(item => item.trangThai.toLowerCase() === 'đã hủy');
+  const canCancel = ['chờ xác nhận', 'đang chế biến', 'đang xử lý'].includes(orderStatusInfo.text.toLowerCase());
   
   const subtotal = order.chiTietYeuCauDons.reduce((sum, item) => sum + (item.gia * item.soLuong), 0);
   const finalTotal = order.tongTien ?? subtotal;
@@ -362,19 +418,24 @@ export default function OrderDetailPage() {
                 </button>
                 <button
                     onClick={() => setShowStatusOptions((prev) => !prev)}
-                    disabled={isCompleted}
-                    className={`w-full flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition ${isCompleted ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                    disabled={isCompleted || isCancelled}
+                    className={`w-full flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition ${(isCompleted || isCancelled) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
                 >
-                  {isCompleted ? 'Đã hoàn thành' : 'Cập nhật trạng thái'}
+                  {isCompleted ? 'Đã hoàn thành' : isCancelled ? 'Đã hủy' : 'Cập nhật trạng thái'}
                 </button>
-                {!isCompleted && showStatusOptions && (
+                {!isCompleted && !isCancelled && showStatusOptions && (() => {
+                  const status = orderStatusInfo.text.toLowerCase();
+                  const checkinHidden = ['đã checkin', 'đang chế biến', 'đã chế biến'].includes(status);
+                  return (
                   <div className="flex flex-col gap-2 mt-1">
+                    {!checkinHidden && (
                     <button
-                      onClick={() => handleApplyStatus('đang dùng bữa')}
+                      onClick={() => handleApplyStatus('đã checkin')}
                       className="w-full px-3 py-2 text-sm rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition"
                     >
-                      Checkin (đang dùng bữa)
+                      Checkin (đã checkin)
                     </button>
+                    )}
                     <button
                       onClick={() => handleApplyStatus('hoàn thành')}
                       className="w-full px-3 py-2 text-sm rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition"
@@ -382,6 +443,15 @@ export default function OrderDetailPage() {
                       Hoàn thành
                     </button>
                   </div>
+                  );
+                })()}
+                {canCancel && (
+                  <button
+                    onClick={handleCancelOrder}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 border border-red-200 transition"
+                  >
+                    <XCircle size={20} /> Hủy đơn hàng
+                  </button>
                 )}
               </div>
             </div>

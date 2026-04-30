@@ -53,27 +53,29 @@ const getOrderStatusInfo = (items: ChiTietYeuCauDon[]) => {
   }
 
   const allStatuses = items.map(item => item.trangThai.toLowerCase());
-  const isFinished = (s: string) => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s);
 
   if (allStatuses.every(s => s === 'đã hủy')) {
     return { text: 'Đã hủy', color: 'bg-red-100 text-red-700' };
   }
-  
+
   if (allStatuses.every(s => s === 'hoàn thành' || s === 'đã hủy') && allStatuses.some(s => s === 'hoàn thành')) {
     return { text: 'Hoàn thành', color: 'bg-green-100 text-green-700' };
   }
 
-  // If all items are finished (completed/eating/cancelled) and not all cancelled
-  if (allStatuses.every(isFinished)) {
-      return { text: 'Đang dùng bữa', color: 'bg-purple-100 text-purple-700' };
+  if (allStatuses.every(s => ['đã chế biến', 'hoàn thành', 'đã hủy'].includes(s)) && allStatuses.some(s => s === 'đã chế biến')) {
+    return { text: 'Đã chế biến', color: 'bg-teal-100 text-teal-700' };
   }
 
-  if (allStatuses.some(s => s === 'đang chuẩn bị')) {
-      return { text: 'Đang chuẩn bị', color: 'bg-blue-100 text-blue-700' };
+  if (allStatuses.some(s => s === 'đã checkin') && allStatuses.every(s => ['đã checkin', 'hoàn thành', 'đã hủy'].includes(s))) {
+    return { text: 'Đã checkin', color: 'bg-purple-100 text-purple-700' };
   }
 
-  if (allStatuses.some(isFinished) && allStatuses.some(s => s === 'chờ xác nhận')) {
-      return { text: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' };
+  if (allStatuses.some(s => s === 'đang chế biến')) {
+    return { text: 'Đang chế biến', color: 'bg-blue-100 text-blue-700' };
+  }
+
+  if (allStatuses.some(s => s === 'đã chế biến')) {
+    return { text: 'Đã chế biến', color: 'bg-teal-100 text-teal-700' };
   }
 
   if (allStatuses.every(s => s === 'chờ xác nhận')) {
@@ -191,17 +193,17 @@ export default function DonHangPage() {
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Đơn hàng</h1>
           <div className="flex flex-wrap items-center gap-4">
-            <select 
-              value={filterDate} 
+            <select
+              value={filterDate}
               onChange={(e) => setFilterDate(e.target.value as 'all' | 'today')}
               className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="today">Hôm nay</option>
               <option value="all">Tất cả thời gian</option>
             </select>
-            
-            <select 
-              value={filterPaymentStatus} 
+
+            <select
+              value={filterPaymentStatus}
               onChange={(e) => setFilterPaymentStatus(e.target.value)}
               className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
@@ -210,16 +212,18 @@ export default function DonHangPage() {
               <option value="chưa thanh toán">Chưa thanh toán</option>
             </select>
 
-            <select 
-              value={filterOrderStatus} 
+            <select
+              value={filterOrderStatus}
               onChange={(e) => setFilterOrderStatus(e.target.value)}
               className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">Tất cả trạng thái đơn</option>
               <option value="hoàn thành">Hoàn thành</option>
+              <option value="đã chế biến">Đã chế biến</option>
               <option value="đã hủy">Đã hủy</option>
               <option value="chờ xác nhận">Chờ xác nhận</option>
-              <option value="đang dùng bữa">Đang dùng bữa</option>
+              <option value="đang chế biến">Đang chế biến</option>
+              <option value="đã checkin">Đã checkin</option>
             </select>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -271,23 +275,23 @@ export default function DonHangPage() {
                         <td className="p-4 text-gray-500">
                           {order.gioSuDung
                             ? new Date(order.gioSuDung).toLocaleString('vi-VN', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
                             : 'N/A'}
                         </td>
                         <td className="p-4 text-gray-500">
                           {order.ngayTaoDon
                             ? new Date(order.ngayTaoDon).toLocaleString('vi-VN', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
                             : 'N/A'}
                         </td>
                         {/*<td className="p-4 text-gray-500">{order.thoiGianThanhToan ? new Date(order.thoiGianThanhToan).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>*/}

@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.demo.entity.SanPham;
 import com.example.demo.entity.ListImage; // Import ListImage
 import com.example.demo.service.SanPhamService; 
+import com.example.demo.dto.SanPhamMenuDTO;
 
 import java.io.IOException; // Import IOException
 import java.util.List;
@@ -27,6 +28,12 @@ public class SanPhamController {
     @GetMapping
     public List<SanPham> getAll() {
         return sanPhamService.getAll();
+    }
+
+    // API lấy menu kèm số phần tối đa (dựa trên tồn kho nguyên liệu)
+    @GetMapping("/menu")
+    public List<SanPhamMenuDTO> getMenu() {
+        return sanPhamService.getAllWithMaxServings();
     }
 
 

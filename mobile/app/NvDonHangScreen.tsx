@@ -69,9 +69,10 @@ const getOrderStatus = (chiTiet: ChiTietYeuCauDon[]): string => {
 
     if (itemStatuses.every(s => s === 'đã hủy' || s === 'từ chối')) return 'Đã hủy';
     if (itemStatuses.length > 0 && itemStatuses.every(s => s === 'hoàn thành' || s === 'đã hủy') && itemStatuses.some(s => s === 'hoàn thành')) return 'Đã hoàn thành';
-    if (itemStatuses.every(s => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s))) return 'Đang dùng bữa';
-    if (itemStatuses.some(s => s === 'đang chuẩn bị' || s === 'đang chế biến')) return 'Đang chuẩn bị';
-    if (itemStatuses.some(s => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s)) && itemStatuses.some(s => s === 'chờ xác nhận')) return 'Đang xử lý';
+    if (itemStatuses.every(s => ['đã chế biến', 'hoàn thành', 'đã hủy'].includes(s)) && itemStatuses.some(s => s === 'đã chế biến')) return 'Đã chế biến';
+    if (itemStatuses.some(s => s === 'đã checkin') && itemStatuses.every(s => ['hoàn thành', 'đã checkin', 'đã hủy'].includes(s))) return 'Đã checkin';
+    if (itemStatuses.some(s => s === 'đang chế biến')) return 'Đang chế biến';
+    if (itemStatuses.some(s => s === 'đã chế biến')) return 'Đã chế biến';
     if (itemStatuses.every(s => s === 'chờ xác nhận')) return 'Chờ xác nhận';
 
     return 'Đang xử lý';
@@ -91,12 +92,13 @@ const StatusBadge: React.FC<{ text: string }> = ({ text }) => {
                 return { backgroundColor: COLORS.red, color: COLORS.white };
             case 'chờ xác nhận':
                 return { backgroundColor: COLORS.yellow, color: COLORS.white };
+            case 'đã checkin':
+                return { backgroundColor: COLORS.purple, color: COLORS.white };
+            case 'đã chế biến':
+                return { backgroundColor: '#0d9488', color: COLORS.white };
             case 'đang chế biến':
-            case 'đang chuẩn bị':
             case 'đang xử lý':
                 return { backgroundColor: COLORS.primary, color: COLORS.white };
-            case 'đang dùng bữa':
-                return { backgroundColor: COLORS.purple, color: COLORS.white };
             default:
                 return { backgroundColor: COLORS.lightGray, color: COLORS.textMain };
         }
@@ -117,7 +119,7 @@ const NvDonHangScreen = () => {
 
     const [filterStatus, setFilterStatus] = useState<string>('Tất cả');
     const [searchPhone, setSearchPhone] = useState<string>('');
-    const filterOptions = ['Tất cả', 'Chưa thanh toán', 'Đã thanh toán', 'Chờ xác nhận', 'Đang xử lý', 'Đang chuẩn bị', 'Đang dùng bữa', 'Đã hoàn thành', 'Đã hủy'];
+    const filterOptions = ['Tất cả', 'Chưa thanh toán', 'Đã thanh toán', 'Chờ xác nhận', 'Đang xử lý', 'Đang chế biến', 'Đã checkin', 'Đã hoàn thành', 'Đã hủy'];
 
     // Payment Modal State
     const [selectedOrder, setSelectedOrder] = useState<YeuCauDon | null>(null);
@@ -178,7 +180,7 @@ const NvDonHangScreen = () => {
         fetchOrders();
     };
 
-    const handleUpdateStatus = async (order: YeuCauDon, newStatus: 'đang dùng bữa' | 'hoàn thành') => {
+    const handleUpdateStatus = async (order: YeuCauDon, newStatus: 'đã checkin' | 'hoàn thành') => {
         if (!idRestaurant) return;
 
         Alert.alert(

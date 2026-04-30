@@ -60,9 +60,10 @@ const getOrderStatus = (chiTiet: ChiTietYeuCauDon[]): string => {
 
     if (itemStatuses.every(s => s === 'đã hủy' || s === 'từ chối')) return 'Đã hủy';
     if (itemStatuses.length > 0 && itemStatuses.every(s => s === 'hoàn thành' || s === 'đã hủy') && itemStatuses.some(s => s === 'hoàn thành')) return 'Đã hoàn thành';
-    if (itemStatuses.every(s => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s))) return 'Đang dùng bữa';
-    if (itemStatuses.some(s => s === 'đang chuẩn bị' || s === 'đang chế biến')) return 'Đang chuẩn bị';
-    if (itemStatuses.some(s => ['hoàn thành', 'đang dùng bữa', 'đã hủy'].includes(s)) && itemStatuses.some(s => s === 'chờ xác nhận')) return 'Đang xử lý';
+    if (itemStatuses.every(s => ['đã chế biến', 'hoàn thành', 'đã hủy'].includes(s)) && itemStatuses.some(s => s === 'đã chế biến')) return 'Đã chế biến';
+    if (itemStatuses.some(s => s === 'đã checkin') && itemStatuses.every(s => ['hoàn thành', 'đã checkin', 'đã hủy'].includes(s))) return 'Đã checkin';
+    if (itemStatuses.some(s => s === 'đang chế biến')) return 'Đang chế biến';
+    if (itemStatuses.some(s => s === 'đã chế biến')) return 'Đã chế biến';
     if (itemStatuses.every(s => s === 'chờ xác nhận')) return 'Chờ xác nhận';
 
     return 'Đang xử lý';
@@ -90,16 +91,14 @@ const StatusBadge: React.FC<{ text: string }> = ({ text }) => {
             case 'từ chối':
                 return { backgroundColor: COLORS.red, color: COLORS.white };
             case 'chờ xác nhận':
-            case 'đã xác nhận':
+                return { backgroundColor: COLORS.yellow, color: COLORS.white };
             case 'đã checkin':
                 return { backgroundColor: COLORS.blue, color: COLORS.white };
+            case 'đã chế biến':
+                return { backgroundColor: '#0d9488', color: COLORS.white };
             case 'đang chế biến':
-            case 'đang chuẩn bị':
             case 'đang xử lý':
                 return { backgroundColor: COLORS.primary, color: COLORS.white };
-            case 'đang dùng bữa':
-            case 'đang sử dụng':
-                return { backgroundColor: COLORS.purple, color: COLORS.white };
             default:
                 return { backgroundColor: COLORS.lightGray, color: COLORS.textMain };
         }
@@ -154,7 +153,7 @@ const NvChiTietDonHangScreen = () => {
         fetchOrderDetails();
     };
 
-    const handleUpdateStatus = async (newStatus: 'đang dùng bữa' | 'hoàn thành') => {
+    const handleUpdateStatus = async (newStatus: 'đã checkin' | 'hoàn thành') => {
         if (!order || !idRestaurant) return;
 
         Alert.alert(
@@ -335,7 +334,8 @@ const NvChiTietDonHangScreen = () => {
 
     const isCompleted = overallStatus === 'Đã hoàn thành' || overallStatus === 'Đã hủy';
     const isUnpaid = order.trangThaiThanhToan.toLowerCase() === 'chưa thanh toán' && overallStatus !== 'Đã hủy';
-    const isCheckedIn = overallStatus === 'Đang dùng bữa';
+    const isCheckedIn = overallStatus === 'Đã checkin';
+    const checkinDisabled = isCheckedIn || overallStatus === 'Đang chế biến' || overallStatus === 'Đã chế biến';
 
     return (
         <SafeAreaView style={styles.container}>
@@ -400,8 +400,8 @@ const NvChiTietDonHangScreen = () => {
             <View style={styles.footer}>
                 {!isCompleted && (
                     <View style={{ flexDirection: 'row', gap: 10, marginBottom: isUnpaid ? 10 : 0 }}>
-                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isCheckedIn ? COLORS.lightGray : COLORS.purple }]} onPress={() => handleUpdateStatus('đang dùng bữa')} disabled={processingUpdate || isCheckedIn}>
-                            <Text style={[styles.actionBtnText, isCheckedIn && { color: COLORS.textSec }]}>Checkin</Text>
+                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: checkinDisabled ? COLORS.lightGray : COLORS.purple }]} onPress={() => handleUpdateStatus('đã checkin')} disabled={processingUpdate || checkinDisabled}>
+                            <Text style={[styles.actionBtnText, checkinDisabled && { color: COLORS.textSec }]}>Checkin</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isUnpaid ? COLORS.lightGray : COLORS.green }]} onPress={() => handleUpdateStatus('hoàn thành')} disabled={processingUpdate || isUnpaid}>
                             <Text style={[styles.actionBtnText, isUnpaid && { color: COLORS.textSec }]}>Hoàn thành đơn</Text>

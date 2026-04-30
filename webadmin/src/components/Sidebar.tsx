@@ -53,12 +53,14 @@ export default function Sidebar() {
     const router = useRouter();
 
     const [role, setRole] = useState<string | null>(null);
-    const [showLogout, setShowLogout] = useState(false); // State để điều khiển hiển thị nút đăng xuất
+    const [maNv, setMaNv] = useState<string | null>(null);
+    const [tenNv, setTenNv] = useState<string | null>(null);
+    const [showLogout, setShowLogout] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem('userRole');
-        const id = requestAnimationFrame(() => setRole(stored));
-        return () => cancelAnimationFrame(id);
+        setRole(localStorage.getItem('userRole'));
+        setMaNv(localStorage.getItem('maNhanVien'));
+        setTenNv(localStorage.getItem('tenNhanVien'));
     }, []);
 
     const handleLogout = () => {
@@ -133,8 +135,8 @@ export default function Sidebar() {
                         NV
                     </div>
                     <div className="overflow-hidden">
-                        <p className="text-sm font-semibold text-white truncate">{localStorage.getItem('maNhanVien')}-{localStorage.getItem('tenNhanVien')}</p>
-                        <p className="text-xs text-gray-400 truncate">{localStorage.getItem('userRole')}</p>
+                        <p className="text-sm font-semibold text-white truncate">{maNv}-{tenNv}</p>
+                        <p className="text-xs text-gray-400 truncate">{role}</p>
                     </div>
                 </div>
             </div>
