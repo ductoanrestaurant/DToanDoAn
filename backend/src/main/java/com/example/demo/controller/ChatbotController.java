@@ -6,6 +6,7 @@ import com.example.demo.entity.*;
 import com.example.demo.repository.*;
 import com.example.demo.service.GeminiChatHistoryService;
 import com.example.demo.service.GeminiService;
+import com.example.demo.service.WeatherService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -27,11 +28,12 @@ public class ChatbotController {
     private final ChiTietYeuCauDonRepository chiTietYeuCauDonRepository;
     private final BanRepository banRepository;
     private final GeminiChatHistoryService geminiChatHistoryService;
+    private final WeatherService weatherService;
 
     public ChatbotController(GeminiService geminiService, KhachHangRepository khachHangRepository,
             SanPhamRepository sanPhamRepository, YeuCauDonRepository yeuCauDonRepository,
             ChiTietYeuCauDonRepository chiTietYeuCauDonRepository, BanRepository banRepository,
-            GeminiChatHistoryService geminiChatHistoryService) {
+            GeminiChatHistoryService geminiChatHistoryService, WeatherService weatherService) {
         this.geminiService = geminiService;
         this.khachHangRepository = khachHangRepository;
         this.sanPhamRepository = sanPhamRepository;
@@ -39,6 +41,7 @@ public class ChatbotController {
         this.chiTietYeuCauDonRepository = chiTietYeuCauDonRepository;
         this.banRepository = banRepository;
         this.geminiChatHistoryService = geminiChatHistoryService;
+        this.weatherService = weatherService;
     }
 
     @PostMapping
@@ -54,9 +57,20 @@ public class ChatbotController {
                 .map(sp -> sp.getTenSanPham() + " (ID: " + sp.getMaSanPham() + ", Giá: " + sp.getGia().intValue() + "đ)")
                 .collect(Collectors.joining(", "));
 
+        // Lấy thông tin thời tiết hiện tại
+        String weatherInfo = weatherService.getCurrentWeatherDescription();
+
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append("Bạn là trợ lý ảo chuyên nghiệp của nhà hàng 'Đức Toàn Restaurant'. ");
         promptBuilder.append("Nhiệm vụ: Hỗ trợ đặt bàn, tư vấn món ăn và xác nhận đơn hàng với khách.");
+
+        // Thêm thông tin thời tiết vào prompt nếu có
+        if (weatherInfo != null && !weatherInfo.isEmpty()) {
+            promptBuilder.append("\n\nTHÔNG TIN THỜI TIẾT HIỆN TẠI: ").append(weatherInfo);
+            promptBuilder.append("\nKhi khách hỏi về thời tiết hoặc gợi ý món ăn, HÃY sử dụng thông tin thời tiết trên để tư vấn.");
+            promptBuilder.append("\nVí dụ: Trời nóng → gợi ý đồ uống mát, món nhẹ. Trời lạnh/mưa → gợi ý món nóng, súp, lẩu.");
+            promptBuilder.append("\nCHỈ gợi ý các món CÓ TRONG DANH SÁCH của nhà hàng.");
+        }
 
         promptBuilder.append("\n\nQUY TẮC CỰC KỲ QUAN TRỌNG:");
         promptBuilder.append("\n1. CHỈ ĐƯỢC PHÉP tư vấn về món ăn có trong danh sách sau. TUYỆT ĐỐI KHÔNG bịa ra món khác.");
