@@ -194,12 +194,13 @@ const HomeScreen = () => {
                 </TouchableOpacity>
             </View>
             <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/qr-scanner')}>
-                    <Ionicons name="qr-code-outline" size={24} color={COLORS.textMain} />
+                {/* Gợi ý theo thời tiết (thay QR) */}
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/goi-y-thoi-tiet')}>
+                    <Ionicons name="partly-sunny-outline" size={24} color={COLORS.textMain} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                    <Ionicons name="notifications-outline" size={24} color={COLORS.textMain} />
-                    <View style={styles.notificationBadge}><Text style={styles.notificationText}>3</Text></View>
+                {/* Điểm tích lũy (thay chuông) */}
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/diem-tich-luy')}>
+                    <Ionicons name="wallet-outline" size={24} color={COLORS.textMain} />
                 </TouchableOpacity>
             </View>
         </View>
