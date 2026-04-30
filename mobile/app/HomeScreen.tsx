@@ -195,8 +195,9 @@ const HomeScreen = () => {
             </View>
             <View style={styles.headerActions}>
                 {/* Gợi ý theo thời tiết (thay QR) */}
-                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/goi-y-thoi-tiet')}>
-                    <Ionicons name="partly-sunny-outline" size={24} color={COLORS.textMain} />
+                <TouchableOpacity style={styles.weatherButton} onPress={() => router.push('/goi-y-thoi-tiet')}>
+                    <Text style={styles.weatherButtonText}>Hôm nay ăn gì?</Text>
+                    <Ionicons name="partly-sunny-outline" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 {/* Điểm tích lũy (thay chuông) */}
                 <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/diem-tich-luy')}>
@@ -428,6 +429,14 @@ const styles = StyleSheet.create({
     headerLocationText: { fontWeight: 'bold', fontSize: 16, color: COLORS.textMain, },
     headerActions: { flexDirection: 'row', alignItems: 'center' },
     actionButton: { marginLeft: 15, padding: 5 },
+    weatherButton: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: '#FFF0E6', borderRadius: 20,
+        paddingHorizontal: 10, paddingVertical: 5, gap: 5,
+    },
+    weatherButtonText: {
+        fontSize: 13, fontWeight: '700', color: COLORS.primary,
+    },
     notificationBadge: { position: 'absolute', right: -2, top: -2, backgroundColor: COLORS.red, borderRadius: 10, width: 18, height: 18, justifyContent: 'center', alignItems: 'center' },
     notificationText: { color: COLORS.white, fontSize: 10, fontWeight: 'bold' },
     sectionContainer: { marginTop: 25 },
