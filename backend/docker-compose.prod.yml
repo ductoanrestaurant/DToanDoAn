@@ -1,0 +1,47 @@
+# =========================================================
+# docker-compose.prod.yml - Dùng khi deploy lên server
+# Chạy: docker-compose -f docker-compose.prod.yml up -d
+# =========================================================
+
+services:
+  admin-management-service:
+    build: .
+    image: admin-management-service:latest
+    container_name: admin-management-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./image-dir:/app/image-dir
+    env_file:
+      - .env.docker
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-DucToanRestaurant}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-123456}
+      - UPLOAD_DIR=/app/image-dir
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-DucToanRestaurant}
+      - POSTGRES_USER=${SPRING_DATASOURCE_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-123456}
+    # ⚠️ KHÔNG expose port 5432 ra ngoài internet (chỉ internal network)
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
