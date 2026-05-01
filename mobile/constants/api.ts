@@ -1,12 +1,10 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const IP_ADDRESS = '192.168.2.30';
-const PORT = '8080';
-
-export const BASE_URL = `http://${IP_ADDRESS}:${PORT}/api`;
-export const BASE_URL_IMG= `http://${IP_ADDRESS}:${PORT}/uploads`;
-export const WEBSOCKET_URL = `ws://${IP_ADDRESS}:${PORT}/ws`;
+// ✅ Production URL - Render deployment
+export const BASE_URL = 'https://dtoandoan.onrender.com/api';
+export const BASE_URL_IMG = 'https://dtoandoan.onrender.com/uploads';
+export const WEBSOCKET_URL = 'wss://dtoandoan.onrender.com/ws';
 
 /**
  * Trả về URL ảnh đúng:

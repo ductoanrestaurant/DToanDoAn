@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-export const BASE_URL_IMG = process.env.NEXT_PUBLIC_BASE_URL_IMG || 'http://localhost:8080/uploads';
+// ✅ Production URL - Render deployment
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dtoandoan.onrender.com/api';
+export const BASE_URL_IMG = process.env.NEXT_PUBLIC_BASE_URL_IMG || 'https://dtoandoan.onrender.com/uploads';
 
 /**
  * Trả về URL ảnh đúng:
