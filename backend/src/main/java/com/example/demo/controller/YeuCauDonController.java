@@ -192,7 +192,7 @@ public class YeuCauDonController {
     }
 
     @PutMapping("/chi-tiet/trang-thai")
-    @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'BEP')")
+    @PreAuthorize("hasAnyRole('KHACH_HANG', 'QUAN_LY', 'BEP', 'THU_NGAN')")
     public ResponseEntity<ChiTietYeuCauDon> updateChiTietTrangThai(
             @RequestParam Integer maDonHang,
             @RequestParam Integer idRestaurant,
