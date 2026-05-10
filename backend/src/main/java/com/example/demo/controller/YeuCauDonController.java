@@ -168,7 +168,7 @@ public class YeuCauDonController {
     }
 
     @GetMapping("/restaurant/{idRestaurant}")
-    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN')")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN', 'BEP')")
     public List<YeuCauDon> getByIdRestaurant(@PathVariable Integer idRestaurant) {
         return yeuCauDonService.getByIdRestaurant(idRestaurant);
     }
