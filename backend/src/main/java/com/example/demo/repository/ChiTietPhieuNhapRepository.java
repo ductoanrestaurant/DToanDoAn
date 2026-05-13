@@ -15,6 +15,6 @@ public interface ChiTietPhieuNhapRepository extends JpaRepository<ChiTietPhieuNh
     List<ChiTietPhieuNhap> findById_MaPhieuNhap(Integer maPhieuNhap);
 
     // Lấy ngày hết hạn gần nhất (sắp xảy ra) cho từng nguyên liệu
-    @Query(value = "SELECT MIN(ngayhethan) FROM chitietphieunhap WHERE manguyen_lieu = :maNguyenLieu AND ngayhethan IS NOT NULL", nativeQuery = true)
+    @Query(value = "SELECT MIN(ngayhethan) FROM chitietphieunhap WHERE manguyenlieu = :maNguyenLieu AND ngayhethan IS NOT NULL", nativeQuery = true)
     Date findNearestExpiryByMaNguyenLieu(@Param("maNguyenLieu") Integer maNguyenLieu);
 }
