@@ -76,12 +76,16 @@ const NhapHangPage = () => {
     const [ghiChu, setGhiChu] = useState('');
     const [rows, setRows] = useState<ChiTietRow[]>([emptyRow(rowCounter++)]);
 
-    // Kiểm tra form hợp lệ: tất cả dòng phải có đủ nguyên liệu, số lượng > 0, giá >= 0
-    const isFormValid = rows.every(r =>
-        r.maNguyenLieu !== '' &&
-        r.soLuongNhap !== '' && parseFloat(r.soLuongNhap) > 0 &&
-        r.giaNhap !== '' && parseFloat(r.giaNhap) >= 0
-    );
+    // Kiểm tra form hợp lệ: nhà cung cấp, ghi chú bắt buộc + tất cả dòng phải đủ thông tin
+    const isFormValid =
+        nhaCungCap.trim() !== '' &&
+        ghiChu.trim() !== '' &&
+        rows.every(r =>
+            r.maNguyenLieu !== '' &&
+            r.soLuongNhap !== '' && parseFloat(r.soLuongNhap) > 0 &&
+            r.giaNhap !== '' && parseFloat(r.giaNhap) >= 0 &&
+            r.ngayHetHan !== ''
+        );
 
     const idRestaurant = 1;
 
@@ -242,13 +246,13 @@ const NhapHangPage = () => {
                                         {/* Thông tin chung */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Nhà cung cấp</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Nhà cung cấp <span className="text-red-500">*</span></label>
                                                 <input type="text" placeholder="VD: Công ty ABC..." value={nhaCungCap}
                                                     onChange={e => setNhaCungCap(e.target.value)}
                                                     className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú <span className="text-red-500">*</span></label>
                                                 <input type="text" placeholder="Ghi chú lô hàng..." value={ghiChu}
                                                     onChange={e => setGhiChu(e.target.value)}
                                                     className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -312,7 +316,7 @@ const NhapHangPage = () => {
 
                                                             {/* Ngày hết hạn */}
                                                             <div className="w-36 shrink-0">
-                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Ngày hết hạn</label>
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Ngày hết hạn <span className="text-red-500">*</span></label>
                                                                 <input type="date" value={row.ngayHetHan}
                                                                     onChange={e => updateRow(row.id, 'ngayHetHan', e.target.value)}
                                                                     className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -363,7 +367,7 @@ const NhapHangPage = () => {
                                                 Hủy
                                             </button>
                                             <button type="submit" disabled={loading || !isFormValid}
-                                                title={!isFormValid ? 'Vui lòng điền đầy đủ nguyên liệu, số lượng và giá nhập' : ''}
+                                                title={!isFormValid ? 'Vui lòng điền đầy đủ tất cả thông tin bắt buộc (*)' : ''}
                                                 className={`flex-1 sm:flex-none px-6 py-3 rounded-xl font-medium transition flex items-center justify-center gap-2
                                                     ${loading || !isFormValid
                                                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
