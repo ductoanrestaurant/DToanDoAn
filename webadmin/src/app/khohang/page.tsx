@@ -13,7 +13,20 @@ interface NguyenLieu {
     trangThai: string;
     soLuong: number;
     updatedAt: string;
+    ngayHetHan: string | null; // Ngày hết hạn gần nhất từ phiếu nhập
 }
+
+// Trạng thái hết hạn: trả về text, màu badge dựa trên ngày hết hạn
+const getTrangThaiHetHan = (ngayHetHan: string | null): { label: string; className: string } => {
+    if (!ngayHetHan) return { label: 'Chưa có hạn', className: 'bg-gray-100 text-gray-500' };
+    const now = new Date();
+    const expiry = new Date(ngayHetHan);
+    const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0)  return { label: 'Hết hạn', className: 'bg-red-100 text-red-700' };
+    if (diffDays <= 7)  return { label: `Sắp hết hạn (${diffDays}ng)`, className: 'bg-orange-100 text-orange-700' };
+    if (diffDays <= 30) return { label: `Sắp hết hạn (${diffDays}ng)`, className: 'bg-yellow-100 text-yellow-700' };
+    return { label: 'Còn hạn', className: 'bg-green-100 text-green-700' };
+};
 
 const KhoHangPage = () => {
     const [loading, setLoading] = useState(true);
@@ -221,7 +234,7 @@ const KhoHangPage = () => {
                                 <tr>
                                     <th className="p-4 text-left font-semibold text-gray-800">Thông tin nguyên liệu</th>
                                     <th className="p-4 text-left font-semibold text-gray-800">Số lượng</th>
-                                    {/*<th className="p-4 text-left font-semibold text-gray-800">Trạng thái</th>*/}
+                                    <th className="p-4 text-left font-semibold text-gray-800">Trạng thái</th>
                                     <th className="p-4 text-left font-semibold text-gray-800">Mô tả</th>
                                     <th className="p-4 text-left font-semibold text-gray-800">Hành động</th>
                                 </tr>
@@ -231,11 +244,23 @@ const KhoHangPage = () => {
                                     <tr key={item.maNguyenLieu} className="hover:bg-gray-50 transition-colors">
                                         <td className="p-4 font-medium text-gray-900">{item.tenNguyenLieu}</td>
                                         <td className="p-4 text-gray-700">{item.soLuong} {item.donViTinh}</td>
-                                        {/*<td className="p-4 text-gray-700">*/}
-                                        {/*  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm">*/}
-                                        {/*    {item.trangThai}*/}
-                                        {/*  </span>*/}
-                                        {/*</td>*/}
+                                        <td className="p-4">
+                                            {(() => {
+                                                const status = getTrangThaiHetHan(item.ngayHetHan);
+                                                return (
+                                                    <div>
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.className}`}>
+                                                            {status.label}
+                                                        </span>
+                                                        {item.ngayHetHan && (
+                                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                                {new Date(item.ngayHetHan).toLocaleDateString('vi-VN')}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </td>
                                         <td className="p-4 font-medium text-gray-700">{item.moTa}</td>
                                         <td className="p-4">
                                             <button

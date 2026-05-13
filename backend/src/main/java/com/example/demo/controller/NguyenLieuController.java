@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.entity.NguyenLieu;
 import com.example.demo.entity.Restaurant;
+import com.example.demo.repository.ChiTietPhieuNhapRepository;
 import com.example.demo.service.NguyenLieuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +10,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -20,10 +24,31 @@ public class NguyenLieuController {
     @Autowired
     private NguyenLieuService nguyenLieuService;
 
+    @Autowired
+    private ChiTietPhieuNhapRepository chiTietPhieuNhapRepository;
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public List<NguyenLieu> getAll() {
-        return nguyenLieuService.getAll();
+    public List<Map<String, Object>> getAll() {
+        List<NguyenLieu> list = nguyenLieuService.getAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (NguyenLieu nl : list) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("maNguyenLieu", nl.getMaNguyenLieu());
+            item.put("tenNguyenLieu", nl.getTenNguyenLieu());
+            item.put("donViTinh", nl.getDonViTinh());
+            item.put("moTa", nl.getMoTa());
+            item.put("xuatXu", nl.getXuatXu());
+            item.put("trangThai", nl.getTrangThai());
+            item.put("soLuong", nl.getSoLuong());
+            item.put("updatedAt", nl.getUpdatedAt());
+            // Lấy ngày hết hạn gần nhất từ chitietphieunhap
+            java.util.Date ngayHetHan = chiTietPhieuNhapRepository
+                    .findNearestExpiryByMaNguyenLieu(nl.getMaNguyenLieu());
+            item.put("ngayHetHan", ngayHetHan);
+            result.add(item);
+        }
+        return result;
     }
 
     @GetMapping("/{id}")
