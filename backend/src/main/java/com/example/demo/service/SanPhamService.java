@@ -31,6 +31,7 @@ import com.example.demo.repository.ListImageRepository;
 import com.example.demo.repository.DanhMucRepository;
 import com.example.demo.repository.CongThucRepository;
 import com.example.demo.repository.NguyenLieuRepository;
+import com.example.demo.repository.DanhGiaRepository;
 
 @Service
 public class SanPhamService {
@@ -49,6 +50,9 @@ public class SanPhamService {
 
     @Autowired
     private NguyenLieuRepository nguyenLieuRepository;
+
+    @Autowired
+    private DanhGiaRepository danhGiaRepository;
 
     @Autowired
     private CloudinaryService cloudinaryService;
@@ -149,7 +153,10 @@ public class SanPhamService {
         return sanPhamRepository.save(sanPham);
     }
 
+    @Transactional
     public void delete(Integer id) {
+        // Xóa các đánh giá liên quan trước (tránh lỗi foreign key constraint)
+        danhGiaRepository.deleteAll(danhGiaRepository.findByMaSanPham(id));
         sanPhamRepository.deleteById(id);
     }
 
