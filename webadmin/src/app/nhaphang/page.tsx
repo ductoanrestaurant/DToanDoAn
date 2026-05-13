@@ -431,13 +431,33 @@ const NhapHangPage = () => {
                                     <p className="text-gray-500 py-8 text-center">Đang tải chi tiết...</p>
                                 ) : phiếuDetail ? (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50/60 rounded-xl px-4 py-3">
-                                            <div><p className="text-gray-500">Mã phiếu</p><p className="font-mono font-bold">#{phiếuDetail.maPhieuNhap}</p></div>
-                                            <div><p className="text-gray-500">Ngày nhập</p><p>{formatDateTime(phiếuDetail.ngayNhap)}</p></div>
-                                            <div><p className="text-gray-500">Nhà cung cấp</p><p>{phiếuDetail.nhaCungCap || '—'}</p></div>
-                                            <div><p className="text-gray-500">Tổng tiền</p><p className="text-emerald-600 font-bold text-base">{formatVnd(phiếuDetail.tongTien)}</p></div>
-                                            <div><p className="text-gray-500">Nhân viên</p><p>{phiếuDetail.tenNhanVien || `Mã ${phiếuDetail.maNhanVien}`}</p></div>
-                                            {phiếuDetail.ghiChu && <div className="col-span-2"><p className="text-gray-500">Ghi chú</p><p>{phiếuDetail.ghiChu}</p></div>}
+                                        <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm bg-slate-50 rounded-xl px-5 py-4 border border-gray-100">
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Mã phiếu</p>
+                                                <p className="font-mono font-bold text-gray-900 text-base">#{phiếuDetail.maPhieuNhap}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Ngày nhập</p>
+                                                <p className="text-gray-800 font-medium">{formatDateTime(phiếuDetail.ngayNhap)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Nhà cung cấp</p>
+                                                <p className="text-gray-800 font-medium">{phiếuDetail.nhaCungCap || '—'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Tổng tiền</p>
+                                                <p className="text-emerald-600 font-bold text-lg">{formatVnd(phiếuDetail.tongTien)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Nhân viên</p>
+                                                <p className="text-gray-800 font-medium">{phiếuDetail.tenNhanVien || `Mã ${phiếuDetail.maNhanVien}`}</p>
+                                            </div>
+                                            {phiếuDetail.ghiChu && (
+                                                <div className="col-span-2">
+                                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Ghi chú</p>
+                                                    <p className="text-gray-800">{phiếuDetail.ghiChu}</p>
+                                                </div>
+                                            )}
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-800 mb-3">Chi tiết nguyên liệu ({phiếuDetail.chiTiet?.length || 0} món)</h3>
