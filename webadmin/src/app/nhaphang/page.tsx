@@ -76,6 +76,13 @@ const NhapHangPage = () => {
     const [ghiChu, setGhiChu] = useState('');
     const [rows, setRows] = useState<ChiTietRow[]>([emptyRow(rowCounter++)]);
 
+    // Kiểm tra form hợp lệ: tất cả dòng phải có đủ nguyên liệu, số lượng > 0, giá >= 0
+    const isFormValid = rows.every(r =>
+        r.maNguyenLieu !== '' &&
+        r.soLuongNhap !== '' && parseFloat(r.soLuongNhap) > 0 &&
+        r.giaNhap !== '' && parseFloat(r.giaNhap) >= 0
+    );
+
     const idRestaurant = 1;
 
     useEffect(() => { fetchNguyenLieu(); }, []);
@@ -355,8 +362,13 @@ const NhapHangPage = () => {
                                                 className="px-6 py-3 rounded-xl bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition">
                                                 Hủy
                                             </button>
-                                            <button type="submit" disabled={loading}
-                                                className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-70 flex items-center justify-center gap-2">
+                                            <button type="submit" disabled={loading || !isFormValid}
+                                                title={!isFormValid ? 'Vui lòng điền đầy đủ nguyên liệu, số lượng và giá nhập' : ''}
+                                                className={`flex-1 sm:flex-none px-6 py-3 rounded-xl font-medium transition flex items-center justify-center gap-2
+                                                    ${loading || !isFormValid
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                    }`}>
                                                 {loading ? (
                                                     <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Đang xử lý...</>
                                                 ) : (
