@@ -75,17 +75,19 @@ export default function LoginPage() {
     }
     catch (err) {
       console.error("Login error:", err);
-      // Xử lý lỗi an toàn hơn để tránh crash nếu err.response không tồn tại
       if (err instanceof AxiosError && err.response) {
-        if (err.response.status === 401) {
+        if (err.response.status === 403) {
+          // Tài khoản bị vô hiệu hóa
+          setError(err.response.data?.error || "Tài khoản không có quyền truy cập.");
+        } else if (err.response.status === 401) {
+          // Sai email hoặc mật khẩu
           setError("Tên đăng nhập hoặc mật khẩu không chính xác.");
         } else {
-          setError(err.response.data?.message || err.message || "Lỗi kết nối máy chủ.");
+          setError(err.response.data?.error || err.message || "Lỗi kết nối máy chủ.");
         }
       } else if (err instanceof Error) {
         setError(err.message);
-      }
-       else {
+      } else {
         setError("Lỗi kết nối máy chủ.");
       }
     } finally {

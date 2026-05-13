@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,7 +30,8 @@ public class AuthController {
     private final KhachHangService khachHangService;
     private final NhanVienService nhanVienService;
 
-    public AuthController(JwtService jwtService, AuthenticationManager authenticationManager, KhachHangService khachHangService, NhanVienService nhanVienService) {
+    public AuthController(JwtService jwtService, AuthenticationManager authenticationManager,
+            KhachHangService khachHangService, NhanVienService nhanVienService) {
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.khachHangService = khachHangService;
@@ -37,9 +40,19 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
-        );
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password()));
+        } catch (DisabledException e) {
+            // Tài khoản bị vô hiệu hóa (trangthai = false)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Tài khoản không có quyền truy cập."));
+        } catch (BadCredentialsException e) {
+            // Sai email hoặc mật khẩu
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Tên đăng nhập hoặc mật khẩu không chính xác."));
+        }
 
         String token = jwtService.generateToken(authentication);
 
@@ -52,28 +65,33 @@ public class AuthController {
 
         if ("KHACH_HANG".equals(role)) {
             if (!"app".equalsIgnoreCase(clientType)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Khách hàng chỉ được phép đăng nhập vào ứng dụng di động."));
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Khách hàng chỉ được phép đăng nhập vào ứng dụng di động."));
             }
             KhachHang khachHang = khachHangService.findByEmail(loginRequest.email())
-                    .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + loginRequest.email()));
+                    .orElseThrow(() -> new UsernameNotFoundException(
+                            "Không tìm thấy người dùng với email: " + loginRequest.email()));
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "maTaiKhoan", khachHang.getMaTaiKhoan(),
                     "tenKhachHang", khachHang.getHoTen(),
-                    "role", "KHACH_HANG"
-            ));
+                    "role", "KHACH_HANG"));
         } else {
             NhanVien nhanVien = nhanVienService.findByEmail(loginRequest.email())
-                    .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy nhân viên với email: " + loginRequest.email()));
+                    .orElseThrow(() -> new UsernameNotFoundException(
+                            "Không tìm thấy nhân viên với email: " + loginRequest.email()));
             String nhanVienRole = nhanVien.getVaiTro().getTenVaiTro();
 
             if ("app".equalsIgnoreCase(clientType)) {
                 if (!"QUAN_LY".equals(nhanVienRole) && !"THU_NGAN".equals(nhanVienRole)) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Vai trò của bạn không được phép đăng nhập vào ứng dụng di động."));
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "Vai trò của bạn không được phép đăng nhập vào ứng dụng di động."));
                 }
             } else if ("web".equalsIgnoreCase(clientType)) {
-                if (!"QUAN_LY".equals(nhanVienRole) && !"THU_NGAN".equals(nhanVienRole) && !"BEP".equals(nhanVienRole)) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Vai trò của bạn không được phép đăng nhập vào ứng dụng web."));
+                if (!"QUAN_LY".equals(nhanVienRole) && !"THU_NGAN".equals(nhanVienRole)
+                        && !"BEP".equals(nhanVienRole)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "Vai trò của bạn không được phép đăng nhập vào ứng dụng web."));
                 }
             } else {
                 return ResponseEntity.badRequest().body(Map.of("error", "Loại client không hợp lệ."));
@@ -84,8 +102,7 @@ public class AuthController {
                     "maNhanVien", nhanVien.getId().getMaNhanVien(),
                     "tenNhanVien", nhanVien.getTenNhanVien(),
                     "idRestaurant", nhanVien.getId().getIdRestaurant(),
-                    "role", nhanVienRole
-            ));
+                    "role", nhanVienRole));
         }
     }
 
@@ -93,11 +110,13 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         try {
             KhachHang registeredUser = khachHangService.register(registerRequest);
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Đăng ký thành công cho email: " + registeredUser.getEmail()));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("message", "Đăng ký thành công cho email: " + registeredUser.getEmail()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Đã có lỗi xảy ra trong quá trình đăng ký."));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Đã có lỗi xảy ra trong quá trình đăng ký."));
         }
     }
 }

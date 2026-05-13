@@ -68,9 +68,14 @@ const LoginScreen = () => {
         } catch (error: any) {
             console.error("Login error:", error.response?.data || error.message);
             const backendError = error.response?.data?.error;
+            const status = error.response?.status;
+
             if (backendError) {
+                // Hiển thị thông báo từ backend (bao gồm cả lỗi tài khoản bị khóa)
                 setErrorMessage(backendError);
-            } else if (error.response && error.response.status === 401) {
+            } else if (status === 403) {
+                setErrorMessage("Tài khoản không có quyền truy cập.");
+            } else if (status === 401) {
                 setErrorMessage("Email hoặc mật khẩu không chính xác.");
             } else {
                 setErrorMessage("Không thể kết nối tới máy chủ. Vui lòng thử lại.");
