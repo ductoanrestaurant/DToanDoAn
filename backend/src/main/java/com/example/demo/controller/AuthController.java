@@ -40,16 +40,22 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        // Kiểm tra trước: NhanVien bị vô hiệu hóa → trả 403 ngay
+        // (DisabledException bị DaoAuthenticationProvider wrap nên không catch được sau authenticate())
+        NhanVien nhanVienCheck = nhanVienService.findByEmail(loginRequest.email()).orElse(null);
+        if (nhanVienCheck != null && (nhanVienCheck.getTrangthai() == null || !nhanVienCheck.getTrangthai())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Tài khoản không có quyền truy cập."));
+        }
+
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password()));
-        } catch (DisabledException e) {
-            // Tài khoản bị vô hiệu hóa (trangthai = false)
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Tài khoản không có quyền truy cập."));
         } catch (BadCredentialsException e) {
-            // Sai email hoặc mật khẩu
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Tên đăng nhập hoặc mật khẩu không chính xác."));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Tên đăng nhập hoặc mật khẩu không chính xác."));
         }
