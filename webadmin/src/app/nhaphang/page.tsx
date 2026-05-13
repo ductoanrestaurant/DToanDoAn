@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import api, { ENDPOINTS } from '@/constants/api';
-import { ArrowLeft, Package, Truck, List, Eye, X } from 'lucide-react';
+import { ArrowLeft, Package, Truck, List, Eye, X, PlusCircle, Trash2 } from 'lucide-react';
 
 interface NguyenLieu {
     maNguyenLieu: number;
@@ -38,10 +38,25 @@ interface PhieuNhapDetail extends PhieuNhap {
     chiTiet: ChiTietPhieuNhap[];
 }
 
+// Một dòng nguyên liệu trong form
+interface ChiTietRow {
+    id: number;
+    maNguyenLieu: number | '';
+    soLuongNhap: string;
+    giaNhap: string;
+    ngayHetHan: string;
+}
+
+const emptyRow = (id: number): ChiTietRow => ({
+    id, maNguyenLieu: '', soLuongNhap: '', giaNhap: '', ngayHetHan: '',
+});
+
 const formatVnd = (n: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 const formatDateTime = (s: string | null) =>
     s ? new Date(s).toLocaleString('vi-VN', { hour12: false }) : '—';
+
+let rowCounter = 1;
 
 const NhapHangPage = () => {
     const router = useRouter();
@@ -56,22 +71,15 @@ const NhapHangPage = () => {
     const [detailLoading, setDetailLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [maNguyenLieu, setMaNguyenLieu] = useState<number | ''>('');
-    const [soLuongNhap, setSoLuongNhap] = useState('');
-    const [giaNhap, setGiaNhap] = useState('');
+    // Form state
     const [nhaCungCap, setNhaCungCap] = useState('');
     const [ghiChu, setGhiChu] = useState('');
-    const [ngayHetHan, setNgayHetHan] = useState('');
+    const [rows, setRows] = useState<ChiTietRow[]>([emptyRow(rowCounter++)]);
 
     const idRestaurant = 1;
 
-    useEffect(() => {
-        fetchNguyenLieu();
-    }, []);
-
-    useEffect(() => {
-        if (view === 'list') fetchPhieuList();
-    }, [view]);
+    useEffect(() => { fetchNguyenLieu(); }, []);
+    useEffect(() => { if (view === 'list') fetchPhieuList(); }, [view]);
 
     const fetchNguyenLieu = async () => {
         try {
@@ -110,39 +118,61 @@ const NhapHangPage = () => {
     };
 
     const clearForm = () => {
-        setMaNguyenLieu('');
-        setSoLuongNhap('');
-        setGiaNhap('');
         setNhaCungCap('');
         setGhiChu('');
-        setNgayHetHan('');
+        setRows([emptyRow(rowCounter++)]);
     };
+
+    // --- Row handlers ---
+    const updateRow = (id: number, field: keyof ChiTietRow, value: string | number) => {
+        setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
+    const addRow = () => setRows(prev => [...prev, emptyRow(rowCounter++)]);
+
+    const removeRow = (id: number) => {
+        if (rows.length === 1) return; // giữ ít nhất 1 dòng
+        setRows(prev => prev.filter(r => r.id !== id));
+    };
+
+    // Tính tổng tiền preview
+    const tongTienPreview = rows.reduce((sum, r) => {
+        const sl = parseFloat(r.soLuongNhap) || 0;
+        const gia = parseFloat(r.giaNhap) || 0;
+        return sum + sl * gia;
+    }, 0);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        if (!maNguyenLieu || !soLuongNhap || !giaNhap) {
-            setError('Vui lòng điền đầy đủ: Nguyên liệu, Số lượng nhập, Giá nhập.');
-            return;
-        }
-        const soLuong = parseFloat(soLuongNhap);
-        const gia = parseFloat(giaNhap);
-        if (isNaN(soLuong) || soLuong <= 0 || isNaN(gia) || gia < 0) {
-            setError('Số lượng và giá nhập phải là số hợp lệ.');
-            return;
+
+        // Validate
+        for (const r of rows) {
+            if (!r.maNguyenLieu || !r.soLuongNhap || !r.giaNhap) {
+                setError('Vui lòng điền đầy đủ Nguyên liệu, Số lượng và Giá nhập cho tất cả các dòng.');
+                return;
+            }
+            if (parseFloat(r.soLuongNhap) <= 0 || parseFloat(r.giaNhap) < 0) {
+                setError('Số lượng phải > 0 và giá nhập phải ≥ 0.');
+                return;
+            }
         }
 
         setLoading(true);
         try {
-            const body: Record<string, unknown> = {
-                maNguyenLieu: Number(maNguyenLieu),
-                soLuongNhap: soLuong,
-                giaNhap: gia,
+            const chiTiets = rows.map(r => ({
+                maNguyenLieu: Number(r.maNguyenLieu),
+                soLuongNhap: parseFloat(r.soLuongNhap),
+                giaNhap: parseFloat(r.giaNhap),
+                ...(r.ngayHetHan ? { ngayHetHan: new Date(r.ngayHetHan).toISOString() } : {}),
+            }));
+
+            await api.post(ENDPOINTS.NHAP_HANG, {
                 nhaCungCap: nhaCungCap || undefined,
                 ghiChu: ghiChu || undefined,
-            };
-            if (ngayHetHan) body.ngayHetHan = new Date(ngayHetHan).toISOString();
-            await api.post(ENDPOINTS.NHAP_HANG, body);
+                chiTiets,
+            });
+
             clearForm();
             setView('list');
             await fetchPhieuList();
@@ -160,182 +190,177 @@ const NhapHangPage = () => {
         }
     };
 
-    const selectedNguyenLieu = nguyenLieus.find(n => n.maNguyenLieu === maNguyenLieu);
-
     return (
         <div className="flex min-h-screen bg-[#f1f5f9]">
             <Sidebar />
             <main className="flex-1 ml-64 p-6 md:p-8">
                 <div className="max-w-5xl mx-auto">
+                    {/* Header */}
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => router.push('/khohang')}
-                                className="p-2 rounded-lg hover:bg-white/80 transition"
-                            >
+                            <button onClick={() => router.push('/khohang')} className="p-2 rounded-lg hover:bg-white/80 transition">
                                 <ArrowLeft size={24} className="text-gray-700" />
                             </button>
                             <div>
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Nhập hàng vào kho</h1>
-                                <p className="text-gray-500 text-sm mt-0.5">
-                                    Tạo phiếu nhập mới hoặc xem lịch sử phiếu nhập.
-                                </p>
+                                <p className="text-gray-500 text-sm mt-0.5">Tạo phiếu nhập mới hoặc xem lịch sử phiếu nhập.</p>
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <button
-                                onClick={() => setView('form')}
-                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
-                                    view === 'form'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-gray-600 hover:bg-gray-100'
-                                }`}
-                            >
-                                <Package size={18} />
-                                Tạo phiếu nhập
+                            <button onClick={() => setView('form')} className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${view === 'form' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+                                <Package size={18} /> Tạo phiếu nhập
                             </button>
-                            <button
-                                onClick={() => setView('list')}
-                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
-                                    view === 'list'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-gray-600 hover:bg-gray-100'
-                                }`}
-                            >
-                                <List size={18} />
-                                Danh sách phiếu
+                            <button onClick={() => setView('list')} className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${view === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+                                <List size={18} /> Danh sách phiếu
                             </button>
                         </div>
                     </div>
 
+                    {/* Form */}
                     {view === 'form' && (
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
                             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-blue-50">
-                                    <Truck size={22} className="text-blue-600" />
-                                </div>
+                                <div className="p-2 rounded-lg bg-blue-50"><Truck size={22} className="text-blue-600" /></div>
                                 <div>
                                     <h2 className="font-semibold text-gray-800">Phiếu nhập kho mới</h2>
                                     <p className="text-sm text-gray-500">Điền thông tin đợt nhập hàng</p>
                                 </div>
                             </div>
-                            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+                            <form onSubmit={handleSubmit} className="p-6 space-y-6">
                                 {fetchLoading ? (
                                     <p className="text-gray-500 py-8 text-center">Đang tải danh sách nguyên liệu...</p>
                                 ) : (
                                     <>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Nguyên liệu <span className="text-red-500">*</span>
-                                            </label>
-                                            <select
-                                                value={maNguyenLieu}
-                                                onChange={(e) => setMaNguyenLieu(e.target.value ? Number(e.target.value) : '')}
-                                required
-                                                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                            >
-                                                <option value="">-- Chọn nguyên liệu --</option>
-                                                {nguyenLieus.map((nl) => (
-                                                    <option key={nl.maNguyenLieu} value={nl.maNguyenLieu}>
-                                                        {nl.tenNguyenLieu} ({nl.donViTinh}) — Tồn: {nl.soLuong}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        {/* Thông tin chung */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Số lượng nhập <span className="text-red-500">*</span>
-                                                </label>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                type="number"
-                                                        step="0.01"
-                                                        min="0.01"
-                                placeholder="0"
-                                                        value={soLuongNhap}
-                                                        onChange={(e) => setSoLuongNhap(e.target.value)}
-                                                        required
-                                                        className="flex-1 px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    />
-                                                    {selectedNguyenLieu && (
-                                                        <span className="text-sm text-gray-500">{selectedNguyenLieu.donViTinh}</span>
-                                                    )}
-                                                </div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Nhà cung cấp</label>
+                                                <input type="text" placeholder="VD: Công ty ABC..." value={nhaCungCap}
+                                                    onChange={e => setNhaCungCap(e.target.value)}
+                                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Giá nhập (VNĐ) <span className="text-red-500">*</span>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                                                <input type="text" placeholder="Ghi chú lô hàng..." value={ghiChu}
+                                                    onChange={e => setGhiChu(e.target.value)}
+                                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            </div>
+                                        </div>
+
+                                        {/* Danh sách nguyên liệu */}
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-sm font-semibold text-gray-700">
+                                                    Danh sách nguyên liệu <span className="text-red-500">*</span>
                                                 </label>
-                                                <input
-                                type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                placeholder="0"
-                                value={giaNhap}
-                                onChange={(e) => setGiaNhap(e.target.value)}
-                                                    required
-                                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                />
+                                                <span className="text-xs text-gray-400">{rows.length} dòng</span>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                {rows.map((row, idx) => {
+                                                    const selNL = nguyenLieus.find(n => n.maNguyenLieu === row.maNguyenLieu);
+                                                    return (
+                                                        <div key={row.id} className="flex gap-3 items-start p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                                            {/* STT */}
+                                                            <span className="mt-3 text-xs font-bold text-gray-400 w-5 shrink-0">{idx + 1}</span>
+
+                                                            {/* Nguyên liệu */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Nguyên liệu *</label>
+                                                                <select value={row.maNguyenLieu}
+                                                                    onChange={e => updateRow(row.id, 'maNguyenLieu', e.target.value ? Number(e.target.value) : '')}
+                                                                    required
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                                                    <option value="">-- Chọn --</option>
+                                                                    {nguyenLieus.map(nl => (
+                                                                        <option key={nl.maNguyenLieu} value={nl.maNguyenLieu}>
+                                                                            {nl.tenNguyenLieu} ({nl.donViTinh}) — Tồn: {nl.soLuong}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+
+                                                            {/* Số lượng */}
+                                                            <div className="w-32 shrink-0">
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                                    Số lượng {selNL && <span className="text-gray-400">({selNL.donViTinh})</span>} *
+                                                                </label>
+                                                                <input type="number" step="0.01" min="0.01" placeholder="0"
+                                                                    value={row.soLuongNhap}
+                                                                    onChange={e => updateRow(row.id, 'soLuongNhap', e.target.value)}
+                                                                    required
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                            </div>
+
+                                                            {/* Giá nhập */}
+                                                            <div className="w-36 shrink-0">
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Giá nhập (VNĐ) *</label>
+                                                                <input type="number" step="1" min="0" placeholder="0"
+                                                                    value={row.giaNhap}
+                                                                    onChange={e => updateRow(row.id, 'giaNhap', e.target.value)}
+                                                                    required
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                            </div>
+
+                                                            {/* Ngày hết hạn */}
+                                                            <div className="w-36 shrink-0">
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Ngày hết hạn</label>
+                                                                <input type="date" value={row.ngayHetHan}
+                                                                    onChange={e => updateRow(row.id, 'ngayHetHan', e.target.value)}
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                            </div>
+
+                                                            {/* Thành tiền */}
+                                                            <div className="w-28 shrink-0 text-right">
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Thành tiền</label>
+                                                                <p className="mt-2 text-sm font-semibold text-emerald-600">
+                                                                    {formatVnd((parseFloat(row.soLuongNhap) || 0) * (parseFloat(row.giaNhap) || 0))}
+                                                                </p>
+                                                            </div>
+
+                                                            {/* Xóa dòng */}
+                                                            <button type="button" onClick={() => removeRow(row.id)}
+                                                                disabled={rows.length === 1}
+                                                                className="mt-6 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Nút thêm dòng */}
+                                            <button type="button" onClick={addRow}
+                                                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-dashed border-blue-300 text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50 transition">
+                                                <PlusCircle size={18} />
+                                                Thêm nguyên liệu khác
+                                            </button>
+                                        </div>
+
+                                        {/* Tổng tiền */}
+                                        <div className="flex justify-end">
+                                            <div className="bg-blue-50 rounded-xl px-6 py-3 text-right">
+                                                <p className="text-sm text-gray-500">Tổng tiền phiếu nhập</p>
+                                                <p className="text-2xl font-bold text-blue-700">{formatVnd(tongTienPreview)}</p>
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Nhà cung cấp</label>
-                                            <input
-                                                type="text"
-                                                placeholder="VD: Công ty ABC..."
-                                                value={nhaCungCap}
-                                                onChange={(e) => setNhaCungCap(e.target.value)}
-                                                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Ngày hết hạn</label>
-                                            <input
-                                                type="date"
-                                                value={ngayHetHan}
-                                                onChange={(e) => setNgayHetHan(e.target.value)}
-                                                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
-                                            <textarea
-                                                rows={3}
-                                                placeholder="Ghi chú thêm về lô hàng..."
-                                                value={ghiChu}
-                                                onChange={(e) => setGhiChu(e.target.value)}
-                                                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                                            />
-                                        </div>
+
                                         {error && (
-                                            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">
-                                                {error}
-                                            </div>
+                                            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{error}</div>
                                         )}
+
                                         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => router.push('/khohang')}
-                                                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition"
-                                            >
+                                            <button type="button" onClick={() => router.push('/khohang')}
+                                                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition">
                                                 Hủy
                                             </button>
-                                            <button
-                                                type="submit"
-                                    disabled={loading}
-                                                className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
-                                            >
+                                            <button type="submit" disabled={loading}
+                                                className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-70 flex items-center justify-center gap-2">
                                                 {loading ? (
-                                                    <>
-                                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                        Đang xử lý...
-                                                    </>
+                                                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Đang xử lý...</>
                                                 ) : (
-                                                    <>
-                                                        <Package size={18} />
-                                                        Xác nhận nhập hàng
-                                                    </>
+                                                    <><Package size={18} />Xác nhận nhập hàng ({rows.length} nguyên liệu)</>
                                                 )}
                                             </button>
                                         </div>
@@ -345,6 +370,7 @@ const NhapHangPage = () => {
                         </div>
                     )}
 
+                    {/* Danh sách phiếu */}
                     {view === 'list' && (
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -368,20 +394,16 @@ const NhapHangPage = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {phiếuList.map((p) => (
+                                            {phiếuList.map(p => (
                                                 <tr key={p.maPhieuNhap} className="hover:bg-gray-50">
                                                     <td className="p-4 font-mono font-medium text-gray-900">#{p.maPhieuNhap}</td>
                                                     <td className="p-4 text-gray-700">{formatDateTime(p.ngayNhap)}</td>
                                                     <td className="p-4 text-gray-700">{p.nhaCungCap || '—'}</td>
                                                     <td className="p-4 text-right font-medium text-gray-900">{formatVnd(p.tongTien)}</td>
                                                     <td className="p-4 text-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => fetchPhieuDetail(p.maPhieuNhap)}
-                                                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
-                                                        >
-                                                            <Eye size={16} />
-                                                            Xem
+                                                        <button type="button" onClick={() => fetchPhieuDetail(p.maPhieuNhap)}
+                                                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition">
+                                                            <Eye size={16} /> Xem
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -394,19 +416,13 @@ const NhapHangPage = () => {
                     )}
                 </div>
 
-                {/* Modal chi tiết phiếu */}
+                {/* Modal chi tiết */}
                 {(phiếuDetail !== null || detailLoading) && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
                             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                                <h2 className="text-xl font-semibold text-gray-800">
-                                    Chi tiết phiếu nhập #{phiếuDetail?.maPhieuNhap ?? '...'}
-                                </h2>
-                                <button
-                                    type="button"
-                                    onClick={() => setPhieuDetail(null)}
-                                    className="p-2 rounded-lg hover:bg-gray-100"
-                                >
+                                <h2 className="text-xl font-semibold text-gray-800">Chi tiết phiếu nhập #{phiếuDetail?.maPhieuNhap ?? '...'}</h2>
+                                <button type="button" onClick={() => setPhieuDetail(null)} className="p-2 rounded-lg hover:bg-gray-100">
                                     <X size={22} />
                                 </button>
                             </div>
@@ -415,38 +431,16 @@ const NhapHangPage = () => {
                                     <p className="text-gray-500 py-8 text-center">Đang tải chi tiết...</p>
                                 ) : phiếuDetail ? (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50/60 rounded-xl px-4 py-3 mb-2">
-                                            <div className="space-y-1">
-                                                <p className="text-gray-700 font-semibold">Mã phiếu</p>
-                                                <p className="text-gray-900 font-mono font-semibold text-base">#{phiếuDetail.maPhieuNhap}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-gray-700 font-semibold">Ngày nhập</p>
-                                                <p className="text-gray-900">{formatDateTime(phiếuDetail.ngayNhap)}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-gray-700 font-semibold">Nhà cung cấp</p>
-                                                <p className="text-gray-900">{phiếuDetail.nhaCungCap || '—'}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-gray-700 font-semibold">Tổng tiền</p>
-                                                <p className="text-emerald-600 font-semibold text-base">{formatVnd(phiếuDetail.tongTien)}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-gray-700 font-semibold">Nhân viên nhập</p>
-                                                <p className="text-gray-900">
-                                                    {phiếuDetail.tenNhanVien || `Mã ${phiếuDetail.maNhanVien}`}
-                                                </p>
-                                            </div>
-                                            {phiếuDetail.ghiChu && (
-                                                <div className="col-span-2">
-                                                    <span className="text-gray-500">Ghi chú:</span>
-                                                    <p className="mt-1 text-gray-800">{phiếuDetail.ghiChu}</p>
-                                                </div>
-                                            )}
+                                        <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50/60 rounded-xl px-4 py-3">
+                                            <div><p className="text-gray-500">Mã phiếu</p><p className="font-mono font-bold">#{phiếuDetail.maPhieuNhap}</p></div>
+                                            <div><p className="text-gray-500">Ngày nhập</p><p>{formatDateTime(phiếuDetail.ngayNhap)}</p></div>
+                                            <div><p className="text-gray-500">Nhà cung cấp</p><p>{phiếuDetail.nhaCungCap || '—'}</p></div>
+                                            <div><p className="text-gray-500">Tổng tiền</p><p className="text-emerald-600 font-bold text-base">{formatVnd(phiếuDetail.tongTien)}</p></div>
+                                            <div><p className="text-gray-500">Nhân viên</p><p>{phiếuDetail.tenNhanVien || `Mã ${phiếuDetail.maNhanVien}`}</p></div>
+                                            {phiếuDetail.ghiChu && <div className="col-span-2"><p className="text-gray-500">Ghi chú</p><p>{phiếuDetail.ghiChu}</p></div>}
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-gray-800 mb-3">Chi tiết món nhập</h3>
+                                            <h3 className="font-semibold text-gray-800 mb-3">Chi tiết nguyên liệu ({phiếuDetail.chiTiet?.length || 0} món)</h3>
                                             <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
                                                 <thead className="bg-gray-50">
                                                     <tr>
@@ -459,9 +453,7 @@ const NhapHangPage = () => {
                                                 <tbody className="divide-y divide-gray-100">
                                                     {phiếuDetail.chiTiet?.map((ct, i) => (
                                                         <tr key={i}>
-                                                            <td className="p-3 text-gray-900">
-                                                                {ct.tenNguyenLieu} <span className="text-gray-500">({ct.donViTinh})</span>
-                                                            </td>
+                                                            <td className="p-3 text-gray-900">{ct.tenNguyenLieu} <span className="text-gray-400">({ct.donViTinh})</span></td>
                                                             <td className="p-3 text-right text-gray-700">{ct.soLuongNhap}</td>
                                                             <td className="p-3 text-right text-gray-700">{formatVnd(ct.giaNhap)}</td>
                                                             <td className="p-3 text-right font-medium text-gray-900">{formatVnd(ct.thanhTien)}</td>

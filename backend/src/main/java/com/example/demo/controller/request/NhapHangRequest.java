@@ -2,70 +2,45 @@ package com.example.demo.controller.request;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 public class NhapHangRequest {
+    // Thông tin chung của phiếu
+    private String nhaCungCap;
+    private String ghiChu;
+
+    // Danh sách nguyên liệu (hỗ trợ nhập nhiều nguyên liệu 1 lần)
+    private List<ChiTietNhapRequest> chiTiets;
+
+    // --- Giữ backward compatible với form 1 nguyên liệu cũ ---
     private Integer maNguyenLieu;
     private BigDecimal soLuongNhap;
     private BigDecimal giaNhap;
     private Date ngayHetHan;
-    private String nhaCungCap;
-    private String ghiChu;
-    private Integer maNhanVien; // ID of the employee performing the import
+    private Integer maNhanVien;
 
-    // Getters and Setters
-    public Integer getMaNguyenLieu() {
-        return maNguyenLieu;
-    }
+    // Getters & Setters
+    public String getNhaCungCap() { return nhaCungCap; }
+    public void setNhaCungCap(String nhaCungCap) { this.nhaCungCap = nhaCungCap; }
 
-    public void setMaNguyenLieu(Integer maNguyenLieu) {
-        this.maNguyenLieu = maNguyenLieu;
-    }
+    public String getGhiChu() { return ghiChu; }
+    public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
 
-    public BigDecimal getSoLuongNhap() {
-        return soLuongNhap;
-    }
+    public List<ChiTietNhapRequest> getChiTiets() { return chiTiets; }
+    public void setChiTiets(List<ChiTietNhapRequest> chiTiets) { this.chiTiets = chiTiets; }
 
-    public void setSoLuongNhap(BigDecimal soLuongNhap) {
-        this.soLuongNhap = soLuongNhap;
-    }
+    public Integer getMaNguyenLieu() { return maNguyenLieu; }
+    public void setMaNguyenLieu(Integer maNguyenLieu) { this.maNguyenLieu = maNguyenLieu; }
 
-    public BigDecimal getGiaNhap() {
-        return giaNhap;
-    }
+    public BigDecimal getSoLuongNhap() { return soLuongNhap; }
+    public void setSoLuongNhap(BigDecimal soLuongNhap) { this.soLuongNhap = soLuongNhap; }
 
-    public void setGiaNhap(BigDecimal giaNhap) {
-        this.giaNhap = giaNhap;
-    }
+    public BigDecimal getGiaNhap() { return giaNhap; }
+    public void setGiaNhap(BigDecimal giaNhap) { this.giaNhap = giaNhap; }
 
-    public Date getNgayHetHan() {
-        return ngayHetHan;
-    }
+    public Date getNgayHetHan() { return ngayHetHan; }
+    public void setNgayHetHan(Date ngayHetHan) { this.ngayHetHan = ngayHetHan; }
 
-    public void setNgayHetHan(Date ngayHetHan) {
-        this.ngayHetHan = ngayHetHan;
-    }
-
-    public String getNhaCungCap() {
-        return nhaCungCap;
-    }
-
-    public void setNhaCungCap(String nhaCungCap) {
-        this.nhaCungCap = nhaCungCap;
-    }
-
-    public String getGhiChu() {
-        return ghiChu;
-    }
-
-    public void setGhiChu(String ghiChu) {
-        this.ghiChu = ghiChu;
-    }
-
-    public Integer getMaNhanVien() {
-        return maNhanVien;
-    }
-
-    public void setMaNhanVien(Integer maNhanVien) {
-        this.maNhanVien = maNhanVien;
-    }
+    public Integer getMaNhanVien() { return maNhanVien; }
+    public void setMaNhanVien(Integer maNhanVien) { this.maNhanVien = maNhanVien; }
 }

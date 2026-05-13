@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.controller.request.ChiTietNhapRequest;
 import com.example.demo.controller.request.NhapHangRequest;
 import com.example.demo.entity.ChiTietPhieuNhap;
 import com.example.demo.entity.ChiTietPhieuNhapId;
@@ -84,7 +85,7 @@ public class PhieuNhapKhoService {
 
     @Transactional
     public void nhapHang(NhapHangRequest request) {
-        // 0. Lấy thông tin nhân viên hiện tại từ SecurityContext (email trong JWT)
+        // 0. Lấy thông tin nhân viên hiện tại từ SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("Người dùng chưa đăng nhập");
@@ -97,32 +98,51 @@ public class PhieuNhapKhoService {
         Integer maNhanVien = nhanVien.getId().getMaNhanVien();
         Integer idRestaurant = nhanVien.getId().getIdRestaurant();
 
-        // 1. Find the NguyenLieu to be updated
-        NguyenLieu nguyenLieu = nguyenLieuRepository.findById(request.getMaNguyenLieu())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nguyên liệu với mã: " + request.getMaNguyenLieu()));
+        // 1. Xác định danh sách chi tiết cần nhập
+        List<ChiTietNhapRequest> chiTiets = request.getChiTiets();
 
-        // 2. Create and save PhieuNhapKho
+        // Nếu không có chiTiets (form cũ), wrap single ingredient thành list
+        if (chiTiets == null || chiTiets.isEmpty()) {
+            ChiTietNhapRequest single = new ChiTietNhapRequest();
+            single.setMaNguyenLieu(request.getMaNguyenLieu());
+            single.setSoLuongNhap(request.getSoLuongNhap());
+            single.setGiaNhap(request.getGiaNhap());
+            single.setNgayHetHan(request.getNgayHetHan());
+            chiTiets = List.of(single);
+        }
+
+        // 2. Tính tổng tiền
+        BigDecimal tongTien = chiTiets.stream()
+                .map(ct -> ct.getGiaNhap().multiply(ct.getSoLuongNhap()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // 3. Tạo phiếu nhập kho
         PhieuNhapKho phieuNhapKho = new PhieuNhapKho();
         phieuNhapKho.setNhaCungCap(request.getNhaCungCap());
         phieuNhapKho.setMaNhanVien(maNhanVien);
         phieuNhapKho.setGhiChu(request.getGhiChu());
         phieuNhapKho.setNgayNhap(OffsetDateTime.now());
-        phieuNhapKho.setTongTien(request.getGiaNhap().multiply(request.getSoLuongNhap()));
+        phieuNhapKho.setTongTien(tongTien);
         phieuNhapKho.setIdRestaurant(idRestaurant);
-        PhieuNhapKho savedPhieuNhapKho = phieuNhapKhoRepository.save(phieuNhapKho);
+        PhieuNhapKho savedPhieu = phieuNhapKhoRepository.save(phieuNhapKho);
 
-        // 3. Create and save ChiTietPhieuNhap
-        ChiTietPhieuNhap chiTiet = new ChiTietPhieuNhap();
-        ChiTietPhieuNhapId chiTietId = new ChiTietPhieuNhapId(savedPhieuNhapKho.getMaPhieuNhap(), nguyenLieu.getMaNguyenLieu());
-        chiTiet.setId(chiTietId);
-        chiTiet.setSoLuongNhap(request.getSoLuongNhap());
-        chiTiet.setGiaNhap(request.getGiaNhap());
-        chiTiet.setNgayHetHan(request.getNgayHetHan());
-        chiTietPhieuNhapRepository.save(chiTiet);
+        // 4. Lưu từng chi tiết và cập nhật tồn kho
+        for (ChiTietNhapRequest ct : chiTiets) {
+            NguyenLieu nguyenLieu = nguyenLieuRepository.findById(ct.getMaNguyenLieu())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy nguyên liệu mã: " + ct.getMaNguyenLieu()));
 
-        // 4. Update the quantity in NguyenLieu
-        BigDecimal currentSoLuong = nguyenLieu.getSoLuong() != null ? nguyenLieu.getSoLuong() : BigDecimal.ZERO;
-        nguyenLieu.setSoLuong(currentSoLuong.add(request.getSoLuongNhap()));
-        nguyenLieuRepository.save(nguyenLieu);
+            ChiTietPhieuNhap chiTiet = new ChiTietPhieuNhap();
+            ChiTietPhieuNhapId chiTietId = new ChiTietPhieuNhapId(savedPhieu.getMaPhieuNhap(), nguyenLieu.getMaNguyenLieu());
+            chiTiet.setId(chiTietId);
+            chiTiet.setSoLuongNhap(ct.getSoLuongNhap());
+            chiTiet.setGiaNhap(ct.getGiaNhap());
+            chiTiet.setNgayHetHan(ct.getNgayHetHan());
+            chiTietPhieuNhapRepository.save(chiTiet);
+
+            // Cập nhật tồn kho nguyên liệu
+            BigDecimal currentSoLuong = nguyenLieu.getSoLuong() != null ? nguyenLieu.getSoLuong() : BigDecimal.ZERO;
+            nguyenLieu.setSoLuong(currentSoLuong.add(ct.getSoLuongNhap()));
+            nguyenLieuRepository.save(nguyenLieu);
+        }
     }
 }
