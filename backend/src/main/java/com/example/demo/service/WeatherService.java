@@ -16,7 +16,7 @@ public class WeatherService {
 
     public WeatherService(WebClient.Builder webClientBuilder,
                           @Value("${weather.api.key:}") String apiKey,
-                          @Value("${weather.city:Ho Chi Minh}") String city) {
+                          @Value("${weather.city:Hanoi}") String city) {
         this.webClient = webClientBuilder.baseUrl("https://api.openweathermap.org").build();
         this.apiKey = apiKey;
         this.city = city;
