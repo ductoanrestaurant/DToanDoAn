@@ -290,7 +290,7 @@ const NhapHangPage = () => {
                                                                     value={row.soLuongNhap}
                                                                     onChange={e => updateRow(row.id, 'soLuongNhap', e.target.value)}
                                                                     required
-                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                                                             </div>
 
                                                             {/* Giá nhập */}
@@ -300,7 +300,7 @@ const NhapHangPage = () => {
                                                                     value={row.giaNhap}
                                                                     onChange={e => updateRow(row.id, 'giaNhap', e.target.value)}
                                                                     required
-                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                                                             </div>
 
                                                             {/* Ngày hết hạn */}
@@ -308,7 +308,7 @@ const NhapHangPage = () => {
                                                                 <label className="block text-xs font-medium text-gray-600 mb-1">Ngày hết hạn</label>
                                                                 <input type="date" value={row.ngayHetHan}
                                                                     onChange={e => updateRow(row.id, 'ngayHetHan', e.target.value)}
-                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                                                             </div>
 
                                                             {/* Thành tiền */}
