@@ -2,7 +2,12 @@ package com.example.demo.service;
 
 import com.example.demo.controller.RegisterRequest;
 import com.example.demo.entity.KhachHang;
+import com.example.demo.entity.YeuCauDon;
 import com.example.demo.repository.KhachHangRepository;
+import com.example.demo.repository.DanhGiaRepository;
+import com.example.demo.repository.YeuThichRepository;
+import com.example.demo.repository.YeuCauDonRepository;
+import com.example.demo.repository.ChiTietYeuCauDonRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +20,23 @@ public class KhachHangService {
 
     private final KhachHangRepository khachHangRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DanhGiaRepository danhGiaRepository;
+    private final YeuThichRepository yeuThichRepository;
+    private final YeuCauDonRepository yeuCauDonRepository;
+    private final ChiTietYeuCauDonRepository chiTietYeuCauDonRepository;
 
-    public KhachHangService(KhachHangRepository khachHangRepository, PasswordEncoder passwordEncoder) {
+    public KhachHangService(KhachHangRepository khachHangRepository,
+                            PasswordEncoder passwordEncoder,
+                            DanhGiaRepository danhGiaRepository,
+                            YeuThichRepository yeuThichRepository,
+                            YeuCauDonRepository yeuCauDonRepository,
+                            ChiTietYeuCauDonRepository chiTietYeuCauDonRepository) {
         this.khachHangRepository = khachHangRepository;
         this.passwordEncoder = passwordEncoder;
+        this.danhGiaRepository = danhGiaRepository;
+        this.yeuThichRepository = yeuThichRepository;
+        this.yeuCauDonRepository = yeuCauDonRepository;
+        this.chiTietYeuCauDonRepository = chiTietYeuCauDonRepository;
     }
 
     @Transactional
@@ -90,6 +108,25 @@ public class KhachHangService {
 
     @Transactional
     public void xoaKhachHang(Integer id) {
+        // 1. Xóa đánh giá của khách hàng
+        danhGiaRepository.deleteAll(danhGiaRepository.findByMaTaiKhoan(id));
+
+        // 2. Xóa danh sách yêu thích
+        yeuThichRepository.deleteAll(yeuThichRepository.findByMaTaiKhoan(id));
+
+        // 3. Xóa chi tiết đơn hàng, sau đó xóa đơn hàng
+        List<YeuCauDon> donHangs = yeuCauDonRepository.findByMaTaiKhoan(id);
+        for (YeuCauDon don : donHangs) {
+            chiTietYeuCauDonRepository.deleteAll(
+                chiTietYeuCauDonRepository.findByMaDonHangAndIdRestaurant(
+                    don.getId().getMaDonHang(),
+                    don.getId().getIdRestaurant()
+                )
+            );
+        }
+        yeuCauDonRepository.deleteAll(donHangs);
+
+        // 4. Cuối cùng xóa khách hàng
         khachHangRepository.deleteById(id);
     }
 

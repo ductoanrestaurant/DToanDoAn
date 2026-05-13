@@ -78,4 +78,9 @@ public interface ChiTietYeuCauDonRepository extends JpaRepository<ChiTietYeuCauD
       "GROUP BY c.id.maSanPham, c.sanPham.tenSanPham " +
       "ORDER BY total DESC, avgRating DESC")
   List<Object[]> findTopSanPham(Pageable pageable);
+
+  @Query("SELECT c FROM ChiTietYeuCauDon c WHERE c.id.maDonHang = :maDonHang AND c.id.idRestaurant = :idRestaurant")
+  List<ChiTietYeuCauDon> findByMaDonHangAndIdRestaurant(
+      @Param("maDonHang") Integer maDonHang,
+      @Param("idRestaurant") Integer idRestaurant);
 }
