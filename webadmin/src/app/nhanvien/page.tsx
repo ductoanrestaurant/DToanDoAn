@@ -80,7 +80,7 @@ const NhanVienPage = () => {
 
         {loading && <p className="text-center text-gray-500">Đang tải dữ liệu...</p>}
         {error && <p className="text-center text-red-500 bg-red-100 p-3 rounded-lg">{error}</p>}
-        
+
         {!loading && !error && (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
