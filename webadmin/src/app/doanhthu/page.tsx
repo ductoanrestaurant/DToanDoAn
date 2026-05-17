@@ -211,7 +211,9 @@ export default function DoanhThuPage() {
     const revenueChartData = revenueChartView === 'monthly' ? monthlyRevenueData : dailyRevenueData;
     const revenueChartTitle = revenueChartView === 'monthly' ? 'Biểu đồ doanh thu hàng tháng' : 'Biểu đồ doanh thu hàng ngày';
 
-    const doanhThuHomNay = dailyRevenueData.length > 0 ? dailyRevenueData[dailyRevenueData.length - 1].value : 0;
+    const todayDayOfWeek = new Date().getDay(); // 0=CN, 1=T2,..., 6=T7
+    const todayIndex = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1; // T2=0,...,CN=6
+    const doanhThuHomNay = dailyRevenueData.length > todayIndex ? dailyRevenueData[todayIndex].value : 0;
     const doanhThuThangNay = monthlyRevenueData[new Date().getMonth()]?.value ?? 0;
     const formatVnd = (n: number) => n.toLocaleString('vi-VN') + 'đ';
 
