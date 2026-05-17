@@ -3,195 +3,227 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { DollarSign, Moon, LogOut, ArrowUp, ArrowDown, ShoppingCart, TrendingUp, Star } from 'lucide-react';
+import { DollarSign, Moon, LogOut, ShoppingCart, TrendingUp, Star } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import api from '@/constants/api';
 
-// --- Types and Helpers ---
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface YeuCauDon {
+    id: { maDonHang: number; idRestaurant: number };
+    trangThaiThanhToan: string | null;
+    thoiGianThanhToan: string | null; // ISO datetime
+    ngayTaoDon: string | null;        // ISO datetime
+    tongTien: number | null;
+    maTaiKhoan: number | null;
+}
+
 interface TopSanPhamDTO {
     maSanPham: number;
     tenSanPham: string;
     soLuotBan: number;
     saoDanhGia: number;
 }
-// --- Helpers: format API revenue for charts ---
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const MONTH_NAMES = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+                     'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
 
-const MONTH_NAMES = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
-
-function formatMonthlyRevenueFromApi(raw: { month?: string; total?: number }[]): { name: string; value: number }[] {
-    const currentYear = new Date().getFullYear();
-    const byMonth = new Map<number, number>();
-    if (Array.isArray(raw)) {
-        raw.forEach((x) => {
-            const monthStr = x.month as string;
-            const total = Number(x.total) || 0;
-            if (!monthStr) return;
-            const [y, m] = monthStr.split('-').map(Number);
-            if (y === currentYear && m >= 1 && m <= 12) byMonth.set(m, total);
-        });
-    }
-    return MONTH_NAMES.map((name, index) => ({
-        name,
-        value: byMonth.get(index + 1) || 0,
-    }));
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+/** Lấy chuỗi date "YYYY-MM-DD" theo múi giờ local */
+function toLocalDateStr(isoStr: string | null): string {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
 
-function formatDailyDataFromApi(raw: { day?: string; value?: number }[]): { name: string; value: number }[] {
-    const byDay = new Map<string, number>();
-    if (Array.isArray(raw)) {
-        raw.forEach((x) => {
-            const d = x.day as string;
-            const value = Number(x.value) || 0;
-            if (d) byDay.set(d, value);
-        });
-    }
+/** Trả về "YYYY-MM-DD" của hôm nay */
+function todayStr(): string {
+    return toLocalDateStr(new Date().toISOString());
+}
 
+/** Trả về "YYYY-MM" của tháng hiện tại */
+function thisMonthStr(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Từ danh sách đơn hàng đã thanh toán → mảng 12 tháng doanh thu năm nay
+ */
+function buildMonthlyRevenue(orders: YeuCauDon[]): { name: string; value: number }[] {
+    const currentYear = new Date().getFullYear();
+    const byMonth = new Array<number>(12).fill(0);
+    orders.forEach((o) => {
+        const dateStr = toLocalDateStr(o.thoiGianThanhToan || o.ngayTaoDon);
+        if (!dateStr) return;
+        const [y, m] = dateStr.split('-').map(Number);
+        if (y === currentYear && m >= 1 && m <= 12) {
+            byMonth[m - 1] += o.tongTien ?? 0;
+        }
+    });
+    return MONTH_NAMES.map((name, i) => ({ name, value: byMonth[i] }));
+}
+
+/**
+ * Từ danh sách đơn hàng đã thanh toán → mảng 7 ngày trong tuần hiện tại (T2→CN)
+ */
+function buildWeeklyRevenue(orders: YeuCauDon[]): { name: string; value: number }[] {
     const today = new Date();
-    const startOfWeek = new Date(today);
-    const dayOfWeek = today.getDay(); // Sunday is 0, Monday is 1, etc.
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday is the start of the week
-    startOfWeek.setDate(today.getDate() - diff);
-    startOfWeek.setHours(0, 0, 0, 0);
+    const dow = today.getDay();
+    const diff = dow === 0 ? 6 : dow - 1; // T2 = đầu tuần
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - diff);
+    monday.setHours(0, 0, 0, 0);
+
+    const byDay = new Map<string, number>();
+    orders.forEach((o) => {
+        const dateStr = toLocalDateStr(o.thoiGianThanhToan || o.ngayTaoDon);
+        if (dateStr) byDay.set(dateStr, (byDay.get(dateStr) ?? 0) + (o.tongTien ?? 0));
+    });
 
     const result: { name: string; value: number }[] = [];
-    const cur = new Date(startOfWeek);
-
+    const cur = new Date(monday);
     for (let i = 0; i < 7; i++) {
-        const key = cur.toISOString().slice(0, 10);
+        const key = toLocalDateStr(cur.toISOString());
         const dayIndex = cur.getDay() === 0 ? 6 : cur.getDay() - 1;
-        result.push({ name: DAY_LABELS[dayIndex], value: byDay.get(key) || 0 });
+        result.push({ name: DAY_LABELS[dayIndex], value: byDay.get(key) ?? 0 });
         cur.setDate(cur.getDate() + 1);
     }
-
     return result;
 }
 
-
-// --- Types and Helpers ---
-interface MonthlyStat {
-    month: number;
-    orderCount: number;
+/**
+ * Từ danh sách đơn hàng → mảng 12 tháng số lượng đơn năm nay
+ */
+function buildMonthlyOrderCount(orders: YeuCauDon[]): { name: string; value: number }[] {
+    const currentYear = new Date().getFullYear();
+    const byMonth = new Array<number>(12).fill(0);
+    orders.forEach((o) => {
+        const dateStr = toLocalDateStr(o.ngayTaoDon || o.thoiGianThanhToan);
+        if (!dateStr) return;
+        const [y, m] = dateStr.split('-').map(Number);
+        if (y === currentYear && m >= 1 && m <= 12) byMonth[m - 1]++;
+    });
+    return MONTH_NAMES.map((name, i) => ({ name, value: byMonth[i] }));
 }
 
-const formatMonthlyOrderData = (stats: MonthlyStat[]) => {
-    const monthNames = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
-    const statsMap = new Map(stats.map(stat => [stat.month, stat.orderCount]));
-    return monthNames.map((name, index) => ({
-        name: name,
-        value: statsMap.get(index + 1) || 0,
-    }));
-};
+/**
+ * Từ danh sách đơn hàng → mảng 7 ngày trong tuần hiện tại (T2→CN), đếm số đơn
+ */
+function buildWeeklyOrderCount(orders: YeuCauDon[]): { name: string; value: number }[] {
+    const today = new Date();
+    const dow = today.getDay();
+    const diff = dow === 0 ? 6 : dow - 1;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - diff);
+    monday.setHours(0, 0, 0, 0);
+
+    const byDay = new Map<string, number>();
+    orders.forEach((o) => {
+        const dateStr = toLocalDateStr(o.ngayTaoDon || o.thoiGianThanhToan);
+        if (dateStr) byDay.set(dateStr, (byDay.get(dateStr) ?? 0) + 1);
+    });
+
+    const result: { name: string; value: number }[] = [];
+    const cur = new Date(monday);
+    for (let i = 0; i < 7; i++) {
+        const key = toLocalDateStr(cur.toISOString());
+        const dayIndex = cur.getDay() === 0 ? 6 : cur.getDay() - 1;
+        result.push({ name: DAY_LABELS[dayIndex], value: byDay.get(key) ?? 0 });
+        cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+}
 
 type ChartView = 'monthly' | 'daily';
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function DoanhThuPage() {
     const router = useRouter();
-    
-    // State for chart views
+
     const [revenueChartView, setRevenueChartView] = useState<ChartView>('monthly');
-    const [orderChartView, setOrderChartView] = useState<ChartView>('monthly');
+    const [orderChartView, setOrderChartView]     = useState<ChartView>('monthly');
 
-    // State for chart data
-    const [monthlyOrderData, setMonthlyOrderData] = useState<{name: string, value: number}[]>([]);
-    const [dailyOrderData, setDailyOrderData] = useState<{name: string, value: number}[]>([]);
     const [monthlyRevenueData, setMonthlyRevenueData] = useState<{ name: string; value: number }[]>([]);
-    const [dailyRevenueData, setDailyRevenueData] = useState<{ name: string; value: number }[]>([]);
-    const [tongDonHomNay, setTongDonHomNay] = useState<number>(0);
-    const [tongDonThangNay, setTongDonThangNay] = useState<number>(0);
-    const [topProducts, setTopProducts] = useState<TopSanPhamDTO[]>([]);
+    const [weeklyRevenueData,  setWeeklyRevenueData]  = useState<{ name: string; value: number }[]>([]);
+    const [monthlyOrderData,   setMonthlyOrderData]   = useState<{ name: string; value: number }[]>([]);
+    const [weeklyOrderData,    setWeeklyOrderData]    = useState<{ name: string; value: number }[]>([]);
 
+    const [doanhThuHomNay,  setDoanhThuHomNay]  = useState<number>(0);
+    const [doanhThuThangNay, setDoanhThuThangNay] = useState<number>(0);
+    const [tongDonHomNay,   setTongDonHomNay]   = useState<number>(0);
+    const [tongDonThangNay, setTongDonThangNay] = useState<number>(0);
+
+    const [topProducts, setTopProducts] = useState<TopSanPhamDTO[]>([]);
 
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
-        if (!token) {
-            router.push('/login');
-            return;
-        }
+        if (!token) { router.push('/login'); return; }
 
-        const fetchMonthlyOrderData = async () => {
+        const fetchAll = async () => {
             try {
-                const response = await api.get('/yeu-cau-don/stats/orders-by-month');
-                if (response.status === 200) {
-                    const formattedData = formatMonthlyOrderData(response.data);
-                    setMonthlyOrderData(formattedData);
-                }
-            } catch (error) {
-                console.error("Failed to fetch monthly order data:", error);
-            }
-        };
-
-        const fetchDailyOrderData = async () => {
-            try {
-                const response = await api.get('/yeu-cau-don/stats/orders-by-day');
-                if (response.status === 200 && Array.isArray(response.data)) {
-                    const formattedData = response.data.map(item => ({
-                        day: item.day,
-                        value: Number(item.ordercount) || 0
-                    }));
-                    setDailyOrderData(formatDailyDataFromApi(formattedData));
-                }
-            } catch (error) {
-                console.error("Failed to fetch daily order data:", error);
-            }
-        };
-
-        const fetchRevenueData = async () => {
-            try {
-                const [monthRes, dayRes] = await Promise.all([
-                    api.get('/yeu-cau-don/doanh-thu-thang'),
-                    api.get('/yeu-cau-don/doanh-thu-ngay'),
-                ]);
-                if (monthRes.status === 200 && Array.isArray(monthRes.data)) {
-                    setMonthlyRevenueData(formatMonthlyRevenueFromApi(monthRes.data));
-                }
-                if (dayRes.status === 200 && Array.isArray(dayRes.data)) {
-                    const formattedData = dayRes.data.map(item => ({
-                        day: item.day,
-                        value: Number(item.total) || 0
-                    }));
-                    setDailyRevenueData(formatDailyDataFromApi(formattedData));
-                }
-            } catch (error) {
-                console.error("Failed to fetch revenue data:", error);
-            }
-        };
-
-        const fetchOrderCountData = async () => {
-            try {
-                const [todayRes, monthRes] = await Promise.all([
-                    api.get('/yeu-cau-don/tong-don-hom-nay'),
-                    api.get('/yeu-cau-don/tong-don-thang-nay'),
+                // Gọi 1 API lấy toàn bộ đơn hàng + API top sản phẩm (không thể tổng hợp ở FE)
+                const [ordersRes, topRes] = await Promise.all([
+                    api.get<YeuCauDon[]>('/yeu-cau-don'),
+                    api.get<TopSanPhamDTO[]>('/yeu-cau-don/top-san-pham'),
                 ]);
 
-                if (todayRes.status === 200) {
-                    setTongDonHomNay(typeof todayRes.data === 'number' ? todayRes.data : Number(todayRes.data) || 0);
+                if (topRes.status === 200 && Array.isArray(topRes.data)) {
+                    setTopProducts(topRes.data);
                 }
 
-                if (monthRes.status === 200) {
-                    setTongDonThangNay(typeof monthRes.data === 'number' ? monthRes.data : Number(monthRes.data) || 0);
-                }
+                if (ordersRes.status !== 200 || !Array.isArray(ordersRes.data)) return;
+
+                const allOrders: YeuCauDon[] = ordersRes.data;
+
+                // ── Chỉ tính doanh thu từ đơn ĐÃ THANH TOÁN ──────────────
+                const paidOrders = allOrders.filter(
+                    (o) => o.trangThaiThanhToan?.toLowerCase().includes('đã thanh toán')
+                );
+
+                const today   = todayStr();
+                const thisMonth = thisMonthStr();
+
+                // Doanh thu & đơn hôm nay
+                const paidToday = paidOrders.filter(
+                    (o) => toLocalDateStr(o.thoiGianThanhToan || o.ngayTaoDon) === today
+                );
+                setDoanhThuHomNay(paidToday.reduce((s, o) => s + (o.tongTien ?? 0), 0));
+                setTongDonHomNay(
+                    allOrders.filter((o) => toLocalDateStr(o.ngayTaoDon || o.thoiGianThanhToan) === today).length
+                );
+
+                // Doanh thu & đơn tháng này
+                const paidThisMonth = paidOrders.filter((o) => {
+                    const ds = toLocalDateStr(o.thoiGianThanhToan || o.ngayTaoDon);
+                    return ds.startsWith(thisMonth);
+                });
+                setDoanhThuThangNay(paidThisMonth.reduce((s, o) => s + (o.tongTien ?? 0), 0));
+                setTongDonThangNay(
+                    allOrders.filter((o) => {
+                        const ds = toLocalDateStr(o.ngayTaoDon || o.thoiGianThanhToan);
+                        return ds.startsWith(thisMonth);
+                    }).length
+                );
+
+                // Biểu đồ doanh thu (chỉ đơn đã thanh toán)
+                setMonthlyRevenueData(buildMonthlyRevenue(paidOrders));
+                setWeeklyRevenueData(buildWeeklyRevenue(paidOrders));
+
+                // Biểu đồ số lượng đơn (tất cả đơn)
+                setMonthlyOrderData(buildMonthlyOrderCount(allOrders));
+                setWeeklyOrderData(buildWeeklyOrderCount(allOrders));
+
             } catch (error) {
-                console.error("Failed to fetch order count data:", error);
+                console.error('Lỗi khi tải dữ liệu doanh thu:', error);
             }
         };
 
-        const fetchTopProducts = async () => {
-            try {
-                const response = await api.get('/yeu-cau-don/top-san-pham');
-                if (response.status === 200 && Array.isArray(response.data)) {
-                    setTopProducts(response.data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch top products:", error);
-            }
-        };
-
-        fetchMonthlyOrderData();
-        fetchDailyOrderData();
-        fetchRevenueData();
-        fetchOrderCountData();
-        fetchTopProducts();
+        fetchAll();
     }, [router]);
 
     const handleLogout = () => {
@@ -207,18 +239,15 @@ export default function DoanhThuPage() {
         );
     }
 
-    // --- Chart Logic & derived revenue for cards ---
-    const revenueChartData = revenueChartView === 'monthly' ? monthlyRevenueData : dailyRevenueData;
-    const revenueChartTitle = revenueChartView === 'monthly' ? 'Biểu đồ doanh thu hàng tháng' : 'Biểu đồ doanh thu hàng ngày';
-
-    const todayDayOfWeek = new Date().getDay(); // 0=CN, 1=T2,..., 6=T7
-    const todayIndex = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1; // T2=0,...,CN=6
-    const doanhThuHomNay = dailyRevenueData.length > todayIndex ? dailyRevenueData[todayIndex].value : 0;
-    const doanhThuThangNay = monthlyRevenueData[new Date().getMonth()]?.value ?? 0;
     const formatVnd = (n: number) => n.toLocaleString('vi-VN') + 'đ';
 
-    const orderChartData = orderChartView === 'monthly' ? monthlyOrderData : dailyOrderData;
-    const orderChartTitle = orderChartView === 'monthly' ? 'Biểu đồ số lượng đơn hàng (Theo tháng)' : 'Biểu đồ số lượng đơn hàng (Theo ngày)';
+    const revenueChartData  = revenueChartView === 'monthly' ? monthlyRevenueData : weeklyRevenueData;
+    const revenueChartTitle = revenueChartView === 'monthly' ? 'Biểu đồ doanh thu hàng tháng' : 'Biểu đồ doanh thu hàng ngày';
+
+    const orderChartData  = orderChartView === 'monthly' ? monthlyOrderData : weeklyOrderData;
+    const orderChartTitle = orderChartView === 'monthly'
+        ? 'Biểu đồ số lượng đơn hàng (Theo tháng)'
+        : 'Biểu đồ số lượng đơn hàng (Theo ngày)';
 
     return (
         <div className="flex bg-[#f1f5f9] min-h-screen font-sans">
@@ -251,10 +280,6 @@ export default function DoanhThuPage() {
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{formatVnd(doanhThuHomNay)}</p>
-                        {/*<div className="flex items-center text-sm text-green-500 mt-2">*/}
-                        {/*    <ArrowUp size={16} className="mr-1" />*/}
-                        {/*    <span>15% so với hôm qua</span>*/}
-                        {/*</div>*/}
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
@@ -264,10 +289,6 @@ export default function DoanhThuPage() {
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{tongDonHomNay}</p>
-                        {/*<div className="flex items-center text-sm text-green-500 mt-2">*/}
-                        {/*    <ArrowUp size={16} className="mr-1" />*/}
-                        {/*    <span>5% so với hôm qua</span>*/}
-                        {/*</div>*/}
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
@@ -277,23 +298,15 @@ export default function DoanhThuPage() {
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{formatVnd(doanhThuThangNay)}</p>
-                        {/*<div className="flex items-center text-sm text-green-500 mt-2">*/}
-                        {/*    <ArrowUp size={16} className="mr-1" />*/}
-                        {/*    <span>8% so với tháng trước</span>*/}
-                        {/*</div>*/}
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                             <h3 className="text-gray-500 text-base font-medium">Tổng đơn tháng này</h3>
                             <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
-                                <ShoppingCart size={30}/>
+                                <ShoppingCart size={30} />
                             </div>
                         </div>
                         <p className="text-3xl font-bold text-gray-800 mt-2">{tongDonThangNay}</p>
-                        {/*<div className="flex items-center text-sm text-red-500 mt-2">*/}
-                        {/*    <ArrowDown size={16} className="mr-1" />*/}
-                        {/*    <span>-2% so với tháng trước</span>*/}
-                        {/*</div>*/}
                     </div>
                 </div>
 
@@ -304,7 +317,7 @@ export default function DoanhThuPage() {
                             <h3 className="font-bold text-lg text-gray-800">{revenueChartTitle}</h3>
                             <div className="flex gap-2">
                                 <button onClick={() => setRevenueChartView('monthly')} className={`px-4 py-2 rounded-lg text-sm font-medium ${revenueChartView === 'monthly' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}>Hàng tháng</button>
-                                <button onClick={() => setRevenueChartView('daily')} className={`px-4 py-2 rounded-lg text-sm font-medium ${revenueChartView === 'daily' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}>Hàng ngày</button>
+                                <button onClick={() => setRevenueChartView('daily')}   className={`px-4 py-2 rounded-lg text-sm font-medium ${revenueChartView === 'daily'   ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}>Hàng ngày</button>
                             </div>
                         </div>
                         <div className="h-80">
@@ -313,8 +326,8 @@ export default function DoanhThuPage() {
                                     <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8884d8" stopOpacity={0.3}/><stop offset="95%" stopColor="#8884d8" stopOpacity={0}/></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} tickFormatter={(value) => `${(value as number / 1000000)}M`} />
-                                    <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value == null ? null : [value.toLocaleString('vi-VN') + 'đ', 'Doanh thu']} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} tickFormatter={(v) => `${(v as number / 1000000)}M`} />
+                                    <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value == null ? null : [Number(value).toLocaleString('vi-VN') + 'đ', 'Doanh thu']} />
                                     <Area type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                                 </AreaChart>
                             </ResponsiveContainer>
@@ -355,7 +368,7 @@ export default function DoanhThuPage() {
                         <h3 className="font-bold text-lg text-gray-800">{orderChartTitle}</h3>
                         <div className="flex gap-2">
                             <button onClick={() => setOrderChartView('monthly')} className={`px-4 py-2 rounded-lg text-sm font-medium ${orderChartView === 'monthly' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}>Hàng tháng</button>
-                            <button onClick={() => setOrderChartView('daily')} className={`px-4 py-2 rounded-lg text-sm font-medium ${orderChartView === 'daily' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}>Hàng ngày</button>
+                            <button onClick={() => setOrderChartView('daily')}   className={`px-4 py-2 rounded-lg text-sm font-medium ${orderChartView === 'daily'   ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}>Hàng ngày</button>
                         </div>
                     </div>
                     <div className="h-80">
