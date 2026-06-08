@@ -10,6 +10,8 @@
 ## 🚀 Các thành phần chính
 
 *   **`mobile`**: Một ứng dụng di động React Native (Expo) cho phép khách hàng xem thực đơn, đặt hàng và cho phép nhân viên (Quản lý, Thu ngân) thực hiện các tác vụ nhanh.
+*   **`webadmin`**: Giao diện web bằng Next.js giúp nhà hàng quản lý các nghiệp vụ của nhà hàng theo quyền của tải khoản.
+*   **`Backend`**: Cung cấp các APi cho cả mobile và webadmin, CSDL được lưu trên PostgreSql và được đóng gói trên Docker
 
 ---
 
