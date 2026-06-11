@@ -212,38 +212,7 @@ export default function DonHangPage() {
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Đơn hàng</h1>
           <div className="flex flex-wrap items-center gap-4">
-            <select
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value as 'all' | 'today')}
-              className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="today">Hôm nay</option>
-              <option value="all">Tất cả thời gian</option>
-            </select>
 
-            <select
-              value={filterPaymentStatus}
-              onChange={(e) => setFilterPaymentStatus(e.target.value)}
-              className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="all">Tất cả trạng thái thanh toán</option>
-              <option value="đã thanh toán">Đã thanh toán</option>
-              <option value="chưa thanh toán">Chưa thanh toán</option>
-            </select>
-
-            <select
-              value={filterOrderStatus}
-              onChange={(e) => setFilterOrderStatus(e.target.value)}
-              className="px-4 py-3 bg-white rounded-xl shadow-sm text-gray-600 font-medium hover:bg-gray-50 transition border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="all">Tất cả trạng thái đơn</option>
-              <option value="hoàn thành">Hoàn thành</option>
-              <option value="đã chế biến">Đã chế biến</option>
-              <option value="đã hủy">Đã hủy</option>
-              <option value="chờ xác nhận">Chờ xác nhận</option>
-              <option value="đang chế biến">Đang chế biến</option>
-              <option value="đã checkin">Đã checkin</option>
-            </select>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
