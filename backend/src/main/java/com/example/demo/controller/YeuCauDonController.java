@@ -6,7 +6,10 @@ import com.example.demo.entity.YeuCauDon;
 import com.example.demo.service.ChiTietYeuCauDonService;
 import com.example.demo.service.YeuCauDonService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +28,17 @@ public class YeuCauDonController {
 
     @Autowired
     private YeuCauDonService yeuCauDonService;
+
+
+//phan trang
+    @GetMapping("/restaurant/{id}/paged")
+    @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN', 'BEP')")
+    public ResponseEntity<Page<YeuCauDon>> getYeuCauDonByRestaurant(
+            @PathVariable Integer id,
+            @PageableDefault(size = 10, sort = "ngayTaoDon", direction = org.springframework.data.domain.Sort.Direction.DESC) org.springframework.data.domain.Pageable pageable){
+        Page<YeuCauDon> page = yeuCauDonService.findByIdRestaurant(id, pageable);
+        return ResponseEntity.ok(page);
+    }
 
     @Autowired
     private ChiTietYeuCauDonService chiTietYeuCauDonService;

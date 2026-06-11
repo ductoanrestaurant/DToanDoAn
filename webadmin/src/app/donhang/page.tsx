@@ -94,6 +94,9 @@ export default function DonHangPage() {
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('all');
   const [filterOrderStatus, setFilterOrderStatus] = useState<string>('all');
   const [searchPhone, setSearchPhone] = useState('');
+  const [currentPage, setCurrentPage] = useState(0); // trang hien tai, bat dau tu 0
+  const [totalPages, setTotalPages] = useState(0); // tong so trang
+  const ITEMS_PER_PAGE = 10 // so luong item trong 1 trang
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -104,13 +107,23 @@ export default function DonHangPage() {
 
     const fetchOrders = async () => {
       try {
-        const response = await api.get('/yeu-cau-don');
+        const RESTAURANT_ID = 1;
+        const response = await api.get(`/yeu-cau-don/restaurant/${RESTAURANT_ID}/paged`,
+            {
+          params:{
+            page: currentPage,
+                size:ITEMS_PER_PAGE,
+                sort: 'ngayTaoDon,desc'
+          }
+        });
 
         if (response.status !== 200) {
           throw new Error('Failed to fetch orders');
         }
 
-        setOrders(response.data);
+        setOrders(response.data.content);
+        setTotalPages(response.data.totalPages);
+
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -123,7 +136,7 @@ export default function DonHangPage() {
     };
 
     fetchOrders();
-  }, [router]);
+  }, [router, currentPage]);
 
   if (loading) {
     return (
@@ -260,8 +273,8 @@ export default function DonHangPage() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {filteredOrders.length > 0 ? (
-                  filteredOrders.map((order) => {
+                {orders.length > 0 ? (
+                    orders.map((order) => {
                     const orderStatusInfo = getOrderStatusInfo(order.chiTietYeuCauDons);
                     return (
                       <tr key={order.id.maDonHang} className="border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition">
@@ -323,6 +336,27 @@ export default function DonHangPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="flex justify-center items-center mt-6 gap-4">
+            <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+                disabled={currentPage === 0}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trang trước
+            </button>
+            <span className="text-gray-700 font-medium">
+              Trang {currentPage + 1} / {totalPages}
+            </span>
+            <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
+                disabled={currentPage >= totalPages - 1}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trang sau
+            </button>
+          </div>
+
           <div className="flex justify-between items-center mt-6">
             <p className="text-sm text-gray-500">Hiển thị 1 đến {filteredOrders.length} của {filteredOrders.length} kết quả</p>
             <div className="flex items-center gap-2">

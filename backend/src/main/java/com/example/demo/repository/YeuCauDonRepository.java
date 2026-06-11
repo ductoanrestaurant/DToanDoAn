@@ -5,6 +5,8 @@ import com.example.demo.entity.YeuCauDonId;
 
 import jakarta.persistence.LockModeType;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +22,10 @@ import java.util.Optional;
 public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonId> {
         @Query("SELECT y FROM YeuCauDon y WHERE y.id.idRestaurant = :idRestaurant")
         List<YeuCauDon> findByIdRestaurant(Integer idRestaurant);
+
+        // phan trang
+        @Query("SELECT y FROM YeuCauDon y WHERE y.id.idRestaurant = :idRestaurant")
+        Page<YeuCauDon> findByIdRestaurant(Integer idRestaurant, Pageable pageable);
 
         @Query("SELECT y FROM YeuCauDon y WHERE y.maTaiKhoan = :maTaiKhoan")
         List<YeuCauDon> findByMaTaiKhoan(Integer maTaiKhoan);

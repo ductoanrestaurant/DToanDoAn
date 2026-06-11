@@ -9,6 +9,8 @@ import com.example.demo.repository.ChiTietYeuCauDonRepository;
 import com.example.demo.repository.YeuCauDonRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,11 @@ public class YeuCauDonService {
 
     @Autowired
     private YeuCauDonRepository yeuCauDonRepository;
+
+    //phan trang
+    public Page<YeuCauDon> findByIdRestaurant(Integer idRestaurant, Pageable pageable){
+        return yeuCauDonRepository.findByIdRestaurant(idRestaurant, pageable);
+    }
 
     @Autowired
     private ChiTietYeuCauDonService chiTietYeuCauDonService;
