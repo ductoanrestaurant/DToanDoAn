@@ -23,6 +23,17 @@ public interface YeuCauDonRepository extends JpaRepository<YeuCauDon, YeuCauDonI
         @Query("SELECT y FROM YeuCauDon y WHERE y.id.idRestaurant = :idRestaurant")
         List<YeuCauDon> findByIdRestaurant(Integer idRestaurant);
 
+
+        // loc don theo 4 so cuoi đt
+        @Query("SELECT y FROM YeuCauDon y JOIN y.khachHang kh " +
+                "WHERE y.id.idRestaurant = :idRestaurant " +
+                "AND (:sdt IS NULL OR kh.sdt LIKE %:sdt%)")
+        Page<YeuCauDon> findByIdRestaurantAndKhachHangSdt(
+                @Param("idRestaurant") Integer idRestaurant,
+                @Param("sdt") String sdt,
+                Pageable pageable
+        );
+
         // phan trang
         @Query("SELECT y FROM YeuCauDon y WHERE y.id.idRestaurant = :idRestaurant")
         Page<YeuCauDon> findByIdRestaurant(Integer idRestaurant, Pageable pageable);

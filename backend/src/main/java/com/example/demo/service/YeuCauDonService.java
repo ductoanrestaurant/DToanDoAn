@@ -30,6 +30,12 @@ public class YeuCauDonService {
         return yeuCauDonRepository.findByIdRestaurant(idRestaurant, pageable);
     }
 
+    // tim kiem theo 4 so cuoi sdt
+    public Page<YeuCauDon> findByIdRestaurantAndSdt(Integer idRestaurant, String sdt, Pageable pageable) {
+        String searchSdt = (sdt != null && !sdt.trim().isEmpty()) ? sdt.trim() : null;
+        return yeuCauDonRepository.findByIdRestaurantAndKhachHangSdt(idRestaurant, searchSdt, pageable);
+    }
+
     @Autowired
     private ChiTietYeuCauDonService chiTietYeuCauDonService;
 

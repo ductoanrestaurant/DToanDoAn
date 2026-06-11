@@ -35,8 +35,9 @@ public class YeuCauDonController {
     @PreAuthorize("hasAnyRole('QUAN_LY', 'THU_NGAN', 'BEP')")
     public ResponseEntity<Page<YeuCauDon>> getYeuCauDonByRestaurant(
             @PathVariable Integer id,
+            @RequestParam(name = "sdt", required = false) String sdt,
             @PageableDefault(size = 10, sort = "ngayTaoDon", direction = org.springframework.data.domain.Sort.Direction.DESC) org.springframework.data.domain.Pageable pageable){
-        Page<YeuCauDon> page = yeuCauDonService.findByIdRestaurant(id, pageable);
+        Page<YeuCauDon> page = yeuCauDonService.findByIdRestaurantAndSdt(id,sdt, pageable);
         return ResponseEntity.ok(page);
     }
 

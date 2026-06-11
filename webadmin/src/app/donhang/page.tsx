@@ -90,7 +90,7 @@ export default function DonHangPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState<'all' | 'today'>('today');
+  const [filterDate, setFilterDate] = useState<'all' | 'today'>('all');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>('all');
   const [filterOrderStatus, setFilterOrderStatus] = useState<string>('all');
   const [searchPhone, setSearchPhone] = useState('');
@@ -113,7 +113,8 @@ export default function DonHangPage() {
           params:{
             page: currentPage,
                 size:ITEMS_PER_PAGE,
-                sort: 'ngayTaoDon,desc'
+                sort: 'ngayTaoDon,desc',
+                sdt: searchPhone
           }
         });
 
@@ -136,7 +137,7 @@ export default function DonHangPage() {
     };
 
     fetchOrders();
-  }, [router, currentPage]);
+  }, [router, currentPage,searchPhone]);
 
   if (loading) {
     return (
@@ -154,50 +155,55 @@ export default function DonHangPage() {
     );
   }
 
-  const filteredOrders = orders.filter(order => {
-    // Filter by date
-    let dateMatch = true;
-    if (filterDate === 'today') {
-      if (!order.ngayTaoDon) {
-        dateMatch = false;
-      } else {
-        const orderDate = new Date(order.ngayTaoDon);
-        const today = new Date();
-        dateMatch = (
-          orderDate.getDate() === today.getDate() &&
-          orderDate.getMonth() === today.getMonth() &&
-          orderDate.getFullYear() === today.getFullYear()
-        );
-      }
-    }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchPhone(e.target.value);
+    setCurrentPage(0); // Reset về trang đầu tiên
+  };
 
-    // Filter by phone number (4 số cuối, chỉ lấy chữ số)
-    let phoneMatch = true;
-    const keyword = searchPhone.trim();
-    if (keyword !== '') {
-      const phoneRaw = order.khachHang?.sdt || '';
-      const phoneDigits = phoneRaw.replace(/\D/g, '');
-      const last4 = phoneDigits.slice(-4);
-      const keywordDigits = keyword.replace(/\D/g, '');
-      phoneMatch = last4 === keywordDigits;
-    }
-
-    // Filter by payment status
-    let paymentMatch = true;
-    if (filterPaymentStatus !== 'all') {
-      const pStatus = (order.trangThaiThanhToan || '').toLowerCase();
-      paymentMatch = pStatus === filterPaymentStatus.toLowerCase();
-    }
-
-    // Filter by order status
-    let orderStatusMatch = true;
-    if (filterOrderStatus !== 'all') {
-      const oStatus = getOrderStatusInfo(order.chiTietYeuCauDons).text.toLowerCase();
-      orderStatusMatch = oStatus === filterOrderStatus.toLowerCase();
-    }
-
-    return dateMatch && phoneMatch && paymentMatch && orderStatusMatch;
-  });
+  // const filteredOrders = orders.filter(order => {
+  //   // Filter by date
+  //   let dateMatch = true;
+  //   if (filterDate === 'today') {
+  //     if (!order.ngayTaoDon) {
+  //       dateMatch = false;
+  //     } else {
+  //       const orderDate = new Date(order.ngayTaoDon);
+  //       const today = new Date();
+  //       dateMatch = (
+  //         orderDate.getDate() === today.getDate() &&
+  //         orderDate.getMonth() === today.getMonth() &&
+  //         orderDate.getFullYear() === today.getFullYear()
+  //       );
+  //     }
+  //   }
+  //
+  //   // Filter by phone number (4 số cuối, chỉ lấy chữ số)
+  //   let phoneMatch = true;
+  //   const keyword = searchPhone.trim();
+  //   if (keyword !== '') {
+  //     const phoneRaw = order.khachHang?.sdt || '';
+  //     const phoneDigits = phoneRaw.replace(/\D/g, '');
+  //     const last4 = phoneDigits.slice(-4);
+  //     const keywordDigits = keyword.replace(/\D/g, '');
+  //     phoneMatch = last4 === keywordDigits;
+  //   }
+  //
+  //   // Filter by payment status
+  //   let paymentMatch = true;
+  //   if (filterPaymentStatus !== 'all') {
+  //     const pStatus = (order.trangThaiThanhToan || '').toLowerCase();
+  //     paymentMatch = pStatus === filterPaymentStatus.toLowerCase();
+  //   }
+  //
+  //   // Filter by order status
+  //   let orderStatusMatch = true;
+  //   if (filterOrderStatus !== 'all') {
+  //     const oStatus = getOrderStatusInfo(order.chiTietYeuCauDons).text.toLowerCase();
+  //     orderStatusMatch = oStatus === filterOrderStatus.toLowerCase();
+  //   }
+  //
+  //   return dateMatch && phoneMatch && paymentMatch && orderStatusMatch;
+  // });
 
   return (
     <div className="flex bg-[#f1f5f9] min-h-screen font-sans">
@@ -244,7 +250,7 @@ export default function DonHangPage() {
                 type="text"
                 placeholder="Nhập 4 số cuối SĐT..."
                 value={searchPhone}
-                onChange={(e) => setSearchPhone(e.target.value)}
+                onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all placeholder:text-gray-400 font-medium"
               />
             </div>
