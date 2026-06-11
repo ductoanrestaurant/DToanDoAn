@@ -337,34 +337,35 @@ export default function DonHangPage() {
             </table>
           </div>
 
-          <div className="flex justify-center items-center mt-6 gap-4">
+          <div className="flex justify-center items-center mt-8 gap-4">
+            {/* Nút Trang trước */}
             <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
                 disabled={currentPage === 0}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
             >
-              Trang trước
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Trước
             </button>
-            <span className="text-gray-700 font-medium">
-              Trang {currentPage + 1} / {totalPages}
-            </span>
+
+            {/* Hiển thị số trang */}
+            <span className="text-sm text-gray-600">
+    Trang <span className="font-semibold text-gray-900">{currentPage + 1}</span> / <span className="font-semibold text-gray-900">{totalPages}</span>
+  </span>
+
+            {/* Nút Trang sau */}
             <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))}
                 disabled={currentPage >= totalPages - 1}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 disabled:opacity-50 disabled:hover:bg-white disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
             >
-              Trang sau
+              Sau
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
             </button>
-          </div>
-
-          <div className="flex justify-between items-center mt-6">
-            <p className="text-sm text-gray-500">Hiển thị 1 đến {filteredOrders.length} của {filteredOrders.length} kết quả</p>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Trước</button>
-              <button className="px-3 py-1 border rounded-lg bg-blue-600 text-white text-sm">1</button>
-              <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">2</button>
-              <button className="px-3 py-1 border rounded-lg hover:bg-gray-100 text-sm">Sau</button>
-            </div>
           </div>
         </div>
       </main>
